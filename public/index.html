@@ -5186,7 +5186,7 @@ window.__showTest={run:function(items,mode,onClose){SEL=items;SAVED=null;FROMDON
 (function(){
 var G=function(i){return document.getElementById(i)};
 var IC={
- btn:'<svg viewBox="0 0 48 48" aria-hidden="true"><circle cx="24" cy="24" r="21" fill="#fff"/><path d="M19 15l14 9-14 9z" fill="#2a8fd6"/><path d="M5 10q-3 3 0 6M43 10q3 3 0 6M5 32q-3 3 0 6M43 32q3 3 0 6" fill="none" stroke="#ffc531" stroke-width="3" stroke-linecap="round"/></svg>',
+ btn:'<svg viewBox="0 0 48 48" aria-hidden="true"><rect x="7" y="18" width="34" height="22" rx="3" fill="#fff" stroke="#081130" stroke-width="2.6"/><path d="M7 18l2-8 34-4 1 8z" fill="#fff" stroke="#081130" stroke-width="2.6" stroke-linejoin="round"/><path d="M15 9l4 7M24 8l4 7M33 7l4 7" stroke="#081130" stroke-width="2.6"/><path d="M21 24l9 5-9 5z" fill="#2a8fd6"/></svg>',
  back:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M15 5l-7 7 7 7"/></svg>',
  cam:'<svg viewBox="0 0 64 64" aria-hidden="true"><path d="M10 22a5 5 0 0 1 5-5h7l4-6h12l4 6h7a5 5 0 0 1 5 5v24a5 5 0 0 1-5 5H15a5 5 0 0 1-5-5z" fill="#fff" stroke="#081130" stroke-width="3.2" stroke-linejoin="round"/><circle cx="32" cy="33" r="10" fill="#d6ebff" stroke="#081130" stroke-width="3.2"/></svg>',
  silly:'<svg viewBox="0 0 60 60" aria-hidden="true"><circle cx="30" cy="30" r="26" fill="#ffc531" stroke="#081130" stroke-width="3"/><circle cx="21" cy="24" r="6" fill="#fff" stroke="#081130" stroke-width="2.5"/><circle cx="39" cy="22" r="4" fill="#fff" stroke="#081130" stroke-width="2.5"/><circle cx="22" cy="25" r="2.5" fill="#081130"/><circle cx="39" cy="22" r="2" fill="#081130"/><path d="M16 36q14 16 28 0z" fill="#081130"/><path d="M27 44q4 6 8 0" fill="#e5484d"/></svg>',
@@ -5199,7 +5199,7 @@ function hasData(k){try{var o=DX.get(k);return !!(o&&o.steps&&o.steps.length)}ca
 function appURL(k){try{var c=document.createElement("canvas");c.width=c.height=600;var x=c.getContext("2d"),o=DX.get(k),lines=[];x.scale(6,6);x.lineCap="round";x.lineJoin="round";o.steps.forEach(function(st){(st.add||[]).forEach(function(a){if(a.fill){x.fillStyle=a.fill;x.fill(new Path2D(a.d+" "+(a.cut||[]).join(" ")),"evenodd")}else lines.push(a)})});x.strokeStyle="#1c1c1c";lines.forEach(function(a){x.lineWidth=a.w||1.2;x.stroke(new Path2D(a.d))});return c.toDataURL("image/png")}catch(e){return ""}}
 
 /* the finish-screen button */
-function ensureBtn(){var st=document.querySelector("#dn .stg.fin");if(!st)return null;var b=G("funbtn");if(!b){b=document.createElement("button");b.id="funbtn";b.type="button";b.setAttribute("aria-label","Make it move");b.innerHTML=IC.btn+"<span>Make it move</span>";b.onclick=openMim;st.appendChild(b)}return b}
+function ensureBtn(){var st=document.querySelector("#dn .stg.fin");if(!st)return null;var b=G("funbtn");if(!b){b=document.createElement("button");b.id="funbtn";b.type="button";b.setAttribute("aria-label","Make it move");b.innerHTML=IC.btn;b.onclick=openMim;st.appendChild(b)}return b}
 function refresh(){var b=ensureBtn();if(!b)return;var k=curKey(),on=isDraw()&&!!k;b.hidden=!on;b.dataset.kind=on?"draw":"";var dn=G("dn");if(dn)dn.classList.toggle("mimon",on);if(on&&k!==KEY){KEY=k;dropOwn();APPURL=null}}
 function dropOwn(){if(OWNURL)URL.revokeObjectURL(OWNURL);OWN=null;OWNURL=null}
 
@@ -5939,3 +5939,8 @@ function close(){if(!cur)return;try{cur.stop()}catch(e){}if(cur.el)cur.el.remove
 window.SBCam={open:open,close:close};
 })();
 </script>
+<style>/* 24 Oct 2026: Make it move button is a film clapper icon only, no words */
+#funbtn,#fxrow #funbtn{width:76px!important;height:76px!important;padding:0!important;border-radius:50%!important;justify-content:center!important;gap:0!important}
+#funbtn svg{width:52px!important;height:52px!important}
+@media (max-width:380px){#funbtn,#fxrow #funbtn{width:66px!important;height:66px!important}#funbtn svg{width:46px!important;height:46px!important}}
+</style>
