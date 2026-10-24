@@ -1,0 +1,6 @@
+{
+  // STEP BY website: static files only, served from ./public
+  "name": "sparkling-thunder-9038",
+  "compatibility_date": "2026-10-24",
+  "assets": { "directory": "./public" }
+}
