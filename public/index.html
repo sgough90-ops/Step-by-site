@@ -4382,7 +4382,7 @@ window.__mdTest={useCanvas:function(c){build();useCanvas(c)},save:save,openList:
 .shc.rec::before,.shc.stop::before{content:"";position:absolute;inset:7px;border-radius:50%;background:#fff}
 .shc.rec i,.shc.stop i{position:relative;display:block;width:44px;height:44px;border-radius:50%;background:#e5484d}
 .shc.stop i{width:30px;height:30px;border-radius:6px}
-.shc.keep{background:#2fb344;color:#fff}.shc.done{background:#fff;color:#2fb344}
+.shc.keep{background:#2fb344;color:#fff}.shc.big{width:92px;height:92px}.shc.big svg{width:46px;height:46px}.shc.big.keep:not(.wait){animation:shpulse 1.4s ease-in-out infinite}.shc.wait{opacity:.6}@keyframes shpulse{0%,100%{transform:scale(1)}50%{transform:scale(1.08)}}.shc.done{background:#fff;color:#2fb344}
 .shc:active{transform:translateY(4px);box-shadow:0 1px 0 rgba(0,0,0,.35)}
 .shact{width:54px;height:54px;border-radius:18px;border:0;background:#fff;box-shadow:0 4px 0 rgba(0,0,0,.35);display:flex;align-items:center;justify-content:center;cursor:pointer;padding:0}
 .shact svg{width:36px;height:36px}
@@ -4689,7 +4689,7 @@ function openMode(fromDone){FROMDONE=!!fromDone;var vid=SEL[0]&&SEL[0].src==="vi
 
 /* ---------- player ---------- */
 var RAF=0,CV=null,X=null,VID=null;
-function stopAll(){cancelAnimationFrame(RAF);RAF=0;stopMusic();stopVoices();releaseMic();if(VID){try{VID.pause()}catch(e){}VID.removeAttribute("src");try{VID.load()}catch(e){}VID=null}if(CV){CV.onpointerdown=CV.onpointermove=CV.onpointerup=CV.onpointercancel=null}}
+function stopAll(){cancelAnimationFrame(RAF);RAF=0;recDrop();stopMusic();stopVoices();releaseMic();if(VID){try{VID.pause()}catch(e){}VID.removeAttribute("src");try{VID.load()}catch(e){}VID=null}if(CV){CV.onpointerdown=CV.onpointermove=CV.onpointerup=CV.onpointercancel=null}}
 function play(mode,saved){stopAll();ac();W=stageW(mode);CUR={mode:mode,rec:saved&&saved.rec||null};if(CUR.rec)fitRec(CUR.rec);
  sec("shplay",topbar("shxback",'<b id="shttl">'+MODENAME[mode]+'</b>')+'<div class="shstage"><canvas id="shcv" width="'+W+'" height="'+H+'"></canvas></div><div class="shctl" id="shctl"></div>');
  G("shxback").innerHTML=SV.x;G("shxback").setAttribute("aria-label","Close");G("shxback").onclick=function(){stopAll();if(saved)openShow();else openMode(FROMDONE)};
@@ -4701,13 +4701,16 @@ function btn(b){var e=document.createElement(b.tag||"button");e.className=b.cls|
 function ctl(rows){var c=G("shctl");c.innerHTML="";(rows.length&&!Array.isArray(rows[0])?[rows]:rows).forEach(function(r){var d=document.createElement("div");d.className="shrow";r.forEach(function(b){d.appendChild(btn(b))});c.appendChild(d)})}
 function afterCtl(){if(EXP){var ef=EXP;EXP=null;setTimeout(ef,400)}var b=[{html:SV.replay,label:"Watch again",on:function(){if(CUR.mode==="movie")runMovie();else if(CUR.mode==="puppet")prepVoices(CUR.rec).then(start);else start()}}];
  if(CUR.mode==="puppet"&&!SAVED)b.push({html:SV.edit,label:"Change my turns",on:function(){if(CUR.rec&&CUR.rec.v!==3)CUR.rec=null;puppetSetup()}});
- if(DLNS&&CV&&CV.captureStream&&window.MediaRecorder)b.push({html:SV.video,label:"Save as a video",id:"shvid",on:exportVideo});
- if(SAVED)b.push({html:SV.bin,label:"Delete",on:function(){SHOWS.del(SAVED.id).then(openShow)}});
- else b.push({cls:"shc keep",html:SV.heart,label:"Keep",id:"shkeep",on:keep});ctl(b)}
-function keep(){var k=G("shkeep");if(!k||k.disabled)return;k.disabled=true;var o={id:"s"+Date.now(),t:Date.now(),mode:CUR.mode,items:SEL.map(function(it){return it.src==="sample"?{src:"sample",key:it.key}:{src:it.src,blob:it.blob,key:it.key,title:it.title}}),rec:CUR.rec||null};
- SHOWS.put(o).then(function(){SAVED=o;k.className="shc done";k.innerHTML=SV.tick;k.setAttribute("aria-label","Kept");SFX.pop()})}
+ var can=!!(CV&&CV.captureStream&&window.MediaRecorder);
+ if(can)b.push({cls:"shc big keep wait",html:SV.savevid,label:"Save my video",id:"shsave",on:saveVid});
+ else if(!SAVED)b.push({cls:"shc keep",html:SV.heart,label:"Keep",id:"shkeep",on:keep});
+ if(SAVED)b.push({html:SV.bin,label:"Delete",on:function(){SHOWS.del(SAVED.id).then(openShow)}});ctl(b);
+ var sb=G("shsave");if(sb)sb.disabled=true;
+ recFinish(function(v){LASTVID=v;var x=G("shsave");if(!x)return;if(v){x.disabled=false;x.classList.remove("wait")}else if(!SAVED){x.className="shc keep";x.id="shkeep";x.innerHTML=SV.heart;x.setAttribute("aria-label","Keep");x.disabled=false;x.onclick=keep}else x.remove()})}
+function keep(){var k=G("shkeep");if(k&&k.disabled)return;if(KEEPING||SAVED)return;KEEPING=1;if(k)k.disabled=true;var o={id:"s"+Date.now(),t:Date.now(),mode:CUR.mode,items:SEL.map(function(it){return it.src==="sample"?{src:"sample",key:it.key}:{src:it.src,blob:it.blob,key:it.key,title:it.title}}),rec:CUR.rec||null};
+ SHOWS.put(o).then(function(){SAVED=o;KEEPING=0;if(k){k.className="shc done";k.innerHTML=SV.tick;k.setAttribute("aria-label","Kept")}SFX.pop()},function(){KEEPING=0})}
 function start(){cancelAnimationFrame(RAF);stopMusic();var m=CUR.mode,T0=performance.now(),dur={silly:9,cool:9,spooky:9,sleepy:10,party:9,hero:9,sadhappy:10,star:STL*4+1.4,story:2+SEL.length*2.8+2,puppet:(CUR.rec?CUR.rec.d:5)+3.2}[m],fired={};
- ctl([]);music(m==="star"?starMus():{spooky:"spooky",sleepy:"sleepy",party:"happy",hero:"adventure",sadhappy:"sleepy"}[m]?{spooky:"spooky",sleepy:"sleepy",party:"happy",hero:"adventure",sadhappy:"sleepy"}[m]:m==="cool"?"cool":m==="puppet"?((CUR.rec&&CUR.rec.mus)||"happy"):m==="story"?"happy":"happy");if(m==="puppet")PUPS=null;
+ ctl([]);recStart();music(m==="star"?starMus():{spooky:"spooky",sleepy:"sleepy",party:"happy",hero:"adventure",sadhappy:"sleepy"}[m]?{spooky:"spooky",sleepy:"sleepy",party:"happy",hero:"adventure",sadhappy:"sleepy"}[m]:m==="cool"?"cool":m==="puppet"?((CUR.rec&&CUR.rec.mus)||"happy"):m==="story"?"happy":"happy");if(m==="puppet")PUPS=null;
  function once(k,f){if(!fired[k]){fired[k]=1;f()}}
  function fr(now){var t=(now-T0)/1000;X.setTransform(1,0,0,1,0,0);
   if(t>=dur-1.4){stopMusic();endCard(t-(dur-1.4));once("end",SFX.tada)}
@@ -5122,6 +5125,31 @@ function drawPuppetPlay(t,once){var R=CUR.rec;if(!R||R.v!==3)return drawPuppetPl
  var dur=R.d||0,close=pt>dur?Math.min(1,(pt-dur)/.8):0;
  if(bg!=="stage"){if(open<1)curtClose(1-open)}else if(open<1)curt(open);
  if(close>0)curtClose(close);if(pt>dur)once("clap",SFX.cheer)}
+/* 24 Oct 2026: every show records itself while it plays, so at the end one big green button saves it straight to the
+   device's videos (iPhone/iPad/Android: the share sheet with "Save Video"; Chromebook/computer: a download).
+   The same tap also keeps it in My shows. */
+var AR=null,LASTVID=null,KEEPING=0;
+SV.savevid='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v11M7 9.5l5 5 5-5"/><path d="M4 15v4a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-4"/></svg>';
+function autoRec(){if(!CV||!CV.captureStream||!window.MediaRecorder)return null;var a=ac(),dest=null,st;
+ try{st=CV.captureStream(30)}catch(e){return null}
+ try{dest=a.createMediaStreamDestination();MG.connect(dest);vg().connect(dest);dest.stream.getAudioTracks().forEach(function(tr){st.addTrack(tr)})}catch(e){dest=null}
+ var types=["video/mp4;codecs=avc1,mp4a","video/mp4","video/webm;codecs=vp9,opus","video/webm;codecs=vp8,opus","video/webm"],ty="";
+ for(var i=0;i<types.length;i++){try{if(MediaRecorder.isTypeSupported(types[i])){ty=types[i];break}}catch(e){}}
+ var mr;try{mr=ty?new MediaRecorder(st,{mimeType:ty,videoBitsPerSecond:4000000}):new MediaRecorder(st)}catch(e){return null}
+ var r={mr:mr,ch:[],ty:ty,cb:null};mr.ondataavailable=function(e){if(e.data&&e.data.size)r.ch.push(e.data)};
+ mr.onstop=function(){try{if(dest){MG.disconnect(dest);VG.disconnect(dest)}}catch(e){}st.getTracks().forEach(function(tr){try{tr.stop()}catch(e){}});
+  var mt=(mr.mimeType||ty||"video/webm").split(";")[0],b=r.ch.length?new Blob(r.ch,{type:mt}):null;if(r.cb)r.cb(b,mt)};
+ try{mr.start(250)}catch(e){return null}return r}
+function recStart(){recDrop();LASTVID=null;AR=autoRec()}
+function recDrop(){var r=AR;AR=null;if(r){r.cb=null;try{r.mr.stop()}catch(e){}}}
+function recFinish(done){var r=AR;AR=null;if(!r){done(null);return}r.cb=function(b,mt){done(b?{blob:b,ext:/mp4/.test(mt)?"mp4":"webm",type:mt}:null)};try{r.mr.stop()}catch(e){done(null)}}
+function saveVid(){var b=G("shsave");if(!b||b.disabled||!LASTVID)return;b.disabled=true;var again=function(){var x=G("shsave");if(x)x.disabled=false};var v=LASTVID,name="my-step-by-show-"+new Date().toISOString().slice(0,10)+"."+v.ext;
+ if(!SAVED)keep();SFX.pop();
+ var ok=function(){var x=G("shsave");if(x){x.className="shc big done";x.innerHTML=SV.tick;x.setAttribute("aria-label","Saved")}};
+ if(DLNS){DLNS.save({filename:name,data:v.blob}).then(ok,again);return}
+ var f=null;try{f=new File([v.blob],name,{type:v.type})}catch(e){}
+ if(f&&navigator.canShare&&navigator.maxTouchPoints>0&&navigator.canShare({files:[f]})){navigator.share({files:[f]}).then(ok,again);return}
+ var u=URL.createObjectURL(v.blob),a=document.createElement("a");a.href=u;a.download=name;document.body.appendChild(a);a.click();a.remove();setTimeout(function(){URL.revokeObjectURL(u)},60000);ok()}
 function exportVideo(){if(!DLNS||!CV||!CV.captureStream||!window.MediaRecorder||EXP)return;var a=ac(),dest=null;
  try{dest=a.createMediaStreamDestination();MG.connect(dest);vg().connect(dest)}catch(e){dest=null}
  var st=CV.captureStream(30);if(dest)dest.stream.getAudioTracks().forEach(function(tr){st.addTrack(tr)});
@@ -5139,7 +5167,7 @@ function exportVideo(){if(!DLNS||!CV||!CV.captureStream||!window.MediaRecorder||
 /* ---------- movie: countdown, follow the action, slow-mo replay, finish card ---------- */
 var MV=null;
 function prepVideo(){return new Promise(function(res){VID=document.createElement("video");VID.muted=true;VID.playsInline=true;VID.setAttribute("playsinline","");VID.preload="auto";VID.src=URL.createObjectURL(SEL[0].blob);var done=false;function ok(){if(done)return;done=true;res()}VID.onloadeddata=ok;VID.onerror=ok;setTimeout(ok,4000)})}
-function runMovie(){cancelAnimationFrame(RAF);stopMusic();ctl([]);if(!VID){prepVideo().then(runMovie);return}
+function runMovie(){cancelAnimationFrame(RAF);stopMusic();ctl([]);if(!VID){prepVideo().then(runMovie);return}recStart();
  var sm=document.createElement("canvas");sm.width=36;sm.height=64;var sx=sm.getContext("2d",{willReadFrequently:true}),prev=null;
  MV={ph:"count",T0:performance.now(),cx:.5,cy:.5,z:1,peak:0,peakT:0,end:Math.min(15,isFinite(VID.duration)?VID.duration:15),fired:{}};
  try{VID.pause();VID.playbackRate=1;VID.currentTime=0}catch(e){}
