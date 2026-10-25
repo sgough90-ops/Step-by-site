@@ -7173,6 +7173,10 @@ window.SBCam={open:open,close:close};
       });
     }
     async function loop() {
+      if (!o.live) { /* simple camera: just the picture and paper-shaped guide corners, nothing running in the background */
+        var drawG = function () { if (S.dead || S.state !== 'live') return; draw(null, false, false, 0); };
+        drawG(); setTimeout(drawG, 300); window.addEventListener('resize', drawG); return;
+      }
       while (!S.dead && S.state === 'live') {
         await nextFrame(); if (S.dead || S.state !== 'live') break;
         tick();
@@ -7268,6 +7272,28 @@ window.SBCam={open:open,close:close};
     async function capture(why) {
       if (S.state !== 'live') return; S.state = 'capturing';
       var t0 = NOW(); flash.classList.add('on'); setTimeout(function () { flash.classList.remove('on'); }, 70); sound('snap');
+      if (!o.live) {
+        var Nf = 5, best = null, bestS = -1, rawB = null;
+        for (var kf = 0; kf < Nf && !S.dead; kf++) {
+          if (kf) await nextFrame();
+          var frs = fullFrame(), Ys = lumaOf(frs.img.data, S.vw * S.vh), shp = sharpness(Ys, S.vw, S.vh);
+          if (shp > bestS) { bestS = shp; best = frs; }
+        }
+        if (S.dead || !best) return;
+        try { og.clearRect(0, 0, ov.width, ov.height); } catch (e) { }
+        stop();
+        busy.classList.add('on'); await new Promise(function (r) { setTimeout(r, 30); });
+        var dS = detectOn(best.c, null), qS = dS.quad ? scaleQuad(dS.quad, 1) : null, foundS = !!qS;
+        if (qS) qS = refineQuad(grayOf(best.img), S.vw, S.vh, qS).quad;
+        else qS = drawingBox(best.img) || [[S.vw * 0.05, S.vh * 0.05], [S.vw * 0.95, S.vh * 0.05], [S.vw * 0.95, S.vh * 0.95], [S.vw * 0.05, S.vh * 0.95]];
+        busy.classList.remove('on');
+        var qA = await SB.adjust(best.c, qS);
+        if (!qA) { if (S.dead) return; S.state = 'starting'; start(); return; } /* retake */
+        busy.classList.add('on'); await new Promise(function (r) { setTimeout(r, 30); });
+        var pgS = buildPage([{ img: best.img, quad: qA }], { maxLong: 2000, webcam: S.kind === 'webcam', box: !foundS }); /* single frame: colour-grain clean-up only, no enlarging */
+        var resS = { page: pgS.page, before: pgS.before, raw: best.c, quad: qA, info: { method: 'single', found: foundS, frames: 1, video: [S.vw, S.vh], kind: S.kind, page: [pgS.W, pgS.H], white: pgS.white, why: why } };
+        SB.last = resS; close(); if (o.onPhoto) o.onPhoto(resS); return;
+      }
       /* anchor = median of the last few live outlines (one odd frame can't decide the crop) */
       function medQuad(list) { return [0, 1, 2, 3].map(function (c6) { var xs = list.map(function (q6) { return q6[c6][0]; }).sort(function (a, b) { return a - b; }), ys = list.map(function (q6) { return q6[c6][1]; }).sort(function (a, b) { return a - b; }); return [xs[xs.length >> 1], ys[ys.length >> 1]]; }); }
       var anchorA = S.quad && S.hist.length >= 3 ? medQuad(S.hist.slice(-6)) : S.quad;
