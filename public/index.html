@@ -6269,10 +6269,22 @@ window.SBCam={open:open,close:close};
     }
     function med(a) { var b = a.slice().sort(function (x, y) { return x - y; }); return b[b.length >> 1]; }
     /* paper colour = the brighter half of the ring (paper is usually the brightest thing on the page) */
-    var smooth = ys.map(function (v, ii) { return ii; }).filter(function (ii) { return sds[ii] < 9 + 0.04 * ys[ii]; });
-    if (smooth.length < 6) smooth = ys.map(function (v, ii) { return ii; });
-    var order = smooth.sort(function (a2, b2) { return ys[b2] - ys[a2]; }).slice(0, Math.max(3, smooth.length >> 1));
-    var ym = med(order.map(function (ii) { return ys[ii]; })), um = med(order.map(function (ii) { return us[ii]; })), vm = med(order.map(function (ii) { return vs[ii]; }));
+    /* paper colour = what surrounds the drawing: the most common smooth colour on rings 15% and 25% in
+       (majority, not brightest: a lighter rug next to pink paper must not win) */
+    var ry = [], ru = [], rv = [];
+    for (var rr2 = 0; rr2 < 2; rr2++) { var ins2 = rr2 ? 0.25 : 0.15;
+      for (var s2 = 0; s2 < 8; s2++) { var t3 = ins2 + (1 - 2 * ins2) * s2 / 7;
+        [[t3, ins2], [t3, 1 - ins2], [ins2, t3], [1 - ins2, t3]].forEach(function (uv) { var pt = bil(uv[0], uv[1]);
+          if (self.sample(self.SD, pt[0], pt[1]) < 9 + 0.04 * self.sample(self.Y, pt[0], pt[1])) { ry.push(self.sample(self.Y, pt[0], pt[1])); ru.push(self.sample(self.U, pt[0], pt[1])); rv.push(self.sample(self.V, pt[0], pt[1])); } }); } }
+    if (ry.length < 8) { ry = ys.slice(); ru = us.slice(); rv = vs.slice(); }
+    /* majority colour: the sample with most neighbours in colour space */
+    var bestK = 0, bestC = -1;
+    for (var a4 = 0; a4 < ry.length; a4++) { var cnt4 = 0, ca = ru[a4] / (ry[a4] + 16), cb = rv[a4] / (ry[a4] + 16);
+      for (var b4 = 0; b4 < ry.length; b4++) if (Math.abs(ru[b4] / (ry[b4] + 16) - ca) < 0.06 && Math.abs(rv[b4] / (ry[b4] + 16) - cb) < 0.06 && Math.abs(ry[b4] - ry[a4]) < 0.25 * ry[a4] + 8) cnt4++;
+      if (cnt4 > bestC) { bestC = cnt4; bestK = a4; } }
+    var ca5 = ru[bestK] / (ry[bestK] + 16), cb5 = rv[bestK] / (ry[bestK] + 16), my = [], mu = [], mv = [];
+    for (var c7 = 0; c7 < ry.length; c7++) if (Math.abs(ru[c7] / (ry[c7] + 16) - ca5) < 0.06 && Math.abs(rv[c7] / (ry[c7] + 16) - cb5) < 0.06 && Math.abs(ry[c7] - ry[bestK]) < 0.25 * ry[bestK] + 8) { my.push(ry[c7]); mu.push(ru[c7]); mv.push(rv[c7]); }
+    var ym = med(my), um = med(mu), vm = med(mv);
     /* same paper even in a shadow: judge colour (chroma relative to brightness), allow it much darker */
     var cu = um / (ym + 16), cv = vm / (ym + 16), sdMax = 5 + 0.035 * ym;
     function isPaper(yv, uv, vv, sd) { return sd < sdMax && yv > 0.42 * ym && yv < 1.3 * ym + 10 && Math.abs(uv / (yv + 16) - cu) < 0.075 && Math.abs(vv / (yv + 16) - cv) < 0.075; }
@@ -6300,13 +6312,21 @@ window.SBCam={open:open,close:close};
       outs /= 10; outSum += outs; if (outs < outMin) outMin = outs;
       cs /= 10; if (cs < conMin) conMin = cs;
     }
+    /* a real drawing page has drawing on it: lines/colour clearly different from the paper in the middle area.
+       A plain rug, a towel or a coloured-in window inside the drawing has none */
+    var ink = 0, inkN = 0;
+    for (var iu = 0; iu < 12; iu++) for (var iv = 0; iv < 12; iv++) {
+      var pp3 = bil(0.12 + 0.76 * iu / 11, 0.12 + 0.76 * iv / 11), y3 = this.sample(this.Y, pp3[0], pp3[1]), u3 = this.sample(this.U, pp3[0], pp3[1]), v3 = this.sample(this.V, pp3[0], pp3[1]);
+      inkN++; if (y3 < 0.7 * ym || Math.abs(u3 / (y3 + 16) - cu) > 0.13 || Math.abs(v3 / (y3 + 16) - cv) > 0.13) ink++;
+    }
+    ink /= inkN;
     var bright = clamp((ym - this.yMed) / 50, -1, 1);
     var areaT = clamp(Math.log(af / 0.15) / Math.log(4), -1, 1);
     var cd = dist(c, [w / 2, h / 2]) / (0.5 * dg), cen = cd < 0.35 ? 1 - cd : 0.65 - 2.2 * (cd - 0.35); /* the drawing is held up in the middle */
     var pr = 0;
     if (prev) { var md = 0; for (i = 0; i < 4; i++) md += dist(q[i], prev[i]) / 4; pr = Math.exp(-Math.pow(md / (0.05 * dg), 2)); }
-    var sc = 1.5 * mean + 0.7 * mn + 0.8 * uni + 1.3 * insMin + 0.3 * insSum / 4 + 0.6 * outMin + 0.2 * outSum / 4 + 0.3 * clamp(con / 25, -1, 1) + 0.4 * clamp(conMin / 18, 0, 1) + 0.3 * bright + 0.45 * areaT + 0.5 * cen + 0.4 * pr;
-    return { q: q, s: sc, sup: sup, uni: uni, ins: insMin, out: outMin, cmin: Math.round(conMin), con: con, af: af, ym: ym };
+    var sc = 1.5 * mean + 0.7 * mn + 0.8 * uni + 1.3 * insMin + 0.3 * insSum / 4 + 0.6 * outMin + 0.2 * outSum / 4 + 0.3 * clamp(con / 25, -1, 1) + 0.4 * clamp(conMin / 18, 0, 1) + 0.3 * bright + 0.45 * areaT + 0.5 * cen + 0.1 * pr + 0.9 * clamp(ink / 0.05, 0, 1) - 1.5 * clamp((ink - 0.55) / 0.3, 0, 1) - 1.6 * clamp((0.8 - uni) / 0.3, 0, 1) - 2.0 * clamp((0.4 - outMin) / 0.4, 0, 1);
+    return { q: q, s: sc, ink: ink, sup: sup, uni: uni, ins: insMin, out: outMin, cmin: Math.round(conMin), con: con, af: af, ym: ym };
   };
   Finder.prototype.paperBlob = function () {
     /* region candidate: the even, bright patch around the middle of the frame */
@@ -6394,14 +6414,14 @@ window.SBCam={open:open,close:close};
       cands.push(q);
     }
     var blob = this.paperBlob(); if (blob && isConvex(blob) && Math.abs(polyArea(blob)) >= 0.08 * w * h) cands.push(blob);
-    if (prev && Math.abs(polyArea(prev)) >= 0.08 * w * h) cands.push(prev.map(function (p) { return p.slice(); }));
+    /* (the previous outline is not re-entered as a candidate: it made wrong outlines stick) */
     var best = null;
     for (l = 0; l < cands.length; l++) {
       var s = this.score(cands[l], prev, Ts);
       if (s && (!best || s.s > best.s)) best = s;
     }
     var ok = best && best.s >= 2.6;
-    return { quad: ok ? best.q : null, best: best, ms: NOW() - t0, lines: lines.length, cands: cands.length };
+    return { quad: ok ? best.q : null, ink: best ? best.ink : 0, best: best, ms: NOW() - t0, lines: lines.length, cands: cands.length };
   };
 
   /* ================================================================ full-resolution side refinement
@@ -7093,7 +7113,7 @@ window.SBCam={open:open,close:close};
         var af = Math.abs(polyArea(S.quad)) / (S.aw * S.ah), inside = true, i;
         for (i = 0; i < 4; i++) { var p = S.quad[i]; if (p[0] < S.aw * 0.01 || p[1] < S.ah * 0.01 || p[0] > S.aw * 0.99 || p[1] > S.ah * 0.99) inside = false; }
         var minA = S.kind === 'webcam' ? 0.13 : 0.16;
-        big = inside && af >= minA && !!r.quad;
+        big = inside && af >= minA && !!r.quad && r.ink >= 0.025;
         good = big && S.spd < 0.06;
       }
       if (good) S.prog += dt / 800; else S.prog = Math.max(0, S.prog - dt / 300);
@@ -7104,12 +7124,15 @@ window.SBCam={open:open,close:close};
       var liveFor = t - S.start;
       /* nothing found for a long time: count down and take what is in the frame */
       var noFindFor = S.quad ? 0 : t - Math.max(S.start, S.lostAt || S.start);
-      S.box = !S.quad && noFindFor > 4000;
+      /* countdown only when the middle of the picture is smooth paper (white paper on a white table), never carpet or clutter */
+      var F0 = S.finder, smoothMid = 0, nMid = 0;
+      for (var my0 = 0.3; my0 <= 0.7; my0 += 0.1) for (var mx0 = 0.3; mx0 <= 0.7; mx0 += 0.1) { nMid++; var ii0 = Math.round(S.ah * my0) * S.aw + Math.round(S.aw * mx0); if (F0.SD[ii0] < 6 + 0.03 * F0.Y[ii0]) smoothMid++; }
+      S.box = !S.quad && noFindFor > 4000 && smoothMid / nMid > 0.5;
       if (S.box) { S.boxProg = (S.boxProg || 0) + dt / 2500; } else S.boxProg = 0;
       draw(r.quad || S.quad, good, big, S.prog);
       shut.innerHTML = shutterSVG(S.box ? S.boxProg : S.prog, ready || good);
       if (ready || (S.box && S.boxProg >= 1)) capture(S.box ? 'box' : 'auto');
-      else if (liveFor > 8500) { if (!(big)) { S.quad = null; } capture(big ? 'auto' : 'box'); } /* never leave a child stuck */
+      else if (liveFor > 8500 && big) capture('auto'); /* paper with a drawing found but never quite still: take it */
     }
     function guide(W, H, k, col) {
       var land = S.aw >= S.ah, gw, gh; if (land) { gh = H * 0.74; gw = Math.min(W * 0.8, gh * 1.414); } else { gw = W * 0.84; gh = Math.min(H * 0.7, gw * 1.414); }
@@ -7178,6 +7201,13 @@ window.SBCam={open:open,close:close};
           if (k) await nextFrame();
           var fr = fullFrame(); if (!raw) raw = fr.c;
           var q = prevF;
+          if (!boxMode && k === 0) {
+            /* fresh look at the actual photo frame: keep whichever outline scores better (stops an early wrong outline sticking) */
+            S.ax.drawImage(fr.c, 0, 0, S.aw, S.ah);
+            var d0 = S.finder.detect(S.ax.getImageData(0, 0, S.aw, S.ah).data, null);
+            var sa = anchorA ? S.finder.score(anchorA, null, Math.max(12, S.finder.lo * 0.8)) : null;
+            if (d0.quad && (!sa || d0.best.s > sa.s + 0.05)) { anchorA = d0.quad; prevA = d0.quad; prevF = scaleQuad(d0.quad, sx); quadFull = prevF; }
+          }
           if (!boxMode) {
             var G0 = grayOf(fr.img), rq = null;
             /* still paper: refine round where it was. Moving paper (or a weak refine): look again, but only
@@ -7189,11 +7219,13 @@ window.SBCam={open:open,close:close};
               if (dr.quad && near(dr.quad, prevA, dgA * 0.08)) { prevA = dr.quad; rq = refineQuad(G0, S.vw, S.vh, scaleQuad(dr.quad, sx)); }
               else if (!rq) rq = refineQuad(G0, S.vw, S.vh, prevF);
             }
-            if (!near(rq.quad, prevF, dgF * (moving ? 0.08 : 0.035))) rq = { quad: prevF, used: 0 };
+            /* every frame must agree with the first frame's outline (no drifting onto a rug or table edge) */
+            if (!frames.length) { if (!near(rq.quad, prevF, dgF * (moving ? 0.08 : 0.035))) rq = { quad: prevF, used: 0 }; }
+            else if (rq.used < 3 || !near(rq.quad, frames[0].quad, dgF * (moving ? 0.03 : 0.012))) continue; /* edges not confirmed here: paper moved, skip */
             q = rq.quad; prevF = q;
           }
           if (boxMode) { var dbq = drawingBox(fr.img); if (dbq) q = dbq; }
-          frames.push({ img: fr.img, quad: q });
+          frames.push({ img: fr.img, quad: q }); (S.dbg = S.dbg || []).push({ q: q.map(function (p) { return p.map(Math.round); }), used: rq ? rq.used : -1, mv: moving });
           if (S.kind !== 'webcam' && S.vw * S.vh > 4e6 && frames.length >= 3) break;
         }
         if (frames.length >= 3) { /* corners jitter a little from frame to frame with grainy webcams: smooth them over time */
@@ -7216,7 +7248,7 @@ window.SBCam={open:open,close:close};
         page: pg.page, before: pg.before, raw: raw, quad: frames[0].quad,
         info: {
           method: method, found: !boxMode, frames: pg.used, grabbed: frames.length, video: [S.vw, S.vh], photo: photoWH, kind: S.kind, page: [pg.W, pg.H],
-          white: pg.white, up: Math.round(pg.up * 100) / 100, removed: pg.removed, shifts: pg.shifts, sharp: pg.sharp && pg.sharp.map(function (v) { return Math.round(v); }), sigma: Math.round(pg.sigma * 10) / 10, ms: { capture: Math.round(t1 - t0), process: Math.round(t2 - t1), warpMerge: Math.round(pg.ms.warpMerge), enhance: Math.round(pg.ms.enhance), detect: Math.round(S.detMs) }, why: why
+          white: pg.white, up: Math.round(pg.up * 100) / 100, removed: pg.removed, shifts: pg.shifts, sharp: pg.sharp && pg.sharp.map(function (v) { return Math.round(v); }), sigma: Math.round(pg.sigma * 10) / 10, anchor: quadFull && quadFull.map(function (p) { return p.map(Math.round); }), dbg: S.dbg, ms: { capture: Math.round(t1 - t0), process: Math.round(t2 - t1), warpMerge: Math.round(pg.ms.warpMerge), enhance: Math.round(pg.ms.enhance), detect: Math.round(S.detMs) }, why: why
         }
       };
       SB.last = result;
