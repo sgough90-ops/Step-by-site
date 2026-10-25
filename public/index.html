@@ -5272,7 +5272,7 @@ function build(){if(G("mim"))return;var s=document.createElement("section");s.id
  G("app").appendChild(s);
  G("mimback").onclick=closeMim;
  G("mimcard").onclick=function(){cam()};
- G("mimfile").onchange=function(e){var f=e.target.files&&e.target.files[0];e.target.value="";if(f)usePhoto(f)};
+ G("mimfile").onchange=function(e){var f=e.target.files&&e.target.files[0];e.target.value="";if(!f)return;var c=G("mimcard");if(!window.SBScan){usePhoto(f);return}c.classList.add("busy");var u=URL.createObjectURL(f),im=new Image();im.onload=function(){setTimeout(function(){window.SBScan.processImage(im).then(function(r){URL.revokeObjectURL(u);r.page.toBlob(function(bl){c.classList.remove("busy");if(!bl){usePhoto(f);return}bl.__scan=true;usePhoto(bl)},"image/png")}).catch(function(){URL.revokeObjectURL(u);c.classList.remove("busy");usePhoto(f)})},30)};im.onerror=function(){URL.revokeObjectURL(u);c.classList.remove("busy")};im.src=u};
  [].forEach.call(s.querySelectorAll(".mimm"),function(b){b.onclick=function(){go(b.getAttribute("data-m"))}})}
 function paint(){var c=G("mimcard"),im=G("mimimg");if(!c)return;var own=!!OWN;c.classList.toggle("own",own);c.classList.toggle("app",!own);c.setAttribute("aria-label",own?"Take the photo again":"Take a photo of your drawing");
  if(own)im.src=OWNURL;else im.removeAttribute("src");var mm=document.querySelector("#mim .mimmodes");if(mm)mm.classList.toggle("off",!own);
@@ -5280,7 +5280,8 @@ function paint(){var c=G("mimcard"),im=G("mimimg");if(!c)return;var own=!!OWN;c.
 function show(){[].forEach.call(document.querySelectorAll(".conf"),function(e){e.remove()});var d=G("dn");if(d)d.classList.add("hide");G("mim").classList.remove("hide")}
 function latestMake(k){var M=window.__showTest&&window.__showTest.makes;if(!M)return Promise.resolve(null);try{return M.all().then(function(a){return a.filter(function(o){return o.key===k&&o.kind==="img"&&o.blob}).sort(function(p,q){return q.t-p.t})[0]||null}).catch(function(){return null})}catch(e){return Promise.resolve(null)}}
 function openMim(){refresh();if(!KEY)return;build();if(OWN){paint();show();return}var k=KEY;latestMake(k).then(function(x){if(k!==KEY)return;if(x&&!OWN){OWN=x.blob;OWNURL=URL.createObjectURL(x.blob)}if(OWN){paint();show()}else cam()})}
-function cam(){var C=window.SBCam;if(!C){G("mimfile").click();return}C.open({onPhoto:function(bl){build();paint();show();usePhoto(bl)}})}
+function isPhone(){var u=navigator.userAgent||"";if(/CrOS/.test(u))return false;return /iPhone|iPad|iPod|Android/.test(u)||(/Macintosh/.test(u)&&navigator.maxTouchPoints>1)}
+function cam(){var C=window.SBCam;if(!C||isPhone()){build();paint();show();G("mimfile").click();return}C.open({onPhoto:function(bl){build();paint();show();usePhoto(bl)}})}
 function closeMim(){var m=G("mim");if(m)m.classList.add("hide");var d=G("dn");if(d)d.classList.remove("hide")}
 
 /* photo in: cut out of the paper by the Step by Show code and kept in "My makes", tagged with this project */
@@ -6782,7 +6783,7 @@ window.SBCam={open:open,close:close};
     /* 6. thumbs / slivers at the edge, then crisp lines */
     var rem = opt.keepEdges ? 0 : cleanEdges(out, W, H, tgt);
     unsharp(out, W, H, isWeb ? 0.55 : 0.35);
-    return { data: out, white: white, paper: [Math.round(gR), Math.round(gG), Math.round(gB)], cells: [CX, CY], removed: rem };
+    return { data: out, white: white, tgt: tgt, paper: [Math.round(gR), Math.round(gG), Math.round(gB)], cells: [CX, CY], removed: rem };
   }
   /* thumbs and slivers of table at the edge of the page: small blobs touching the edge, not part of the drawing */
   function cleanEdges(d, W, H, tgt) {
@@ -6915,9 +6916,9 @@ window.SBCam={open:open,close:close};
     frames.forEach(function (f) { var p = warp(f.img, f.quad, W, H, inset); if (p) pages.push(p); });
     var merged = pages.length > 1 ? mergePages(pages, W, H) : { data: pages[0], used: 1, sigma: noiseSigma(lumaOf(pages[0], W * H), W, H) };
     var t1 = NOW();
-    var en = enhance(merged.data, W, H, { webcam: !!opt.webcam, noise: (merged.sigma || 0) / Math.sqrt(Math.max(1, merged.used || 1)) });
+    var en = enhance(merged.data, W, H, { keepEdges: !!opt.keepEdges, webcam: !!opt.webcam, noise: (merged.sigma || 0) / Math.sqrt(Math.max(1, merged.used || 1)) });
     var t2 = NOW();
-    return { page: toCanvas(en.data, W, H), before: toCanvas(pages[merged.ref || 0], W, H), W: W, H: H, up: up, used: merged.used, shifts: merged.shifts, sharp: merged.sharp, sigma: merged.sigma, white: en.white, paper: en.paper, removed: en.removed, ms: { warpMerge: t1 - t0, enhance: t2 - t1 } };
+    return { page: toCanvas(en.data, W, H), before: toCanvas(pages[merged.ref || 0], W, H), W: W, H: H, up: up, used: merged.used, shifts: merged.shifts, sharp: merged.sharp, sigma: merged.sigma, white: en.white, paper: en.paper, paperTgt: en.tgt, removed: en.removed, ms: { warpMerge: t1 - t0, enhance: t2 - t1 } };
   }
 
   /* gallery photo / single still -> result */
@@ -6930,6 +6931,16 @@ window.SBCam={open:open,close:close};
     var r = fd.detect(ax.getImageData(0, 0, aw, ah).data, prev);
     return { quad: r.quad ? scaleQuad(r.quad, 1 / sx, 1 / sy) : null, det: r };
   }
+  function edgeInk(cv, tgt) { /* worst side: share of that side's outer band that is drawing, not paper */
+    var w = cv.width, h = cv.height, d = ctxOf(cv).getImageData(0, 0, w, h).data, b = Math.max(3, Math.round(Math.min(w, h) * 0.025));
+    var n = [0, 0, 0, 0], k = [0, 0, 0, 0];
+    for (var y = 0; y < h; y += 2) for (var x = 0; x < w; x += 2) {
+      var side = y < b ? 0 : y >= h - b ? 1 : x < b ? 2 : x >= w - b ? 3 : -1; if (side < 0) continue;
+      var o = (y * w + x) * 4; n[side]++; if (Math.abs(d[o] - tgt[0]) + Math.abs(d[o + 1] - tgt[1]) + Math.abs(d[o + 2] - tgt[2]) > 60) k[side]++;
+    }
+    var m = 0; for (var i = 0; i < 4; i++) if (n[i]) m = Math.max(m, k[i] / n[i]);
+    return m;
+  }
   SB.processImage = function (src, opt) {
     opt = opt || {};
     return new Promise(function (res) {
@@ -6941,6 +6952,13 @@ window.SBCam={open:open,close:close};
       if (quad) { var rf = refineQuad(grayOf(img), W, H, quad); quad = rf.quad; }
       else quad = drawingBox(img) || [[W * 0.04, H * 0.04], [W * 0.96, H * 0.04], [W * 0.96, H * 0.96], [W * 0.04, H * 0.96]];
       var pg = buildPage([{ img: img, quad: quad }], { maxLong: opt.maxLong || 2000, webcam: Math.max(w, h) < 1600 });
+      /* safety: if the drawing runs into the edge of the found page (a crease or fold was taken as the edge),
+         crop round the drawing itself instead so nothing is cut off */
+      var chk = found ? buildPage([{ img: img, quad: quad }], { maxLong: 700, webcam: Math.max(w, h) < 1600, keepEdges: true }) : null;
+      if (found && edgeInk(chk.page, chk.paperTgt) > 0.05) {
+        var db = drawingBox(img) || [[W * 0.03, H * 0.03], [W * 0.97, H * 0.03], [W * 0.97, H * 0.97], [W * 0.03, H * 0.97]];
+        if (db) { quad = db; found = false; pg = buildPage([{ img: img, quad: quad }], { maxLong: opt.maxLong || 2000, webcam: Math.max(w, h) < 1600, box: true }); }
+      }
       res({ page: pg.page, before: pg.before, raw: c, quad: quad, info: { method: 'photo', found: found, frames: 1, src: [w, h], page: [pg.W, pg.H], white: pg.white, ms: Math.round(NOW() - t0) } });
     });
   };
@@ -7130,9 +7148,8 @@ window.SBCam={open:open,close:close};
       S.box = !S.quad && noFindFor > 4000 && smoothMid / nMid > 0.5;
       if (S.box) { S.boxProg = (S.boxProg || 0) + dt / 2500; } else S.boxProg = 0;
       draw(r.quad || S.quad, good, big, S.prog);
-      shut.innerHTML = shutterSVG(S.box ? S.boxProg : S.prog, ready || good);
-      if (ready || (S.box && S.boxProg >= 1)) capture(S.box ? 'box' : 'auto');
-      else if (liveFor > 8500 && big) capture('auto'); /* paper with a drawing found but never quite still: take it */
+      shut.innerHTML = o.auto ? shutterSVG(S.box ? S.boxProg : S.prog, ready || good) : shutterSVG(good ? 1 : 0, good);
+      if (o.auto && (ready || (S.box && S.boxProg >= 1))) capture(S.box ? 'box' : 'auto'); /* auto-snap only if asked for: by default the button decides */
     }
     function guide(W, H, k, col) {
       var land = S.aw >= S.ah, gw, gh; if (land) { gh = H * 0.74; gw = Math.min(W * 0.8, gh * 1.414); } else { gw = W * 0.84; gh = Math.min(H * 0.7, gw * 1.414); }
@@ -7153,7 +7170,7 @@ window.SBCam={open:open,close:close};
         sq.forEach(function (p, i) { if (i) og.lineTo(p[0] * k, p[1] * k); else og.moveTo(p[0] * k, p[1] * k); }); og.closePath(); og.stroke();
         og.lineWidth = 5 * dpr; og.strokeStyle = good ? '#3fc35a' : '#ffc531'; og.stroke();
         if (!big) guide(W, H, k, 'rgba(255,255,255,.75)'); /* too small: show how big it should be */
-        if (good && prog > 0.02) { /* a big ring in the middle of the paper fills up while it is held still */
+        if (o.auto && good && prog > 0.02) { /* a big ring in the middle of the paper fills up while it is held still */
           var c = centroid(sq), rad = Math.min(dist(sq[0], sq[1]), dist(sq[1], sq[2])) * k * 0.13;
           og.lineCap = 'round'; og.lineWidth = rad * 0.32;
           og.strokeStyle = 'rgba(255,255,255,.75)'; og.beginPath(); og.arc(c[0] * k, c[1] * k, rad, 0, 6.2832); og.stroke();
@@ -7201,13 +7218,6 @@ window.SBCam={open:open,close:close};
           if (k) await nextFrame();
           var fr = fullFrame(); if (!raw) raw = fr.c;
           var q = prevF;
-          if (!boxMode && k === 0) {
-            /* fresh look at the actual photo frame: keep whichever outline scores better (stops an early wrong outline sticking) */
-            S.ax.drawImage(fr.c, 0, 0, S.aw, S.ah);
-            var d0 = S.finder.detect(S.ax.getImageData(0, 0, S.aw, S.ah).data, null);
-            var sa = anchorA ? S.finder.score(anchorA, null, Math.max(12, S.finder.lo * 0.8)) : null;
-            if (d0.quad && (!sa || d0.best.s > sa.s + 0.05)) { anchorA = d0.quad; prevA = d0.quad; prevF = scaleQuad(d0.quad, sx); quadFull = prevF; }
-          }
           if (!boxMode) {
             var G0 = grayOf(fr.img), rq = null;
             /* still paper: refine round where it was. Moving paper (or a weak refine): look again, but only
@@ -7272,6 +7282,9 @@ window.SBCam={open:open,close:close};
       return c;
     }
     shut.onclick = function () { if (S.state === 'live') capture('tap'); };
+    function onKey(e) { if (S.state !== 'live') return; var k = e.key || ''; if (k === ' ' || k === 'Enter' || k === 'AudioVolumeUp' || k === 'AudioVolumeDown' || k === 'VolumeUp' || k === 'VolumeDown') { e.preventDefault(); capture('tap'); } }
+    document.addEventListener('keydown', onKey, true);
+    var closeOld = close; close = function () { document.removeEventListener('keydown', onKey, true); closeOld(); }; api.close = close;
     el.querySelector('[data-a="back"]').onclick = function () { close(); if (o.onCancel) o.onCancel(); };
     flipB.onclick = function () { S.facing = S.facing === 'environment' ? 'user' : 'environment'; S.quad = null; S.hist = []; start(); };
     api.setMirror = function (m) { S.mirror = !!m; layout(); };
