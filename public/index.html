@@ -4660,7 +4660,7 @@ function wireRetake(o){var r=o.querySelector(".mkre");if(r)r.onchange=function(e
 function gotFile(f){var pj=curProj();if(!pj)return;
  if(/^video\//.test(f.type)){var o=overlay('<div class="mkp">'+SV.m_movie+'</div><div class="mkbts">'+retakeBtn()+'<button class="mkbt g" id="mkok" aria-label="Keep">'+SV.tick+'</button></div>');wireRetake(o);G("mkok").onclick=function(){save({kind:"vid",blob:f})};return}
  var o2=overlay('<div class="mkp"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9" fill="none" stroke="#2a8fd6" stroke-width="3" stroke-dasharray="14 8"/></svg></div>');
- var u=URL.createObjectURL(f);loadImg(u).then(function(img){setTimeout(function(){var c=null,paperish=pj.prod==="draw"||pj.prod==="craft";try{c=paperish?cutout(img):framed(img)}catch(e){c=null}if(!c&&!paperish)c=framed(img);URL.revokeObjectURL(u);
+ var u=URL.createObjectURL(f);loadImg(u).then(function(img){setTimeout(function(){var c=null,paperish=pj.prod==="draw"||pj.prod==="craft";try{var isScan=f&&(f.__scan||f.name==="stepby-scan.png");c=paperish?(isScan?(function(){try{return cutout0(img,false)||framed(img)}catch(x){return framed(img)}})():cutout(img)):framed(img)}catch(e){c=null}if(!c&&!paperish)c=framed(img);URL.revokeObjectURL(u);
   if(!c){var o3=overlay('<div class="mkp">'+SV.sad+'</div><div class="mkbts">'+retakeBtn()+'</div>');wireRetake(o3);return}
   var o4=overlay('<div class="mkp" id="mkpv"></div><div class="mkbts">'+retakeBtn()+'<button class="mkbt g" id="mkok" aria-label="Keep">'+SV.tick+'</button></div>');G("mkpv").appendChild(c);wireRetake(o4);
   G("mkok").onclick=function(){c.toBlob(function(bl){if(bl)save({kind:"img",blob:bl})},"image/png")}},30)}).catch(function(){var o5=overlay('<div class="mkp">'+SV.sad+'</div><div class="mkbts">'+retakeBtn()+'</div>');wireRetake(o5)})}
@@ -7100,8 +7100,15 @@ window.SBCam={open:open,close:close};
     function fail(err) {
       stop(); S.state = 'failed'; shut.hidden = true; flipB.hidden = true; box.style.display = 'none';
       var m = document.createElement('div'); m.className = 'sbmsg';
-      m.innerHTML = '<div>' + IC.cam + '<label class="sbpick">' + '<span>Choose a photo</span><input type="file" accept="image/*"></label></div>';
+      var blocked = err && (err.name === 'NotAllowedError' || err.name === 'SecurityError'), busyCam = err && (err.name === 'NotReadableError' || err.name === 'AbortError');
+      var why = blocked ? 'The camera is switched off for STEP BY. Tap the camera or lock icon next to step-by.com and choose Allow.' :
+        busyCam ? 'Another app or tab is using the camera. Close it, then try again.' : 'The camera didn\u2019t start.';
+      var code = err ? (err.name || String(err)).slice(0, 40) : 'no camera';
+      m.innerHTML = '<div>' + IC.cam + '<span style="font-weight:700;font-size:15px;line-height:1.35">' + why + '</span><span style="font-size:11px;color:#8a93a8">(' + code + ')</span>' +
+        '<button class="sbpick" data-a="retry" style="border:0;font:inherit;font-weight:900">Try again</button>' +
+        '<label class="sbpick" style="background:#fff;box-shadow:0 0 0 3px #081130"><span>Choose a photo</span><input type="file" accept="image/*"></label></div>';
       el.appendChild(m);
+      m.querySelector('[data-a="retry"]').onclick = function () { m.remove(); box.style.display = ''; shut.hidden = false; S.state = 'starting'; start(); };
       m.querySelector('input').onchange = function (e) {
         var f = e.target.files && e.target.files[0]; if (!f) return; var u = URL.createObjectURL(f), im = new Image();
         im.onload = function () { busy.classList.add('on'); setTimeout(function () { SB.processImage(im).then(function (r) { URL.revokeObjectURL(u); close(); if (o.onPhoto) o.onPhoto(r); }); }, 30); };
@@ -7120,13 +7127,14 @@ window.SBCam={open:open,close:close};
     }
     window.addEventListener('resize', layout);
     async function openStream() {
+      /* the size that already worked on Chromebook webcams first; some webcams refuse big requests instead of scaling down */
       var tries = [
-        { audio: false, video: { facingMode: { ideal: S.facing }, width: { ideal: 3840 }, height: { ideal: 2160 }, frameRate: { ideal: 30 } } },
-        { audio: false, video: { facingMode: { ideal: S.facing }, width: { ideal: 1920 }, height: { ideal: 1080 } } },
+        { audio: false, video: { facingMode: { ideal: S.facing }, width: { ideal: 1920 }, height: { ideal: 1440 } } },
+        { audio: false, video: { width: { ideal: 1280 }, height: { ideal: 720 } } },
         { audio: false, video: true }], err = null;
       for (var i = 0; i < tries.length; i++) {
         try { return await navigator.mediaDevices.getUserMedia(tries[i]); }
-        catch (e) { err = e; if (e && (e.name === 'NotAllowedError' || e.name === 'SecurityError')) break; }
+        catch (e) { err = e; if (e && (e.name === 'NotAllowedError' || e.name === 'SecurityError')) break; await new Promise(function (r) { setTimeout(r, 400); }); /* let the camera reset */ }
       }
       throw err;
     }
@@ -7375,6 +7383,31 @@ window.SBCam={open:open,close:close};
 
 (function(){if(!window.SBScan)return;var old=window.SBCam;
 window.SBCam={open:function(o){o=o||{};return window.SBScan.open({onCancel:o.onCancel,onPhoto:function(r){r.page.toBlob(function(bl){if(!bl)return;bl.__scan=true;if(o.onPhoto)o.onPhoto(bl)},"image/png")}})},close:function(){window.SBScan.close()},_old:old};})();
+</script>
+<script>/* 25 Oct 2026: one camera for every camera button. Phones/tablets: the device's own camera (file input with capture).
+   Chromebooks/laptops/desktops: the in-app STEP BY camera (a plain file input only opens a file picker there). */
+(function(){
+function isPhone(){var u=navigator.userAgent||"";if(/CrOS/.test(u))return false;return /iPhone|iPad|iPod|Android/.test(u)||(/Macintosh/.test(u)&&navigator.maxTouchPoints>1)}
+window.SBIsPhone=isPhone;
+/* any camera <label> holding a file input: on computers, open the in-app camera instead of the file picker */
+document.addEventListener("click",function(e){
+ if(isPhone()||!window.SBScan)return;
+ var lab=e.target.closest&&e.target.closest("label");if(!lab)return;
+ var inp=lab.querySelector('input[type="file"]');if(!inp)return;
+ var acc=inp.getAttribute("accept")||"";if(acc.indexOf("image")<0)return;
+ if(lab.closest("#sbscan")||lab.closest(".sbmsg"))return; /* the camera's own "choose a photo" fallback */
+ e.preventDefault();e.stopPropagation();
+ window.SBScan.open({onPhoto:function(r){r.page.toBlob(function(bl){if(!bl)return;var f;try{f=new File([bl],"stepby-scan.png",{type:"image/png"})}catch(x){f=bl}f.__scan=true;
+   try{var dt=new DataTransfer();dt.items.add(f);inp.files=dt.files;inp.dispatchEvent(new Event("change",{bubbles:true}))}catch(x){if(inp.onchange)inp.onchange({target:{files:[f],value:""}})}},"image/png")}});
+},true);
+/* My drawings uses a hidden input clicked from buttons: route those too */
+var origClick=HTMLInputElement.prototype.click;
+HTMLInputElement.prototype.click=function(){
+ if(this.type==="file"&&!isPhone()&&window.SBScan&&(this.getAttribute("accept")||"").indexOf("image")>=0&&!this.__sbDirect&&this.id!=="mimfile"){
+  var inp=this;window.SBScan.open({onPhoto:function(r){r.page.toBlob(function(bl){if(!bl)return;var f;try{f=new File([bl],"stepby-scan.png",{type:"image/png"})}catch(x){f=bl}
+   try{var dt=new DataTransfer();dt.items.add(f);inp.files=dt.files;inp.dispatchEvent(new Event("change",{bubbles:true}))}catch(x){if(inp.onchange)inp.onchange({target:{files:[f],value:""}})}},"image/png")}});return}
+ return origClick.apply(this,arguments)};
+})();
 </script>
 <style>/* 24 Oct 2026: Make it move button is a film clapper icon only, no words */
 #funbtn,#fxrow #funbtn{width:76px!important;height:76px!important;padding:0!important;border-radius:50%!important;justify-content:center!important;gap:0!important}
