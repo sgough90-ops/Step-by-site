@@ -5211,7 +5211,7 @@ function runMovie(){cancelAnimationFrame(RAF);stopMusic();ctl([]);if(!VID){prepV
 /* ---------- wire up ---------- */
 function wire(){var t=G("showtile");if(t&&!t.__sb2){t.__sb2=1;t.addEventListener("click",openShow)}}
 wire();setTimeout(wire,500);setTimeout(wire,1600);
-window.__showTest={run:function(items,mode,onClose){SEL=items;SAVED=null;FROMDONE=false;play(mode);var x=G("shxback");if(x)x.onclick=function(){stopAll();onClose()}},open:openShow,sound:{tone:tone,noise:noise,SFX:SFX},pick:openPick,mode:function(items){SEL=items;openMode()},play:play,sel:function(){return SEL},cur:function(){return CUR},cutout:cutout,makes:MAKES,mkButtons:mkButtons,gotFile:gotFile};
+window.__showTest={run:function(items,mode,onClose){SEL=items;SAVED=null;FROMDONE=false;play(mode);var x=G("shxback");if(x)x.onclick=function(){stopAll();onClose()}},open:openShow,sound:{tone:tone,noise:noise,SFX:SFX},pick:openPick,mode:function(items){SEL=items;openMode()},play:play,sel:function(){return SEL},cur:function(){return CUR},cutout:cutout,cutoutScan:function(img){var c=null;try{c=cutout0(img,false)}catch(e){c=null}return c||framed(img)},makes:MAKES,mkButtons:mkButtons,gotFile:gotFile};
 })();</script>
 
 </body></html><style>/* 24 Oct 2026: "Make it move" on every Draw finish screen. One button; a photo of the child's own drawing (optional); Silly or Cool; plays with the Step by Show player. Nothing leaves the device. */
@@ -5286,7 +5286,7 @@ function closeMim(){var m=G("mim");if(m)m.classList.add("hide");var d=G("dn");if
 /* photo in: cut out of the paper by the Step by Show code and kept in "My makes", tagged with this project */
 function title(){try{return V.p.t||V.p.title||KEY}catch(e){return KEY}}
 function usePhoto(f){var S=window.__showTest,c=G("mimcard");if(!S||!S.cutout)return;c.classList.add("busy");var u=URL.createObjectURL(f),im=new Image();
- im.onload=function(){URL.revokeObjectURL(u);setTimeout(function(){var cv=null;try{cv=S.cutout(im)}catch(e){cv=null}
+ im.onload=function(){URL.revokeObjectURL(u);setTimeout(function(){var cv=null;try{cv=(f&&f.__scan&&S.cutoutScan)?S.cutoutScan(im):S.cutout(im)}catch(e){cv=null}
   if(!cv){c.classList.remove("busy");c.classList.add("again");setTimeout(function(){c.classList.remove("again")},1600);return}
   cv.toBlob(function(bl){c.classList.remove("busy");if(!bl)return;dropOwn();OWN=bl;OWNURL=URL.createObjectURL(bl);paint();keepMake(bl)},"image/png")},30)};
  im.onerror=function(){URL.revokeObjectURL(u);c.classList.remove("busy")};im.src=u}
@@ -5998,6 +5998,1261 @@ function open(o){o=o||{};if(cur)close();
 function close(){if(!cur)return;try{cur.stop()}catch(e){}if(cur.el)cur.el.remove();cur=null}
 window.SBCam={open:open,close:close};
 })();
+</script>
+<script>/* 25 Oct 2026: SBScan, the drawing scanner: finds the paper, snaps by itself when still, merges frames (or takes a real photo),
+   straightens and cleans the page. Replaces the plain video-frame camera. Everything stays on the device. */
+/* STEP BY drawing scanner (SBScan)
+   One in-app camera for every device. It finds the sheet of paper live, snaps by itself when the paper is
+   big enough and still (so a child can hold a drawing up to a webcam with both hands), takes the best photo
+   the device can give, straightens it, evens out the light, and returns a clean "scanned" page.
+   Everything runs on the device. Nothing is uploaded.
+   API:
+     SBScan.open({onPhoto(result), onCancel(), mirror:false})
+     SBScan.processImage(imgOrCanvas) -> Promise<result>        (for a photo picked from the gallery)
+     result = {page: canvas (clean page), raw: canvas (frame as the camera saw it), quad, info}
+*/
+(function () {
+  'use strict';
+  var SB = {};
+  var NOW = function () { return (window.performance && performance.now) ? performance.now() : Date.now(); };
+
+  /* ================================================================ small helpers */
+  function mkCanvas(w, h) { var c = document.createElement('canvas'); c.width = Math.max(1, w | 0); c.height = Math.max(1, h | 0); return c; }
+  function ctxOf(c) { return c.getContext('2d', { willReadFrequently: true }); }
+  function clamp(v, a, b) { return v < a ? a : v > b ? b : v; }
+  function dist(a, b) { return Math.hypot(a[0] - b[0], a[1] - b[1]); }
+  function polyArea(q) { var a = 0; for (var i = 0; i < q.length; i++) { var p = q[i], r = q[(i + 1) % q.length]; a += p[0] * r[1] - r[0] * p[1]; } return a / 2; }
+  function centroid(q) { var x = 0, y = 0; for (var i = 0; i < 4; i++) { x += q[i][0]; y += q[i][1]; } return [x / 4, y / 4]; }
+  function scaleQuad(q, sx, sy) { return q.map(function (p) { return [p[0] * sx, p[1] * (sy === undefined ? sx : sy)]; }); }
+  /* order corners clockwise (in image coordinates, y down) starting at top-left */
+  function orderQuad(q) {
+    var c = centroid(q);
+    var s = q.slice().sort(function (a, b) { return Math.atan2(a[1] - c[1], a[0] - c[0]) - Math.atan2(b[1] - c[1], b[0] - c[0]); });
+    var k = 0, m = 1e18;
+    for (var i = 0; i < 4; i++) { var v = s[i][0] + s[i][1]; if (v < m) { m = v; k = i; } }
+    return s.slice(k).concat(s.slice(0, k));
+  }
+  function isConvex(q) {
+    var sgn = 0;
+    for (var i = 0; i < 4; i++) {
+      var a = q[i], b = q[(i + 1) % 4], c = q[(i + 2) % 4];
+      var cr = (b[0] - a[0]) * (c[1] - b[1]) - (b[1] - a[1]) * (c[0] - b[0]);
+      if (Math.abs(cr) < 1e-9) return false;
+      var s = cr > 0 ? 1 : -1;
+      if (!sgn) sgn = s; else if (s !== sgn) return false;
+    }
+    return true;
+  }
+  function cornerAngles(q) {
+    var out = [];
+    for (var i = 0; i < 4; i++) {
+      var p = q[(i + 3) % 4], c = q[i], n = q[(i + 1) % 4];
+      var ax = p[0] - c[0], ay = p[1] - c[1], bx = n[0] - c[0], by = n[1] - c[1];
+      var cs = (ax * bx + ay * by) / (Math.hypot(ax, ay) * Math.hypot(bx, by) + 1e-9);
+      out.push(Math.acos(clamp(cs, -1, 1)) * 180 / Math.PI);
+    }
+    return out;
+  }
+  /* solve A x = b (8x8) */
+  function solve(A, b) {
+    var n = b.length, i, r, c;
+    for (i = 0; i < n; i++) {
+      var m = i; for (r = i + 1; r < n; r++) if (Math.abs(A[r][i]) > Math.abs(A[m][i])) m = r;
+      var t = A[i]; A[i] = A[m]; A[m] = t; t = b[i]; b[i] = b[m]; b[m] = t;
+      if (Math.abs(A[i][i]) < 1e-12) return null;
+      for (r = i + 1; r < n; r++) { var f = A[r][i] / A[i][i]; for (c = i; c < n; c++) A[r][c] -= f * A[i][c]; b[r] -= f * b[i]; }
+    }
+    var x = new Array(n);
+    for (i = n - 1; i >= 0; i--) { var s = b[i]; for (c = i + 1; c < n; c++) s -= A[i][c] * x[c]; x[i] = s / A[i][i]; }
+    return x;
+  }
+  /* homography mapping fr[i] -> to[i] */
+  function homography(fr, to) {
+    var A = [], b = [];
+    for (var i = 0; i < 4; i++) {
+      var u = fr[i][0], v = fr[i][1], x = to[i][0], y = to[i][1];
+      A.push([u, v, 1, 0, 0, 0, -u * x, -v * x]); b.push(x);
+      A.push([0, 0, 0, u, v, 1, -u * y, -v * y]); b.push(y);
+    }
+    return solve(A, b);
+  }
+  function lineThrough(p, q) { /* ax+by=c with (a,b) unit */
+    var dx = q[0] - p[0], dy = q[1] - p[1], L = Math.hypot(dx, dy) || 1, a = -dy / L, b = dx / L;
+    return [a, b, a * p[0] + b * p[1]];
+  }
+  function intersect(l1, l2) {
+    var d = l1[0] * l2[1] - l1[1] * l2[0];
+    if (Math.abs(d) < 1e-9) return null;
+    return [(l1[2] * l2[1] - l1[1] * l2[2]) / d, (l1[0] * l2[2] - l1[2] * l2[0]) / d];
+  }
+
+  /* ================================================================ live paper finder
+     Works on a small copy of each frame (about 360 px across):
+     1. brightness + colour edges (so white paper on a beige wall or skin still has an edge)
+     2. straight lines (Hough), voted only along each edge's own direction
+     3. every pair of near-parallel lines x every other pair = candidate sheets
+     4. each candidate scored: how much of each side really is an edge (fingers may cover some),
+        paper margin looks like one even colour, inside brighter than outside, size, steadiness. */
+  function Finder(w, h) {
+    this.w = w; this.h = h; var n = w * h;
+    this.Y = new Float32Array(n); this.U = new Float32Array(n); this.V = new Float32Array(n); this.T = new Float32Array(n);
+    this.GX = new Float32Array(n); this.GY = new Float32Array(n); this.M = new Float32Array(n); this.E = new Uint8Array(n); this.C = new Float32Array(n);
+    this.J1 = new Float32Array(n); this.J2 = new Float32Array(n); this.J3 = new Float32Array(n); this.SD = new Float32Array(n);
+    this.cx = w / 2; this.cy = h / 2;
+    this.RM = Math.ceil(Math.hypot(w, h) / 2) + 2; this.NR = 2 * this.RM + 1; this.NT = 180;
+    this.acc = new Float32Array(this.NT * this.NR);
+    this.cos = new Float32Array(180); this.sin = new Float32Array(180);
+    for (var t = 0; t < 180; t++) { this.cos[t] = Math.cos(t * Math.PI / 180); this.sin[t] = Math.sin(t * Math.PI / 180); }
+    this.yMed = 128;
+  }
+  Finder.prototype.blur = function (A) { /* [1 2 1]/4 separable, twice ~ gaussian sigma 1 */
+    var w = this.w, h = this.h, T = this.T, x, y, i;
+    for (var pass = 0; pass < 2; pass++) {
+      for (y = 0; y < h; y++) {
+        var r = y * w;
+        T[r] = (A[r] * 3 + A[r + 1]) / 4;
+        for (x = 1; x < w - 1; x++) T[r + x] = (A[r + x - 1] + 2 * A[r + x] + A[r + x + 1]) / 4;
+        T[r + w - 1] = (A[r + w - 2] + 3 * A[r + w - 1]) / 4;
+      }
+      for (x = 0; x < w; x++) {
+        A[x] = (T[x] * 3 + T[x + w]) / 4;
+        for (y = 1; y < h - 1; y++) { i = y * w + x; A[i] = (T[i - w] + 2 * T[i] + T[i + w]) / 4; }
+        i = (h - 1) * w + x; A[i] = (T[i - w] + 3 * T[i]) / 4;
+      }
+    }
+  };
+  Finder.prototype.prepare = function (d) {
+    var w = this.w, h = this.h, n = w * h, Y = this.Y, U = this.U, V = this.V, i;
+    var hist = new Uint32Array(256);
+    for (i = 0; i < n; i++) {
+      var r = d[i * 4], g = d[i * 4 + 1], b = d[i * 4 + 2], yy = 0.299 * r + 0.587 * g + 0.114 * b;
+      Y[i] = yy; U[i] = (b - yy) * 0.7; V[i] = (r - yy) * 0.7; hist[yy | 0]++;
+    }
+    var acc = 0; for (i = 0; i < 256; i++) { acc += hist[i]; if (acc >= n / 2) { this.yMed = i; break; } }
+    this.blur(Y); this.blur(U); this.blur(V);
+    var GX = this.GX, GY = this.GY, M = this.M, x, y;
+    M.fill(0);
+    for (y = 1; y < h - 1; y++) for (x = 1; x < w - 1; x++) {
+      i = y * w + x;
+      var a = Y[i - w - 1], bb = Y[i - w], c = Y[i - w + 1], dd = Y[i - 1], f = Y[i + 1], g2 = Y[i + w - 1], hh = Y[i + w], k = Y[i + w + 1];
+      var gx = (c + 2 * f + k) - (a + 2 * dd + g2), gy = (g2 + 2 * hh + k) - (a + 2 * bb + c), m = gx * gx + gy * gy;
+      a = U[i - w - 1]; bb = U[i - w]; c = U[i - w + 1]; dd = U[i - 1]; f = U[i + 1]; g2 = U[i + w - 1]; hh = U[i + w]; k = U[i + w + 1];
+      var ux = (c + 2 * f + k) - (a + 2 * dd + g2), uy = (g2 + 2 * hh + k) - (a + 2 * bb + c), mu = ux * ux + uy * uy;
+      if (mu > m) { gx = ux; gy = uy; m = mu; }
+      a = V[i - w - 1]; bb = V[i - w]; c = V[i - w + 1]; dd = V[i - 1]; f = V[i + 1]; g2 = V[i + w - 1]; hh = V[i + w]; k = V[i + w + 1];
+      var vx = (c + 2 * f + k) - (a + 2 * dd + g2), vy = (g2 + 2 * hh + k) - (a + 2 * bb + c), mv = vx * vx + vy * vy;
+      if (mv > m) { gx = vx; gy = vy; m = mv; }
+      GX[i] = gx; GY[i] = gy; M[i] = Math.sqrt(m);
+    }
+    /* how straight-and-steady each edge is: structure tensor smoothed over 5x5. Grain points every which way, real edges don't */
+    var J1 = this.J1, J2 = this.J2, J3 = this.J3, C = this.C;
+    for (i = 0; i < n; i++) { var ga = GX[i], gb = GY[i]; J1[i] = ga * ga; J2[i] = gb * gb; J3[i] = ga * gb; }
+    boxBlur(J1, w, h, 2); boxBlur(J2, w, h, 2); boxBlur(J3, w, h, 2);
+    for (i = 0; i < n; i++) { var tr = J1[i] + J2[i]; C[i] = tr > 1 ? Math.sqrt((J1[i] - J2[i]) * (J1[i] - J2[i]) + 4 * J3[i] * J3[i]) / tr : 0; }
+    /* local smoothness: paper is smooth even in a shadow, clutter is not */
+    var SD = this.SD, Y2 = this.J1; /* reuse buffer */
+    var Ym = this.J2; for (i = 0; i < n; i++) { Ym[i] = Y[i]; Y2[i] = Y[i] * Y[i]; }
+    boxBlur(Ym, w, h, 2); boxBlur(Y2, w, h, 2);
+    for (i = 0; i < n; i++) { var vv0 = Y2[i] - Ym[i] * Ym[i]; SD[i] = vv0 > 0 ? Math.sqrt(vv0) : 0; }
+    /* noise floor: median edge strength over the frame (grainy dim webcams have a high floor) */
+    var mh = new Uint32Array(512), cnt = 0;
+    for (y = 2; y < h - 2; y += 2) for (x = 2; x < w - 2; x += 2) { var mv2 = M[y * w + x] | 0; mh[mv2 > 511 ? 511 : mv2]++; cnt++; }
+    var ac = 0; this.mMed = 0; for (i = 0; i < 512; i++) { ac += mh[i]; if (ac >= cnt / 2) { this.mMed = i; break; } }
+  };
+  Finder.prototype.edges = function (lo) {
+    var w = this.w, h = this.h, M = this.M, GX = this.GX, GY = this.GY, E = this.E, x, y, i, cnt = 0;
+    E.fill(0);
+    for (y = 2; y < h - 2; y++) for (x = 2; x < w - 2; x++) {
+      i = y * w + x; var m = M[i]; if (m < lo || this.C[i] < 0.55) continue;
+      var gx = GX[i], gy = GY[i], ax = Math.abs(gx), ay = Math.abs(gy), n1, n2;
+      if (ax > 2.414 * ay) { n1 = i - 1; n2 = i + 1; }
+      else if (ay > 2.414 * ax) { n1 = i - w; n2 = i + w; }
+      else if (gx * gy > 0) { n1 = i - w - 1; n2 = i + w + 1; }
+      else { n1 = i - w + 1; n2 = i + w - 1; }
+      if (m >= M[n1] && m > M[n2]) { E[i] = 1; cnt++; }
+    }
+    return cnt;
+  };
+  Finder.prototype.hough = function (maxLines) {
+    var w = this.w, h = this.h, E = this.E, M = this.M, GX = this.GX, GY = this.GY, acc = this.acc, NR = this.NR, RM = this.RM;
+    var cs = this.cos, sn = this.sin, cx = this.cx, cy = this.cy, x, y, i, t;
+    acc.fill(0);
+    for (y = 2; y < h - 2; y++) for (x = 2; x < w - 2; x++) {
+      i = y * w + x; if (!E[i]) continue;
+      var m = M[i], wv = (Math.min(m, 320) - this.lo * 0.7) / 80 * this.C[i]; if (wv <= 0) continue;
+      var deg = Math.atan2(GY[i], GX[i]) * 57.29578, t0 = Math.round(deg); t0 = ((t0 % 180) + 180) % 180;
+      var xc = x - cx, yc = y - cy;
+      for (var dt = -4; dt <= 4; dt++) {
+        t = t0 + dt; if (t < 0) t += 180; else if (t >= 180) t -= 180;
+        var r = xc * cs[t] + yc * sn[t], ri = Math.round(r) + RM;
+        acc[t * NR + ri] += wv * (1 - Math.abs(dt) * 0.15);
+      }
+    }
+    /* light smoothing along rho */
+    var mx = 0; for (i = 0; i < acc.length; i++) if (acc[i] > mx) mx = acc[i];
+    if (mx <= 0) return [];
+    var thr = mx * 0.06, peaks = [];
+    function at(tt, rr) { /* wrap theta: (t+180, r) == (t, -r) */
+      if (tt < 0) { tt += 180; rr = -rr; } else if (tt >= 180) { tt -= 180; rr = -rr; }
+      var ri = rr + RM; if (ri < 0 || ri >= NR) return 0; return acc[tt * NR + ri];
+    }
+    for (t = 0; t < 180; t++) {
+      var row = t * NR;
+      for (var ri2 = 1; ri2 < NR - 1; ri2++) {
+        var v = acc[row + ri2]; if (v < thr) continue;
+        var r0 = ri2 - RM, ok = true;
+        for (var d1 = -3; d1 <= 3 && ok; d1++) for (var d2 = -5; d2 <= 5; d2++) {
+          if (!d1 && !d2) continue;
+          var vv = at(t + d1, r0 + d2);
+          if (vv > v || (vv === v && (d1 < 0 || (d1 === 0 && d2 < 0)))) { ok = false; break; }
+        }
+        if (ok) peaks.push({ t: t, r: r0, v: v });
+      }
+    }
+    peaks.sort(function (a, b) { return b.v - a.v; });
+    peaks = peaks.slice(0, maxLines || 28);
+    var self = this;
+    return peaks.map(function (p) { /* line a x + b y = c in image coordinates */
+      var a = self.cos[p.t], b = self.sin[p.t];
+      return { t: p.t, v: p.v, l: [a, b, p.r + a * cx + b * cy] };
+    });
+  };
+  /* how much of the side p->q is a real edge running along that side */
+  Finder.prototype.sideSupport = function (p, q, Ts) {
+    var w = this.w, h = this.h, M = this.M, GX = this.GX, GY = this.GY, E = this.E, C = this.C;
+    var dx = q[0] - p[0], dy = q[1] - p[1], L = Math.hypot(dx, dy); if (L < 4) return 0;
+    var nx = -dy / L, ny = dx / L, K = clamp(Math.round(L / 2.5), 10, 48), sup = 0;
+    for (var k = 0; k < K; k++) {
+      var t = 0.05 + 0.9 * (k + 0.5) / K, sx = p[0] + dx * t, sy = p[1] + dy * t, hit = false;
+      for (var o = -2; o <= 2 && !hit; o++) {
+        var x = Math.round(sx + nx * o), y = Math.round(sy + ny * o);
+        if (x < 1 || y < 1 || x >= w - 1 || y >= h - 1) continue;
+        var i = y * w + x, m = M[i]; if (m < Ts || C[i] < 0.5) continue;
+        if (Math.abs(GX[i] * nx + GY[i] * ny) > 0.9 * m) hit = true;
+      }
+      if (hit) sup++;
+    }
+    return sup / K;
+  };
+  Finder.prototype.sample = function (A, x, y) {
+    var w = this.w, h = this.h; x = clamp(Math.round(x), 0, w - 1); y = clamp(Math.round(y), 0, h - 1); return A[y * w + x];
+  };
+  Finder.prototype.score = function (q, prev, Ts) {
+    var w = this.w, h = this.h, dg = Math.hypot(w, h), self = this;
+    var area = Math.abs(polyArea(q)), af = area / (w * h);
+    var sup = [0, 0, 0, 0], i;
+    for (i = 0; i < 4; i++) sup[i] = this.sideSupport(q[i], q[(i + 1) % 4], Ts);
+    var mean = (sup[0] + sup[1] + sup[2] + sup[3]) / 4, mn = Math.min(sup[0], sup[1], sup[2], sup[3]);
+    if (mn < 0.18 || mean < 0.4) return null;
+    var c = centroid(q), con = 0, cn = 0;
+    for (i = 0; i < 4; i++) {
+      var p = q[i], r = q[(i + 1) % 4], dx = r[0] - p[0], dy = r[1] - p[1], L = Math.hypot(dx, dy), nx = -dy / L, ny = dx / L;
+      var mx = (p[0] + r[0]) / 2, my = (p[1] + r[1]) / 2; if ((c[0] - mx) * nx + (c[1] - my) * ny < 0) { nx = -nx; ny = -ny; }
+      for (var k = 1; k < 8; k++) {
+        var t = k / 8, sx = p[0] + dx * t, sy = p[1] + dy * t;
+        con += this.sample(this.Y, sx + nx * 4, sy + ny * 4) - this.sample(this.Y, sx - nx * 4, sy - ny * 4); cn++;
+      }
+    }
+    con /= cn;
+    /* paper margin: a ring just inside the edge should be one even colour */
+    var ys = [], us = [], vs = [], sds = [];
+    function bil(u, v) {
+      var a = [q[0][0] + (q[1][0] - q[0][0]) * u, q[0][1] + (q[1][1] - q[0][1]) * u];
+      var b = [q[3][0] + (q[2][0] - q[3][0]) * u, q[3][1] + (q[2][1] - q[3][1]) * u];
+      return [a[0] + (b[0] - a[0]) * v, a[1] + (b[1] - a[1]) * v];
+    }
+    for (var s = 0; s < 8; s++) {
+      var tt = 0.1 + 0.8 * s / 7;
+      [[tt, 0.07], [tt, 0.93], [0.07, tt], [0.93, tt]].forEach(function (uv) {
+        var pt = bil(uv[0], uv[1]); ys.push(self.sample(self.Y, pt[0], pt[1])); us.push(self.sample(self.U, pt[0], pt[1])); vs.push(self.sample(self.V, pt[0], pt[1])); sds.push(self.sample(self.SD, pt[0], pt[1]));
+      });
+    }
+    function med(a) { var b = a.slice().sort(function (x, y) { return x - y; }); return b[b.length >> 1]; }
+    /* paper colour = the brighter half of the ring (paper is usually the brightest thing on the page) */
+    var smooth = ys.map(function (v, ii) { return ii; }).filter(function (ii) { return sds[ii] < 9 + 0.04 * ys[ii]; });
+    if (smooth.length < 6) smooth = ys.map(function (v, ii) { return ii; });
+    var order = smooth.sort(function (a2, b2) { return ys[b2] - ys[a2]; }).slice(0, Math.max(3, smooth.length >> 1));
+    var ym = med(order.map(function (ii) { return ys[ii]; })), um = med(order.map(function (ii) { return us[ii]; })), vm = med(order.map(function (ii) { return vs[ii]; }));
+    /* same paper even in a shadow: judge colour (chroma relative to brightness), allow it much darker */
+    var cu = um / (ym + 16), cv = vm / (ym + 16), sdMax = 5 + 0.035 * ym;
+    function isPaper(yv, uv, vv, sd) { return sd < sdMax && yv > 0.42 * ym && yv < 1.3 * ym + 10 && Math.abs(uv / (yv + 16) - cu) < 0.075 && Math.abs(vv / (yv + 16) - cv) < 0.075; }
+    var uni = 0;
+    for (i = 0; i < ys.length; i++) if (isPaper(ys[i], us[i], vs[i], sds[i])) uni++;
+    uni /= ys.length;
+    /* every side must have paper just inside it (a side running through the room fails this) */
+    var insMin = 1, insSum = 0, outMin = 1, outSum = 0, conMin = 1e9;
+    for (i = 0; i < 4; i++) {
+      var pp = q[i], rq = q[(i + 1) % 4], ddx = rq[0] - pp[0], ddy = rq[1] - pp[1], LL = Math.hypot(ddx, ddy), qx = -ddy / LL, qy = ddx / LL;
+      var mx2 = (pp[0] + rq[0]) / 2, my2 = (pp[1] + rq[1]) / 2; if ((c[0] - mx2) * qx + (c[1] - my2) * qy < 0) { qx = -qx; qy = -qy; }
+      var off = Math.max(4, LL * 0.03), hits = 0, outs = 0, cs = 0;
+      for (var k2 = 0; k2 < 10; k2++) {
+        var tt2 = 0.1 + 0.8 * k2 / 9, bx2 = pp[0] + ddx * tt2, by2 = pp[1] + ddy * tt2, px2 = bx2 + qx * off, py2 = by2 + qy * off, ox2 = bx2 - qx * off, oy2 = by2 - qy * off;
+        var yi = this.sample(this.Y, px2, py2), yo = this.sample(this.Y, ox2, oy2);
+        /* paper both just inside and a bit deeper in (a thin white post is only paper-coloured for a few pixels) */
+        var off3 = Math.max(9, LL * 0.08), dx3 = bx2 + qx * off3, dy3 = by2 + qy * off3;
+        if (isPaper(yi, this.sample(this.U, px2, py2), this.sample(this.V, px2, py2), this.sample(this.SD, px2, py2)) &&
+            isPaper(this.sample(this.Y, dx3, dy3), this.sample(this.U, dx3, dy3), this.sample(this.V, dx3, dy3), this.sample(this.SD, dx3, dy3))) hits++;
+        /* just outside a real paper edge is something else (a door post or wall the same colour fails this) */
+        if (!isPaper(yo, this.sample(this.U, ox2, oy2), this.sample(this.V, ox2, oy2), this.sample(this.SD, ox2, oy2))) outs++;
+        cs += Math.abs(yi - yo);
+      }
+      hits /= 10; insSum += hits; if (hits < insMin) insMin = hits;
+      outs /= 10; outSum += outs; if (outs < outMin) outMin = outs;
+      cs /= 10; if (cs < conMin) conMin = cs;
+    }
+    var bright = clamp((ym - this.yMed) / 50, -1, 1);
+    var areaT = clamp(Math.log(af / 0.15) / Math.log(4), -1, 1);
+    var cd = dist(c, [w / 2, h / 2]) / (0.5 * dg), cen = cd < 0.35 ? 1 - cd : 0.65 - 2.2 * (cd - 0.35); /* the drawing is held up in the middle */
+    var pr = 0;
+    if (prev) { var md = 0; for (i = 0; i < 4; i++) md += dist(q[i], prev[i]) / 4; pr = Math.exp(-Math.pow(md / (0.05 * dg), 2)); }
+    var sc = 1.5 * mean + 0.7 * mn + 0.8 * uni + 1.3 * insMin + 0.3 * insSum / 4 + 0.6 * outMin + 0.2 * outSum / 4 + 0.3 * clamp(con / 25, -1, 1) + 0.4 * clamp(conMin / 18, 0, 1) + 0.3 * bright + 0.45 * areaT + 0.5 * cen + 0.4 * pr;
+    return { q: q, s: sc, sup: sup, uni: uni, ins: insMin, out: outMin, cmin: Math.round(conMin), con: con, af: af, ym: ym };
+  };
+  Finder.prototype.paperBlob = function () {
+    /* region candidate: the even, bright patch around the middle of the frame */
+    var w = this.w, h = this.h, n = w * h, Y = this.Y, U = this.U, V = this.V, i, x, y;
+    var cy0 = (h * 0.3) | 0, cy1 = (h * 0.7) | 0, cx0 = (w * 0.3) | 0, cx1 = (w * 0.7) | 0, arr = [];
+    for (y = cy0; y < cy1; y += 2) for (x = cx0; x < cx1; x += 2) arr.push(y * w + x);
+    arr.sort(function (a, b) { return Y[b] - Y[a]; });
+    var top = arr.slice(0, Math.max(10, (arr.length * 0.35) | 0)), sy = 0, su = 0, sv = 0;
+    top.forEach(function (j) { sy += Y[j]; su += U[j]; sv += V[j]; });
+    sy /= top.length; su /= top.length; sv /= top.length;
+    var P = new Uint8Array(n);
+    for (i = 0; i < n; i++) P[i] = (Y[i] > sy * 0.72 && Y[i] < sy * 1.25 + 12 && Math.abs(U[i] - su) < 11 && Math.abs(V[i] - sv) < 11) ? 1 : 0;
+    var lab = new Int32Array(n), q = new Int32Array(n), best = 0, bestN = 0, cur = 0, bestC = 0;
+    for (i = 0; i < n; i++) {
+      if (!P[i] || lab[i]) continue; cur++; var hd = 0, tl = 0, cnt = 0, cen = 0; q[tl++] = i; lab[i] = cur;
+      while (hd < tl) {
+        var p = q[hd++]; cnt++; var px = p % w, py = (p / w) | 0;
+        if (px >= cx0 && px < cx1 && py >= cy0 && py < cy1) cen++;
+        if (px > 0 && P[p - 1] && !lab[p - 1]) { lab[p - 1] = cur; q[tl++] = p - 1; }
+        if (px < w - 1 && P[p + 1] && !lab[p + 1]) { lab[p + 1] = cur; q[tl++] = p + 1; }
+        if (py > 0 && P[p - w] && !lab[p - w]) { lab[p - w] = cur; q[tl++] = p - w; }
+        if (py < h - 1 && P[p + w] && !lab[p + w]) { lab[p + w] = cur; q[tl++] = p + w; }
+      }
+      if (cen > bestC) { bestC = cen; bestN = cnt; best = cur; }
+    }
+    if (!best || bestN < n * 0.06) return null;
+    var pts = [];
+    for (y = 0; y < h; y++) { var a = -1, e = -1; for (x = 0; x < w; x++) if (lab[y * w + x] === best) { if (a < 0) a = x; e = x; } if (a >= 0) { pts.push([a, y]); pts.push([e + 1, y]); } }
+    var hl = hull(pts); if (hl.length < 4) return null;
+    while (hl.length > 4) {
+      var mi = 0, mv = 1e18;
+      for (i = 0; i < hl.length; i++) {
+        var A = hl[(i - 1 + hl.length) % hl.length], B = hl[i], C = hl[(i + 1) % hl.length];
+        var ar = Math.abs((B[0] - A[0]) * (C[1] - A[1]) - (C[0] - A[0]) * (B[1] - A[1]));
+        if (ar < mv) { mv = ar; mi = i; }
+      }
+      hl.splice(mi, 1);
+    }
+    return orderQuad(hl);
+  };
+  function hull(p) {
+    p = p.slice().sort(function (a, b) { return a[0] - b[0] || a[1] - b[1]; });
+    function cr(o, a, b) { return (a[0] - o[0]) * (b[1] - o[1]) - (a[1] - o[1]) * (b[0] - o[0]); }
+    var lo = [], up = [], i;
+    for (i = 0; i < p.length; i++) { while (lo.length >= 2 && cr(lo[lo.length - 2], lo[lo.length - 1], p[i]) <= 0) lo.pop(); lo.push(p[i]); }
+    for (i = p.length - 1; i >= 0; i--) { while (up.length >= 2 && cr(up[up.length - 2], up[up.length - 1], p[i]) <= 0) up.pop(); up.push(p[i]); }
+    up.pop(); lo.pop(); return lo.concat(up);
+  }
+  Finder.prototype.detect = function (rgba, prev) {
+    var w = this.w, h = this.h, t0 = NOW();
+    this.prepare(rgba);
+    var lo = Math.max(12, this.mMed * 1.5); this.lo = lo; this.edges(lo);
+    var lines = this.hough(30), dmin = Math.min(w, h), i, j, k, l;
+    var pairs = [];
+    for (i = 0; i < lines.length; i++) for (j = i + 1; j < lines.length; j++) {
+      var dt = Math.abs(lines[i].t - lines[j].t); if (dt > 90) dt = 180 - dt;
+      if (dt > 26) continue;
+      var A = lines[i].l, B = lines[j].l;
+      /* separation measured at the frame centre */
+      var px = this.cx - A[0] * (A[0] * this.cx + A[1] * this.cy - A[2]), py = this.cy - A[1] * (A[0] * this.cx + A[1] * this.cy - A[2]);
+      var sep = Math.abs(B[0] * px + B[1] * py - B[2]);
+      if (sep < dmin * 0.14) continue;
+      pairs.push({ a: lines[i], b: lines[j], v: Math.min(lines[i].v, lines[j].v) });
+    }
+    pairs.sort(function (a, b) { return b.v - a.v; });
+    pairs = pairs.slice(0, 70);
+    var cands = [], Ts = Math.max(12, lo * 0.8);
+    for (i = 0; i < pairs.length; i++) for (j = i + 1; j < pairs.length; j++) {
+      var P1 = pairs[i], P2 = pairs[j];
+      if (P1.a === P2.a || P1.a === P2.b || P1.b === P2.a || P1.b === P2.b) continue;
+      var d2 = Math.abs(P1.a.t - P2.a.t); if (d2 > 90) d2 = 180 - d2;
+      if (d2 < 48) continue;
+      var c1 = intersect(P1.a.l, P2.a.l), c2 = intersect(P1.a.l, P2.b.l), c3 = intersect(P1.b.l, P2.b.l), c4 = intersect(P1.b.l, P2.a.l);
+      if (!c1 || !c2 || !c3 || !c4) continue;
+      var q = [c1, c2, c3, c4], bad = false;
+      for (k = 0; k < 4; k++) if (q[k][0] < -0.12 * w || q[k][0] > 1.12 * w || q[k][1] < -0.12 * h || q[k][1] > 1.12 * h) { bad = true; break; }
+      if (bad || !isConvex(q)) continue;
+      q = orderQuad(q);
+      var ar = Math.abs(polyArea(q)); if (ar < 0.08 * w * h) continue;
+      var angs = cornerAngles(q); bad = false;
+      for (k = 0; k < 4; k++) if (angs[k] < 50 || angs[k] > 130) { bad = true; break; }
+      if (bad) continue;
+      for (k = 0; k < 4; k++) if (dist(q[k], q[(k + 1) % 4]) < 0.14 * dmin) { bad = true; break; }
+      if (bad) continue;
+      cands.push(q);
+    }
+    var blob = this.paperBlob(); if (blob && isConvex(blob) && Math.abs(polyArea(blob)) >= 0.08 * w * h) cands.push(blob);
+    if (prev && Math.abs(polyArea(prev)) >= 0.08 * w * h) cands.push(prev.map(function (p) { return p.slice(); }));
+    var best = null;
+    for (l = 0; l < cands.length; l++) {
+      var s = this.score(cands[l], prev, Ts);
+      if (s && (!best || s.s > best.s)) best = s;
+    }
+    var ok = best && best.s >= 2.6;
+    return { quad: ok ? best.q : null, best: best, ms: NOW() - t0, lines: lines.length, cands: cands.length };
+  };
+
+  /* ================================================================ full-resolution side refinement
+     Slides along each side, finds the exact edge across it, then fits a straight line that ignores
+     fingers and bumps. Corners hidden under thumbs come from where the straight sides meet. */
+  function grayOf(img) { /* ImageData -> Float32 gray */
+    var d = img.data, n = img.width * img.height, G = new Float32Array(n);
+    for (var i = 0; i < n; i++) G[i] = 0.299 * d[i * 4] + 0.587 * d[i * 4 + 1] + 0.114 * d[i * 4 + 2];
+    return G;
+  }
+  function bilinearG(G, w, h, x, y) {
+    if (x < 0) x = 0; if (y < 0) y = 0; if (x > w - 1.001) x = w - 1.001; if (y > h - 1.001) y = h - 1.001;
+    var x0 = x | 0, y0 = y | 0, fx = x - x0, fy = y - y0, i = y0 * w + x0;
+    return (G[i] * (1 - fx) + G[i + 1] * fx) * (1 - fy) + (G[i + w] * (1 - fx) + G[i + w + 1] * fx) * fy;
+  }
+  function refineQuad(G, w, h, quad) {
+    var dg = Math.hypot(w, h), c = centroid(quad), lines = [], used = 0;
+    var R = Math.max(4, Math.round(dg * 0.012));
+    for (var s = 0; s < 4; s++) {
+      var p = quad[s], q = quad[(s + 1) % 4], dx = q[0] - p[0], dy = q[1] - p[1], L = Math.hypot(dx, dy);
+      var ux = dx / L, uy = dy / L, nx = -uy, ny = ux;
+      var mx = (p[0] + q[0]) / 2, my = (p[1] + q[1]) / 2; if ((c[0] - mx) * nx + (c[1] - my) * ny < 0) { nx = -nx; ny = -ny; } /* n points inside */
+      /* which way is the step? paper usually brighter, but not always */
+      var pol = 0, M = 72, k, o;
+      for (k = 0; k < M; k += 4) {
+        var t0 = 0.08 + 0.84 * k / (M - 1), sx0 = p[0] + dx * t0, sy0 = p[1] + dy * t0;
+        pol += bilinearG(G, w, h, sx0 + nx * R, sy0 + ny * R) - bilinearG(G, w, h, sx0 - nx * R, sy0 - ny * R);
+      }
+      pol = pol >= 0 ? 1 : -1;
+      var pts = [];
+      for (k = 0; k < M; k++) {
+        var t = 0.06 + 0.88 * k / (M - 1), sx = p[0] + dx * t, sy = p[1] + dy * t, bo = 0, bv = -1e9, vals = [];
+        for (o = -R; o <= R; o++) {
+          /* step across the edge, averaged over 2px each side and 3 spots along the edge (noise-proof) */
+          var v = 0;
+          for (var a3 = -1; a3 <= 1; a3++) {
+            var bx = sx + ux * a3 * 1.5, by = sy + uy * a3 * 1.5;
+            v += bilinearG(G, w, h, bx + nx * (o + 1), by + ny * (o + 1)) + bilinearG(G, w, h, bx + nx * (o + 2), by + ny * (o + 2))
+              - bilinearG(G, w, h, bx + nx * (o - 1), by + ny * (o - 1)) - bilinearG(G, w, h, bx + nx * (o - 2), by + ny * (o - 2));
+          }
+          v = pol * v / 6;
+          vals.push(v); if (v > bv) { bv = v; bo = o; }
+        }
+        if (bv < 10) continue;
+        var ii = bo + R, off = bo;
+        if (ii > 0 && ii < vals.length - 1) { var a = vals[ii - 1], b2 = vals[ii], cc = vals[ii + 1], den = a - 2 * b2 + cc; if (den < 0) off = bo + clamp(0.5 * (a - cc) / den, -0.5, 0.5); }
+        pts.push([sx + nx * off, sy + ny * off]);
+      }
+      var line = null;
+      if (pts.length >= M * 0.3) line = robustLine(pts);
+      if (line) {
+        /* reject a fit that wandered off the original side */
+        var d0 = Math.abs(line[0] * p[0] + line[1] * p[1] - line[2]), d1 = Math.abs(line[0] * q[0] + line[1] * q[1] - line[2]);
+        if (d0 > R * 1.6 || d1 > R * 1.6) line = null;
+      }
+      if (line) used++;
+      lines.push(line || lineThrough(p, q));
+    }
+    var out = [];
+    for (var j = 0; j < 4; j++) { var x = intersect(lines[(j + 3) % 4], lines[j]); out.push(x || quad[j]); }
+    for (j = 0; j < 4; j++) if (dist(out[j], quad[j]) > dg * 0.04) out[j] = quad[j];
+    return { quad: out, used: used };
+  }
+  function robustLine(pts) { /* total least squares with Tukey reweighting */
+    var wts = pts.map(function () { return 1; }), line = null;
+    for (var it = 0; it < 5; it++) {
+      var sw = 0, sx = 0, sy = 0, i;
+      for (i = 0; i < pts.length; i++) { sw += wts[i]; sx += wts[i] * pts[i][0]; sy += wts[i] * pts[i][1]; }
+      if (sw < 3) return line; var mx = sx / sw, my = sy / sw, cxx = 0, cxy = 0, cyy = 0;
+      for (i = 0; i < pts.length; i++) { var dx = pts[i][0] - mx, dy = pts[i][1] - my; cxx += wts[i] * dx * dx; cxy += wts[i] * dx * dy; cyy += wts[i] * dy * dy; }
+      var th = 0.5 * Math.atan2(2 * cxy, cxx - cyy), ux = Math.cos(th), uy = Math.sin(th), a = -uy, b = ux;
+      line = [a, b, a * mx + b * my];
+      var res = pts.map(function (p) { return Math.abs(a * p[0] + b * p[1] - line[2]); });
+      var sr = res.slice().sort(function (x, y) { return x - y; }), mad = sr[sr.length >> 1] * 1.4826 + 0.3, cut = 4.0 * mad;
+      for (i = 0; i < pts.length; i++) { var r = res[i] / cut; wts[i] = r < 1 ? (1 - r * r) * (1 - r * r) : 0; }
+    }
+    return line;
+  }
+
+  /* ================================================================ straighten (perspective warp) */
+  /* true width:height of the sheet from its four corners, undoing camera tilt (Zhang & He, whiteboard scanning).
+     cx, cy = picture centre. Falls back to side lengths when the sheet faces the camera (formula unstable). */
+  function trueAspect(quad, cx, cy) {
+    function ang(a, b, c, d) { var u = Math.atan2(b[1] - a[1], b[0] - a[0]), w = Math.atan2(d[1] - c[1], d[0] - c[0]), x = Math.abs(u - w) % Math.PI; return Math.min(x, Math.PI - x) * 57.3; }
+    /* sheet nearly square-on to the camera: side lengths are already right and the formula is unstable */
+    if (Math.max(ang(quad[0], quad[1], quad[3], quad[2]), ang(quad[0], quad[3], quad[1], quad[2])) < 8) return null;
+    function v(p) { return [p[0] - cx, p[1] - cy, 1]; }
+    function cr(a, b) { return [a[1] * b[2] - a[2] * b[1], a[2] * b[0] - a[0] * b[2], a[0] * b[1] - a[1] * b[0]]; }
+    function dt(a, b) { return a[0] * b[0] + a[1] * b[1] + a[2] * b[2]; }
+    var m1 = v(quad[0]), m2 = v(quad[1]), m4 = v(quad[2]), m3 = v(quad[3]); /* TL, TR, BR, BL */
+    var k2 = dt(cr(m1, m4), m3) / dt(cr(m2, m4), m3), k3 = dt(cr(m1, m4), m2) / dt(cr(m3, m4), m2);
+    var n2 = [k2 * m2[0] - m1[0], k2 * m2[1] - m1[1], k2 * m2[2] - m1[2]], n3 = [k3 * m3[0] - m1[0], k3 * m3[1] - m1[1], k3 * m3[2] - m1[2]];
+    if (Math.abs(n2[2]) < 1e-6 || Math.abs(n3[2]) < 1e-6) return null;
+    var f2 = -(n2[0] * n3[0] + n2[1] * n3[1]) / (n2[2] * n3[2]);
+    if (!(f2 > 0) || !isFinite(f2)) return null;
+    var f = Math.sqrt(f2), diag = Math.hypot(cx * 2, cy * 2);
+    if (f < diag * 0.25 || f > diag * 2) return null; /* not believable for a phone or webcam lens */
+    var a2 = (n2[0] * n2[0] + n2[1] * n2[1]) / f2 + n2[2] * n2[2], b2 = (n3[0] * n3[0] + n3[1] * n3[1]) / f2 + n3[2] * n3[2];
+    return Math.sqrt(a2 / b2);
+  }
+  function pageSize(quad, maxLong, up, noSnap, cx, cy) {
+    var top = dist(quad[0], quad[1]), bot = dist(quad[3], quad[2]), lef = dist(quad[0], quad[3]), rig = dist(quad[1], quad[2]);
+    var W = Math.max(top, bot), H = Math.max(lef, rig), r = W / H;
+    if (cx !== undefined) { var ta = trueAspect(quad, cx, cy); if (ta && Math.abs(Math.log(ta / r)) < 0.35) { r = ta; if (W / H > r) W = H * r; else H = W / r; } }
+    var rr = r >= 1 ? r : 1 / r;
+    /* snap to common paper shapes when close: A4, US letter, square */
+    var snaps = [[Math.SQRT2, 0.05], [1.294, 0.02], [1.0, 0.04]], best = null;
+    for (var i = 0; i < snaps.length && !noSnap; i++) if (Math.abs(rr - snaps[i][0]) / snaps[i][0] < snaps[i][1]) { best = snaps[i][0]; break; }
+    if (best) { if (r >= 1) W = H * best; else H = W * best; }
+    var s = Math.min(up || 1, maxLong / Math.max(W, H));
+    return [Math.max(32, Math.round(W * s)), Math.max(32, Math.round(H * s))];
+  }
+  function warp(img, quad, W, H, inset) {
+    var mx = W * inset, my = H * inset;
+    var hm = homography([[-mx, -my], [W + mx, -my], [W + mx, H + my], [-mx, H + my]], quad);
+    var out = new Uint8ClampedArray(W * H * 4), sd = img.data, SW = img.width, SH = img.height;
+    if (!hm) return null;
+    for (var v = 0; v < H; v++) {
+      var nx0 = hm[1] * v + hm[2], ny0 = hm[4] * v + hm[5], nd0 = hm[7] * v + 1, oi = v * W * 4;
+      for (var u = 0; u < W; u++, oi += 4) {
+        var den = hm[6] * u + nd0, x = (hm[0] * u + nx0) / den, y = (hm[3] * u + ny0) / den;
+        if (x < 0) x = 0; else if (x > SW - 1.001) x = SW - 1.001;
+        if (y < 0) y = 0; else if (y > SH - 1.001) y = SH - 1.001;
+        var x0 = x | 0, y0 = y | 0, fx = x - x0, fy = y - y0, a = (y0 * SW + x0) * 4, b = a + 4, c = a + SW * 4, e = c + 4;
+        var w00 = (1 - fx) * (1 - fy), w10 = fx * (1 - fy), w01 = (1 - fx) * fy, w11 = fx * fy;
+        out[oi] = sd[a] * w00 + sd[b] * w10 + sd[c] * w01 + sd[e] * w11;
+        out[oi + 1] = sd[a + 1] * w00 + sd[b + 1] * w10 + sd[c + 1] * w01 + sd[e + 1] * w11;
+        out[oi + 2] = sd[a + 2] * w00 + sd[b + 2] * w10 + sd[c + 2] * w01 + sd[e + 2] * w11;
+        out[oi + 3] = 255;
+      }
+    }
+    return out;
+  }
+
+  /* ================================================================ sharpness + burst merge */
+  function lumaOf(d, n) { var Y = new Float32Array(n); for (var i = 0; i < n; i++) Y[i] = 0.299 * d[i * 4] + 0.587 * d[i * 4 + 1] + 0.114 * d[i * 4 + 2]; return Y; }
+  function sharpness(Y, w, h) { /* variance of the Laplacian in the middle of the page */
+    var s = 0, s2 = 0, n = 0;
+    for (var y = (h * 0.1) | 0; y < h * 0.9 - 1; y += 2) for (var x = (w * 0.1) | 0; x < w * 0.9 - 1; x += 2) {
+      var i = y * w + x, l = 4 * Y[i] - Y[i - 1] - Y[i + 1] - Y[i - w] - Y[i + w]; s += l; s2 += l * l; n++;
+    }
+    return n ? s2 / n - (s / n) * (s / n) : 0;
+  }
+  function box3(Y, w, h) {
+    var T = new Float32Array(Y.length), O = new Float32Array(Y.length), x, y, i;
+    for (y = 0; y < h; y++) for (x = 0; x < w; x++) { i = y * w + x; var a = x > 0 ? Y[i - 1] : Y[i], b = x < w - 1 ? Y[i + 1] : Y[i]; T[i] = (a + Y[i] + b) / 3; }
+    for (y = 0; y < h; y++) for (x = 0; x < w; x++) { i = y * w + x; var c = y > 0 ? T[i - w] : T[i], d = y < h - 1 ? T[i + w] : T[i]; O[i] = (c + T[i] + d) / 3; }
+    return O;
+  }
+  function noiseSigma(Y, w, h) { /* robust noise estimate from the Laplacian (Immerkaer) */
+    var a = [];
+    for (var y = 2; y < h - 2; y += 3) for (var x = 2; x < w - 2; x += 3) {
+      var i = y * w + x, l = 4 * Y[i] - Y[i - 1] - Y[i + 1] - Y[i - w] - Y[i + w]; a.push(Math.abs(l));
+    }
+    a.sort(function (p, q) { return p - q; });
+    return (a[a.length >> 1] || 0) * 1.4826 / Math.sqrt(20);
+  }
+  function bestShift(R, F, w, h) { /* small whole-pixel shift of F onto R (frames are already lined up by their corners) */
+    var best = [0, 0], bv = 1e30, S = 3, step = 4, x, y;
+    var x0 = (w * 0.15) | 0, x1 = (w * 0.85) | 0, y0 = (h * 0.15) | 0, y1 = (h * 0.85) | 0;
+    for (var dy = -S; dy <= S; dy++) for (var dx = -S; dx <= S; dx++) {
+      var s = 0, o = dy * w + dx;
+      for (y = y0; y < y1; y += step) { var r = y * w; for (x = x0; x < x1; x += step) { var d = R[r + x] - F[r + x + o]; s += d < 0 ? -d : d; } }
+      s *= 1 + 0.01 * (dx * dx + dy * dy); /* prefer no shift when it makes no real difference */
+      if (s < bv) { bv = s; best = [dx, dy]; }
+    }
+    return best;
+  }
+  function lumaBox(d, w, h) { /* brightness, lightly smoothed (3x3), for comparing frames */
+    var n = w * h, Y = new Float32Array(n), T = new Float32Array(n), i, x, y;
+    for (i = 0; i < n; i++) Y[i] = 0.299 * d[i * 4] + 0.587 * d[i * 4 + 1] + 0.114 * d[i * 4 + 2];
+    for (y = 0; y < h; y++) { var r = y * w; T[r] = Y[r]; T[r + w - 1] = Y[r + w - 1]; for (x = 1; x < w - 1; x++) T[r + x] = (Y[r + x - 1] + Y[r + x] + Y[r + x + 1]) * 0.33333; }
+    for (x = 0; x < w; x++) { Y[x] = T[x]; Y[(h - 1) * w + x] = T[(h - 1) * w + x]; }
+    for (y = 1; y < h - 1; y++) { var r2 = y * w; for (x = 0; x < w; x++) Y[r2 + x] = (T[r2 + x - w] + T[r2 + x] + T[r2 + x + w]) * 0.33333; }
+    return Y;
+  }
+  function sharpRGBA(d, w, h) { /* variance of the Laplacian of brightness, middle of the page, every other pixel */
+    var s = 0, s2 = 0, n = 0, W4 = w * 4;
+    for (var y = Math.max(1, (h * 0.12) | 0); y < h * 0.88 - 1; y += 2) for (var x = Math.max(1, (w * 0.12) | 0); x < w * 0.88 - 1; x += 2) {
+      var o = (y * w + x) * 4;
+      var c = d[o] * 0.299 + d[o + 1] * 0.587 + d[o + 2] * 0.114;
+      var l = d[o - 4] * 0.299 + d[o - 3] * 0.587 + d[o - 2] * 0.114, r = d[o + 4] * 0.299 + d[o + 5] * 0.587 + d[o + 6] * 0.114;
+      var u = d[o - W4] * 0.299 + d[o - W4 + 1] * 0.587 + d[o - W4 + 2] * 0.114, b = d[o + W4] * 0.299 + d[o + W4 + 1] * 0.587 + d[o + W4 + 2] * 0.114;
+      var L = 4 * c - l - r - u - b; s += L; s2 += L * L; n++;
+    }
+    return n ? s2 / n - (s / n) * (s / n) : 0;
+  }
+  function mergePages(pages, W, H) {
+    var n = W * H, i, j;
+    var sh = pages.map(function (p) { return sharpRGBA(p, W, H); });
+    var ref = 0; for (i = 1; i < pages.length; i++) if (sh[i] > sh[ref]) ref = i;
+    var keep = []; for (i = 0; i < pages.length; i++) if (i !== ref && sh[i] >= sh[ref] * 0.55) keep.push(i);
+    var RB = lumaBox(pages[ref], W, H), sig = noiseSigma(RB, W, H) * 3; /* box3 cuts noise ~3x */
+    var s1 = Math.max(2.0, sig * 0.55), s3 = s1 * 3, inv = 1 / (s3 - s1);
+    var acc = new Float32Array(n * 3), wsum = new Float32Array(n), pr = pages[ref];
+    for (j = 0; j < n; j++) { acc[j * 3] = pr[j * 4]; acc[j * 3 + 1] = pr[j * 4 + 1]; acc[j * 3 + 2] = pr[j * 4 + 2]; wsum[j] = 1; }
+    var used = 1, shifts = [];
+    keep.forEach(function (k) {
+      var P = pages[k], FB = lumaBox(P, W, H), sft = bestShift(RB, FB, W, H), dx = sft[0], dy = sft[1], cnt = 0;
+      shifts.push([dx, dy]);
+      if (Math.abs(dx) >= 3 || Math.abs(dy) >= 3) return; /* could not line this frame up: leave it out */
+      var ys = Math.max(0, -dy), ye = Math.min(H, H - dy), xs = Math.max(0, -dx), xe = Math.min(W, W - dx);
+      for (var y = ys; y < ye; y++) {
+        var row = y * W, srow = (y + dy) * W + dx;
+        for (var x = xs; x < xe; x++) {
+          var o = row + x, so = srow + x, d = FB[so] - RB[o]; if (d < 0) d = -d;
+          if (d >= s3) continue;
+          var wt = d <= s1 ? 1 : (s3 - d) * inv, p4 = so * 4, o3 = o * 3;
+          acc[o3] += wt * P[p4]; acc[o3 + 1] += wt * P[p4 + 1]; acc[o3 + 2] += wt * P[p4 + 2]; wsum[o] += wt; cnt++;
+        }
+      }
+      if (cnt > n * 0.3) used++;
+    });
+    var out = new Uint8ClampedArray(n * 4);
+    for (j = 0; j < n; j++) { var ws = 1 / wsum[j]; out[j * 4] = acc[j * 3] * ws; out[j * 4 + 1] = acc[j * 3 + 1] * ws; out[j * 4 + 2] = acc[j * 3 + 2] * ws; out[j * 4 + 3] = 255; }
+    return { data: out, used: used, ref: ref, sigma: sig / 3, sharp: sh, shifts: shifts };
+  }
+
+  /* ================================================================ clean up: even light, true colours, crisp lines
+     The paper is the colour reference. Its brightness is measured in a grid using only the paper (big
+     coloured-in areas are skipped), smoothed, and divided out. That removes shadows, lamp fall-off and
+     colour casts in one go. Then paper is made clean, lines a little darker, colours a little richer. */
+  function rgb2hsv(r, g, b) {
+    var mx = Math.max(r, g, b), mn = Math.min(r, g, b), d = mx - mn, h = 0;
+    if (d > 0) { if (mx === r) h = ((g - b) / d) % 6; else if (mx === g) h = (b - r) / d + 2; else h = (r - g) / d + 4; h *= 60; if (h < 0) h += 360; }
+    return [h, mx ? d / mx : 0, mx];
+  }
+  function enhance(px, W, H, opt) {
+    opt = opt || {};
+    var n = W * H, i, x, y, c;
+    /* 1. paper colour per cell */
+    var CL = 28, CX = W >= H ? CL : Math.max(6, Math.round(CL * W / H)), CY = H >= W ? CL : Math.max(6, Math.round(CL * H / W));
+    var cw = W / CX, ch = H / CY, NC = CX * CY;
+    var cY = new Float32Array(NC), cR = new Float32Array(NC), cG = new Float32Array(NC), cB = new Float32Array(NC), conf = new Float32Array(NC), ok = new Uint8Array(NC);
+    var hist = new Uint32Array(256);
+    for (var cy = 0; cy < CY; cy++) for (var cx = 0; cx < CX; cx++) {
+      var x0 = Math.floor(cx * cw), x1 = Math.floor((cx + 1) * cw), y0 = Math.floor(cy * ch), y1 = Math.floor((cy + 1) * ch), tot = 0;
+      hist.fill(0);
+      for (y = y0; y < y1; y += 2) for (x = x0; x < x1; x += 2) { i = (y * W + x) * 4; hist[(0.299 * px[i] + 0.587 * px[i + 1] + 0.114 * px[i + 2]) | 0]++; tot++; }
+      var acc = 0, p90 = 255; for (i = 255; i >= 0; i--) { acc += hist[i]; if (acc >= tot * 0.1) { p90 = i; break; } }
+      var sr = 0, sg = 0, sb = 0, sn = 0, near = 0;
+      for (y = y0; y < y1; y += 2) for (x = x0; x < x1; x += 2) {
+        i = (y * W + x) * 4; var L = 0.299 * px[i] + 0.587 * px[i + 1] + 0.114 * px[i + 2];
+        if (L >= p90 * 0.9 && L <= p90 * 1.04 + 2) { sr += px[i]; sg += px[i + 1]; sb += px[i + 2]; sn++; }
+        if (L >= p90 * 0.86) near++;
+      }
+      var k = cy * CX + cx; cY[k] = p90; cR[k] = sn ? sr / sn : p90; cG[k] = sn ? sg / sn : p90; cB[k] = sn ? sb / sn : p90; conf[k] = tot ? near / tot : 0;
+    }
+    /* 2. global paper colour: median of the most confident cells */
+    var idx = []; for (k = 0; k < NC; k++) idx.push(k);
+    idx.sort(function (a, b) { return conf[b] - conf[a]; });
+    var topk = idx.slice(0, Math.max(4, (NC * 0.4) | 0)).sort(function (a, b) { return cY[a] - cY[b]; });
+    var gk = topk[topk.length >> 1], gR = cR[gk], gG = cG[gk], gB = cB[gk], gY = cY[gk];
+    function chromaD(k2, r0, g0, b0) { var s1 = cR[k2] + cG[k2] + cB[k2] + 1, s0 = r0 + g0 + b0 + 1; return Math.abs(cR[k2] / s1 - r0 / s0) + Math.abs(cG[k2] / s1 - g0 / s0); }
+    for (k = 0; k < NC; k++) ok[k] = (conf[k] >= 0.22 && cY[k] >= gY * 0.42 && chromaD(k, gR, gG, gB) < 0.075) ? 1 : 0;
+    /* 3. fill covered cells from paper cells around them, then re-check against the local picture */
+    var fR = new Float32Array(NC), fG = new Float32Array(NC), fB = new Float32Array(NC);
+    function fill() {
+      var have = new Uint8Array(NC);
+      for (k = 0; k < NC; k++) { have[k] = ok[k]; fR[k] = cR[k]; fG[k] = cG[k]; fB[k] = cB[k]; }
+      var anyOk = false; for (k = 0; k < NC; k++) if (ok[k]) { anyOk = true; break; }
+      if (!anyOk) { for (k = 0; k < NC; k++) { fR[k] = gR; fG[k] = gG; fB[k] = gB; } return; }
+      for (var it = 0; it < CX + CY; it++) {
+        var changed = false, nh = have.slice();
+        for (var yy = 0; yy < CY; yy++) for (var xx = 0; xx < CX; xx++) {
+          var kk = yy * CX + xx; if (have[kk]) continue;
+          var r = 0, g = 0, b = 0, m = 0;
+          for (var dy = -1; dy <= 1; dy++) for (var dx = -1; dx <= 1; dx++) {
+            var x2 = xx + dx, y2 = yy + dy; if (x2 < 0 || y2 < 0 || x2 >= CX || y2 >= CY) continue;
+            var k2 = y2 * CX + x2; if (!have[k2]) continue; r += fR[k2]; g += fG[k2]; b += fB[k2]; m++;
+          }
+          if (m) { fR[kk] = r / m; fG[kk] = g / m; fB[kk] = b / m; nh[kk] = 1; changed = true; }
+        }
+        have = nh; if (!changed) break;
+      }
+    }
+    function smooth(A, times) {
+      for (var t = 0; t < times; t++) {
+        var B = new Float32Array(NC);
+        for (var yy = 0; yy < CY; yy++) for (var xx = 0; xx < CX; xx++) {
+          var s = 0, m = 0;
+          for (var dy = -1; dy <= 1; dy++) for (var dx = -1; dx <= 1; dx++) {
+            var x2 = xx + dx, y2 = yy + dy; if (x2 < 0 || y2 < 0 || x2 >= CX || y2 >= CY) continue;
+            var wgt = (dx === 0 ? 2 : 1) * (dy === 0 ? 2 : 1); s += A[y2 * CX + x2] * wgt; m += wgt;
+          }
+          B[yy * CX + xx] = s / m;
+        }
+        A.set(B);
+      }
+    }
+    fill();
+    var sR = fR.slice(), sG = fG.slice(), sB = fB.slice(); smooth(sR, 3); smooth(sG, 3); smooth(sB, 3);
+    var changed2 = 0;
+    for (k = 0; k < NC; k++) {
+      if (!ok[k]) continue;
+      var Ls = 0.299 * sR[k] + 0.587 * sG[k] + 0.114 * sB[k];
+      /* a "paper" cell much darker than the paper around it is really light colouring */
+      if (cY[k] < Ls * 0.86) { ok[k] = 0; changed2++; }
+    }
+    if (changed2) fill();
+    smooth(fR, 2); smooth(fG, 2); smooth(fB, 2);
+    /* never brighten more than ~2.6x (very dark corners would only turn into noise) */
+    var minY = gY * 0.38;
+    for (k = 0; k < NC; k++) {
+      var Lk = 0.299 * fR[k] + 0.587 * fG[k] + 0.114 * fB[k];
+      if (Lk < minY) { var f = minY / Math.max(1, Lk); fR[k] *= f; fG[k] *= f; fB[k] *= f; }
+    }
+    /* 4. white paper or coloured paper? (warm or cool light on white paper still counts as white) */
+    var hsv = rgb2hsv(gR, gG, gB), white = hsv[1] < 0.12 || (hsv[1] < 0.4 && hsv[0] >= 18 && hsv[0] <= 58) || (hsv[1] < 0.16 && hsv[0] > 58 && hsv[0] <= 85) || (hsv[1] < 0.22 && hsv[0] >= 180 && hsv[0] <= 240);
+    var tgt;
+    if (white) tgt = [255, 255, 255];
+    else { var s3 = 242 / Math.max(gR, gG, gB); tgt = [gR * s3, gG * s3, gB * s3]; }
+    /* 5. per pixel: divide by the paper, tone, colour, all in one pass */
+    var out = new Uint8ClampedArray(n * 4), isWeb = !!opt.webcam;
+    var sat = opt.sat || 1.28, gam = 1.22;
+    /* white point from the grain left after merging: grainier pictures need a lower white point */
+    var srel = (opt.noise || 0) / Math.max(40, gY), knee = clamp(1 - 3.5 * srel, 0.84, 0.93);
+    /* chroma smoothing for grainy webcam pictures: blur colour (not brightness) a little */
+    var Cb = null, Cr = null;
+    if (isWeb) {
+      Cb = new Float32Array(n); Cr = new Float32Array(n);
+      for (i = 0; i < n; i++) { var r0 = px[i * 4], g0 = px[i * 4 + 1], b0 = px[i * 4 + 2], y0_ = 0.299 * r0 + 0.587 * g0 + 0.114 * b0; Cb[i] = b0 - y0_; Cr[i] = r0 - y0_; }
+      boxBlur(Cb, W, H, 2); boxBlur(Cr, W, H, 2);
+    }
+    var LUTN = 2048, LUT = new Float32Array(LUTN + 1);
+    for (i = 0; i <= LUTN; i++) { var uu = (i / LUTN) * 1.2 / knee; LUT[i] = uu >= 1 ? 1 : Math.pow(uu, gam); }
+    /* pass 1: divide by the paper */
+    var NR = new Float32Array(n), NG = new Float32Array(n), NB = new Float32Array(n), YB = new Float32Array(n);
+    for (y = 0; y < H; y++) {
+      var gy = clamp((y + 0.5) / ch - 0.5, 0, CY - 1.001), ya = gy | 0, ty = gy - ya, yb = Math.min(CY - 1, ya + 1);
+      for (x = 0; x < W; x++) {
+        var gx = clamp((x + 0.5) / cw - 0.5, 0, CX - 1.001), xa = gx | 0, tx = gx - xa, xb = Math.min(CX - 1, xa + 1);
+        var k00 = ya * CX + xa, k10 = ya * CX + xb, k01 = yb * CX + xa, k11 = yb * CX + xb;
+        var w00 = (1 - tx) * (1 - ty), w10 = tx * (1 - ty), w01 = (1 - tx) * ty, w11 = tx * ty;
+        var bR = fR[k00] * w00 + fR[k10] * w10 + fR[k01] * w01 + fR[k11] * w11;
+        var bG = fG[k00] * w00 + fG[k10] * w10 + fG[k01] * w01 + fG[k11] * w11;
+        var bB = fB[k00] * w00 + fB[k10] * w10 + fB[k01] * w01 + fB[k11] * w11;
+        i = y * W + x; var o = i * 4, R = px[o], G = px[o + 1], B = px[o + 2];
+        if (Cb) { var Yp = 0.299 * R + 0.587 * G + 0.114 * B; R = Yp + Cr[i]; B = Yp + Cb[i]; G = (Yp - 0.299 * R - 0.114 * B) / 0.587; }
+        NR[i] = R / bR; NG[i] = G / bG; NB[i] = B / bB;
+        YB[i] = 0.299 * NR[i] + 0.587 * NG[i] + 0.114 * NB[i];
+      }
+    }
+    /* pass 2: paper-or-not decided on a smoothed copy, so lone grains don't turn into specks */
+    var YS = YB.slice(); boxBlur(YS, W, H, 1);
+    var cthr = isWeb ? 0.075 : 0.05;
+    for (i = 0; i < n; i++) {
+      var r = NR[i], g = NG[i], b = NB[i], yv = YB[i], o3 = i * 4;
+      var chroma = Math.max(Math.abs(r - yv), Math.abs(g - yv), Math.abs(b - yv));
+      /* clean paper: bright AND colourless. Pale yellow or sky blue is bright too, but keeps its colour */
+      if (YS[i] >= knee && yv >= knee * 0.94 && chroma < cthr) { out[o3] = tgt[0]; out[o3 + 1] = tgt[1]; out[o3 + 2] = tgt[2]; out[o3 + 3] = 255; continue; }
+      var li = yv <= 0 ? 0 : yv >= 1.2 ? LUTN : (yv / 1.2 * LUTN) | 0, fy = LUT[li];
+      if (yv > 1e-4) { var sc = fy / yv; r *= sc; g *= sc; b *= sc; }
+      var yy2 = 0.299 * r + 0.587 * g + 0.114 * b, ss = chroma < cthr * 0.6 ? 1 : sat;
+      r = yy2 + (r - yy2) * ss; g = yy2 + (g - yy2) * ss; b = yy2 + (b - yy2) * ss;
+      out[o3] = r * tgt[0]; out[o3 + 1] = g * tgt[1]; out[o3 + 2] = b * tgt[2]; out[o3 + 3] = 255;
+    }
+    /* 6. thumbs / slivers at the edge, then crisp lines */
+    var rem = opt.keepEdges ? 0 : cleanEdges(out, W, H, tgt);
+    unsharp(out, W, H, isWeb ? 0.55 : 0.35);
+    return { data: out, white: white, paper: [Math.round(gR), Math.round(gG), Math.round(gB)], cells: [CX, CY], removed: rem };
+  }
+  /* thumbs and slivers of table at the edge of the page: small blobs touching the edge, not part of the drawing */
+  function cleanEdges(d, W, H, tgt) {
+    var n = W * H, ink = new Uint8Array(n), i, x, y;
+    for (i = 0; i < n; i++) { var o = i * 4; ink[i] = (Math.abs(d[o] - tgt[0]) + Math.abs(d[o + 1] - tgt[1]) + Math.abs(d[o + 2] - tgt[2]) > 36) ? 1 : 0; }
+    var lab = new Int32Array(n), q = new Int32Array(n), cur = 0, band = Math.max(2, Math.round(Math.min(W, H) * 0.012)), removed = 0;
+    var md = Math.min(W, H), sl = Math.max(2, Math.round(md * 0.016));
+    /* thin slivers of table or wall along a side (the paper edge is never perfectly straight) */
+    function wipe(j) { var o = j * 4; d[o] = tgt[0]; d[o + 1] = tgt[1]; d[o + 2] = tgt[2]; ink[j] = 0; removed++; }
+    for (x = 0; x < W; x++) {
+      for (y = 0; y < sl && ink[y * W + x]; y++) wipe(y * W + x);
+      for (y = H - 1; y >= H - sl && ink[y * W + x]; y--) wipe(y * W + x);
+    }
+    for (y = 0; y < H; y++) {
+      for (x = 0; x < sl && ink[y * W + x]; x++) wipe(y * W + x);
+      for (x = W - 1; x >= W - sl && ink[y * W + x]; x--) wipe(y * W + x);
+    }
+    for (y = 0; y < H; y++) for (x = 0; x < W; x++) {
+      i = y * W + x; if (!ink[i] || lab[i]) continue;
+      if (!(x < band || y < band || x >= W - band || y >= H - band)) continue; /* only blobs that start at the edge */
+      cur++; var hd = 0, tl = 0, cnt = 0, depth = 0, cT = 0, cB = 0, cL = 0, cR = 0; q[tl++] = i; lab[i] = cur;
+      while (hd < tl) {
+        var p = q[hd++], px = p % W, py = (p / W) | 0; cnt++;
+        var dd = Math.min(px, W - 1 - px, py, H - 1 - py); if (dd > depth) depth = dd;
+        if (py < band) cT++; if (py >= H - band) cB++; if (px < band) cL++; if (px >= W - band) cR++;
+        if (px > 0 && ink[p - 1] && !lab[p - 1]) { lab[p - 1] = cur; q[tl++] = p - 1; }
+        if (px < W - 1 && ink[p + 1] && !lab[p + 1]) { lab[p + 1] = cur; q[tl++] = p + 1; }
+        if (py > 0 && ink[p - W] && !lab[p - W]) { lab[p - W] = cur; q[tl++] = p - W; }
+        if (py < H - 1 && ink[p + W] && !lab[p + W]) { lab[p + W] = cur; q[tl++] = p + W; }
+        if (cnt > n * 0.03) break;
+      }
+      var contact = Math.max(cT / band / W, cB / band / W, cL / band / H, cR / band / H);
+      if (cnt <= n * 0.025 && depth <= md * 0.22 && contact <= 0.22) {
+        for (var k = 0; k < tl; k++) lab[q[k]] = -1; removed += tl;
+      }
+    }
+    /* lone specks anywhere (grain that survived): a few pixels on their own */
+    var spk = Math.max(3, Math.round(n * 0.000012)), lab2 = new Int32Array(n), cur2 = 0;
+    for (i = 0; i < n; i++) {
+      if (!ink[i] || lab2[i] || lab[i]) continue; cur2++; var h2 = 0, t2 = 0; q[t2++] = i; lab2[i] = cur2; var big2 = false;
+      while (h2 < t2) { var p2 = q[h2++], px2 = p2 % W, py2 = (p2 / W) | 0;
+        if (t2 > spk) { big2 = true; break; }
+        if (px2 > 0 && ink[p2 - 1] && !lab2[p2 - 1]) { lab2[p2 - 1] = cur2; q[t2++] = p2 - 1; }
+        if (px2 < W - 1 && ink[p2 + 1] && !lab2[p2 + 1]) { lab2[p2 + 1] = cur2; q[t2++] = p2 + 1; }
+        if (py2 > 0 && ink[p2 - W] && !lab2[p2 - W]) { lab2[p2 - W] = cur2; q[t2++] = p2 - W; }
+        if (py2 < H - 1 && ink[p2 + W] && !lab2[p2 + W]) { lab2[p2 + W] = cur2; q[t2++] = p2 + W; } }
+      if (!big2) for (var k3 = 0; k3 < t2; k3++) { var j3 = q[k3]; wipe(j3); }
+    }
+    if (!removed) return 0;
+    /* paint removed blobs (plus a 2px halo) with the paper colour */
+    for (y = 0; y < H; y++) for (x = 0; x < W; x++) {
+      i = y * W + x; var hit = lab[i] === -1;
+      if (!hit) for (var dy = -4; dy <= 4 && !hit; dy += 2) for (var dx = -4; dx <= 4; dx += 2) { var xx = x + dx, yy = y + dy; if (xx >= 0 && yy >= 0 && xx < W && yy < H && lab[yy * W + xx] === -1) { hit = true; break; } }
+      if (hit && (lab[i] === -1 || !ink[i] || lab[i] === 0)) { var o2 = i * 4; d[o2] = tgt[0]; d[o2 + 1] = tgt[1]; d[o2 + 2] = tgt[2]; }
+    }
+    return removed;
+  }
+  function boxBlur(A, w, h, r) {
+    var T = new Float32Array(A.length), x, y, i, s, n2 = 2 * r + 1;
+    for (y = 0; y < h; y++) {
+      var row = y * w; s = 0;
+      for (x = -r; x <= r; x++) s += A[row + clamp(x, 0, w - 1)];
+      for (x = 0; x < w; x++) { T[row + x] = s / n2; s += A[row + clamp(x + r + 1, 0, w - 1)] - A[row + clamp(x - r, 0, w - 1)]; }
+    }
+    for (x = 0; x < w; x++) {
+      s = 0;
+      for (y = -r; y <= r; y++) s += T[clamp(y, 0, h - 1) * w + x];
+      for (y = 0; y < h; y++) { A[y * w + x] = s / n2; s += T[clamp(y + r + 1, 0, h - 1) * w + x] - T[clamp(y - r, 0, h - 1) * w + x]; }
+    }
+  }
+  function unsharp(d, w, h, amt) {
+    var n = w * h, Y = new Float32Array(n), i;
+    for (i = 0; i < n; i++) Y[i] = 0.299 * d[i * 4] + 0.587 * d[i * 4 + 1] + 0.114 * d[i * 4 + 2];
+    var B = Y.slice(); boxBlur(B, w, h, 1);
+    for (i = 0; i < n; i++) {
+      var dd = (Y[i] - B[i]) * amt; if (Y[i] > 252 && B[i] > 252) continue;
+      d[i * 4] += dd; d[i * 4 + 1] += dd; d[i * 4 + 2] += dd;
+    }
+  }
+
+  /* no paper edge found (white paper on a white table or wall): find the drawing itself and crop round it */
+  function drawingBox(img) {
+    var W = img.width, H = img.height, s = Math.min(1, 400 / Math.max(W, H)), w = Math.max(16, Math.round(W * s)), h = Math.max(16, Math.round(H * s));
+    var c = mkCanvas(w, h), x = ctxOf(c); x.drawImage(toCanvas(img.data, W, H), 0, 0, w, h);
+    var d = x.getImageData(0, 0, w, h).data, n = w * h, Y = new Float32Array(n), U = new Float32Array(n), V = new Float32Array(n), i, xx, yy;
+    for (i = 0; i < n; i++) { var r = d[i * 4], g = d[i * 4 + 1], b = d[i * 4 + 2], l = 0.299 * r + 0.587 * g + 0.114 * b; Y[i] = l; U[i] = b - l; V[i] = r - l; }
+    /* local background brightness: bright percentile in coarse cells, smoothed */
+    var C = 16, cw = w / C, ch = h / C, bg = new Float32Array(C * C);
+    for (var cy = 0; cy < C; cy++) for (var cx = 0; cx < C; cx++) {
+      var a = []; for (yy = Math.floor(cy * ch); yy < Math.floor((cy + 1) * ch); yy++) for (xx = Math.floor(cx * cw); xx < Math.floor((cx + 1) * cw); xx++) a.push(Y[yy * w + xx]);
+      a.sort(function (p, q) { return p - q; }); bg[cy * C + cx] = a.length ? a[Math.floor(a.length * 0.85)] : 255;
+    }
+    var ink = new Uint8Array(n);
+    for (yy = 0; yy < h; yy++) for (xx = 0; xx < w; xx++) {
+      var gx = clamp(xx / cw - 0.5, 0, C - 1.001), gy = clamp(yy / ch - 0.5, 0, C - 1.001), xa = gx | 0, ya = gy | 0, tx = gx - xa, ty = gy - ya;
+      var bb = (bg[ya * C + xa] * (1 - tx) + bg[ya * C + xa + 1] * tx) * (1 - ty) + (bg[(ya + 1) * C + xa] * (1 - tx) + bg[(ya + 1) * C + xa + 1] * tx) * ty;
+      i = yy * w + xx; ink[i] = (Y[i] < bb * 0.8 || Math.abs(U[i]) + Math.abs(V[i]) > 40) ? 1 : 0;
+    }
+    var lab = new Int32Array(n), q = new Int32Array(n), cur = 0, x0 = w, y0 = h, x1 = -1, y1 = -1, tot = 0;
+    for (i = 0; i < n; i++) {
+      if (!ink[i] || lab[i]) continue; cur++; var hd = 0, tl = 0, edge = false, bx0 = w, by0 = h, bx1 = 0, by1 = 0; q[tl++] = i; lab[i] = cur;
+      while (hd < tl) { var p = q[hd++], px = p % w, py = (p / w) | 0;
+        if (px === 0 || py === 0 || px === w - 1 || py === h - 1) edge = true;
+        if (px < bx0) bx0 = px; if (px > bx1) bx1 = px; if (py < by0) by0 = py; if (py > by1) by1 = py;
+        if (px > 0 && ink[p - 1] && !lab[p - 1]) { lab[p - 1] = cur; q[tl++] = p - 1; }
+        if (px < w - 1 && ink[p + 1] && !lab[p + 1]) { lab[p + 1] = cur; q[tl++] = p + 1; }
+        if (py > 0 && ink[p - w] && !lab[p - w]) { lab[p - w] = cur; q[tl++] = p - w; }
+        if (py < h - 1 && ink[p + w] && !lab[p + w]) { lab[p + w] = cur; q[tl++] = p + w; } }
+      if (edge || tl < n * 0.0006) continue;
+      tot += tl; if (bx0 < x0) x0 = bx0; if (by0 < y0) y0 = by0; if (bx1 > x1) x1 = bx1; if (by1 > y1) y1 = by1;
+    }
+    if (x1 < 0 || (x1 - x0) * (y1 - y0) > n * 0.8) return null;
+    var m = Math.max(x1 - x0, y1 - y0) * 0.12;
+    x0 = Math.max(0, x0 - m); y0 = Math.max(0, y0 - m); x1 = Math.min(w - 1, x1 + m); y1 = Math.min(h - 1, y1 + m);
+    return [[x0 / s, y0 / s], [x1 / s, y0 / s], [x1 / s, y1 / s], [x0 / s, y1 / s]];
+  }
+
+  /* ================================================================ whole pipeline on frames */
+  function toCanvas(px, W, H) { var c = mkCanvas(W, H); ctxOf(c).putImageData(new ImageData(px, W, H), 0, 0); return c; }
+  /* frames: [{img: ImageData, quad}] all the same size; returns page canvas + info */
+  function buildPage(frames, opt) {
+    opt = opt || {};
+    var t0 = NOW(), f0 = frames[0], img0 = f0.img;
+    if (frames.length >= 3 && !opt.box) { /* shape from the middle frame's outline (least affected by motion at the ends) */ f0 = frames[frames.length >> 1]; }
+    var maxLong = opt.maxLong || 2000, up = 1;
+    var icx = img0.width / 2, icy = img0.height / 2;
+    if (opt.webcam && frames.length >= 4) { var raw = pageSize(f0.quad, 1e9, 1, opt.box, icx, icy); up = clamp(1400 / Math.max(raw[0], raw[1]), 1, 1.75); }
+    var size = pageSize(f0.quad, maxLong, up, opt.box, opt.box ? undefined : icx, icy), W = size[0], H = size[1], inset = opt.box ? 0 : (opt.inset || 0.008);
+    var pages = [];
+    frames.forEach(function (f) { var p = warp(f.img, f.quad, W, H, inset); if (p) pages.push(p); });
+    var merged = pages.length > 1 ? mergePages(pages, W, H) : { data: pages[0], used: 1, sigma: noiseSigma(lumaOf(pages[0], W * H), W, H) };
+    var t1 = NOW();
+    var en = enhance(merged.data, W, H, { webcam: !!opt.webcam, noise: (merged.sigma || 0) / Math.sqrt(Math.max(1, merged.used || 1)) });
+    var t2 = NOW();
+    return { page: toCanvas(en.data, W, H), before: toCanvas(pages[merged.ref || 0], W, H), W: W, H: H, up: up, used: merged.used, shifts: merged.shifts, sharp: merged.sharp, sigma: merged.sigma, white: en.white, paper: en.paper, removed: en.removed, ms: { warpMerge: t1 - t0, enhance: t2 - t1 } };
+  }
+
+  /* gallery photo / single still -> result */
+  function analysisSize(w, h, longSide) { var s = longSide / Math.max(w, h); return [Math.max(16, Math.round(w * s)), Math.max(16, Math.round(h * s))]; }
+  function detectOn(srcCanvas, prevQuadFull) {
+    var w = srcCanvas.width, h = srcCanvas.height, as = analysisSize(w, h, 360), aw = as[0], ah = as[1];
+    var a = mkCanvas(aw, ah), ax = ctxOf(a); ax.drawImage(srcCanvas, 0, 0, aw, ah);
+    var fd = new Finder(aw, ah), sx = aw / w, sy = ah / h;
+    var prev = prevQuadFull ? scaleQuad(prevQuadFull, sx, sy) : null;
+    var r = fd.detect(ax.getImageData(0, 0, aw, ah).data, prev);
+    return { quad: r.quad ? scaleQuad(r.quad, 1 / sx, 1 / sy) : null, det: r };
+  }
+  SB.processImage = function (src, opt) {
+    opt = opt || {};
+    return new Promise(function (res) {
+      var w = src.naturalWidth || src.videoWidth || src.width, h = src.naturalHeight || src.videoHeight || src.height;
+      var lim = 2600, s = Math.min(1, lim / Math.max(w, h)), W = Math.round(w * s), H = Math.round(h * s);
+      var c = mkCanvas(W, H), cx = ctxOf(c); cx.drawImage(src, 0, 0, W, H);
+      var t0 = NOW(), d = detectOn(c, null), quad = d.quad, found = !!quad;
+      var img = cx.getImageData(0, 0, W, H);
+      if (quad) { var rf = refineQuad(grayOf(img), W, H, quad); quad = rf.quad; }
+      else quad = drawingBox(img) || [[W * 0.04, H * 0.04], [W * 0.96, H * 0.04], [W * 0.96, H * 0.96], [W * 0.04, H * 0.96]];
+      var pg = buildPage([{ img: img, quad: quad }], { maxLong: opt.maxLong || 2000, webcam: Math.max(w, h) < 1600 });
+      res({ page: pg.page, before: pg.before, raw: c, quad: quad, info: { method: 'photo', found: found, frames: 1, src: [w, h], page: [pg.W, pg.H], white: pg.white, ms: Math.round(NOW() - t0) } });
+    });
+  };
+
+  /* ================================================================ camera UI */
+  var CSS = '#sbscan{position:fixed;inset:0;z-index:90;background:#081130;overflow:hidden;touch-action:none;font-family:inherit}' +
+    '#sbscan .sbv{position:absolute;left:0;top:0;transform-origin:0 0}' +
+    '#sbscan video,#sbscan canvas.sbo{position:absolute;left:0;top:0;width:100%;height:100%}' +
+    '#sbscan .sbtop{position:absolute;left:0;right:0;top:0;display:flex;justify-content:space-between;padding:max(14px,env(safe-area-inset-top,0px)) 14px 0;z-index:3}' +
+    '#sbscan .sbr{width:52px;height:52px;border-radius:50%;background:#fff;border:0;display:flex;align-items:center;justify-content:center;box-shadow:0 3px 0 rgba(0,0,0,.25);cursor:pointer;padding:0}' +
+    '#sbscan .sbr svg{width:28px;height:28px}' +
+    '#sbscan .sbshut{position:absolute;left:50%;bottom:max(22px,env(safe-area-inset-bottom,0px));transform:translateX(-50%);width:96px;height:96px;z-index:3;border:0;background:none;padding:0;cursor:pointer}' +
+    '#sbscan .sbshut svg{width:96px;height:96px;display:block}' +
+    '#sbscan .sbflash{position:absolute;inset:0;background:#fff;opacity:0;pointer-events:none;transition:opacity .35s;z-index:4}' +
+    '#sbscan .sbflash.on{opacity:.92;transition:none}' +
+    '#sbscan .sbbusy{position:absolute;inset:0;display:none;align-items:center;justify-content:center;z-index:5;background:rgba(8,17,48,.55)}' +
+    '#sbscan .sbbusy.on{display:flex}' +
+    '#sbscan .sbbusy i{width:84px;height:84px;border-radius:50%;border:10px solid rgba(255,255,255,.25);border-top-color:#ffc531;animation:sbspin .8s linear infinite}' +
+    '@keyframes sbspin{to{transform:rotate(360deg)}}' +
+    '#sbscan .sbmsg{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;z-index:6}' +
+    '#sbscan .sbmsg>div{background:#fff;border-radius:24px;padding:22px;max-width:300px;display:flex;flex-direction:column;align-items:center;gap:14px;color:#081130;font-weight:800;text-align:center}' +
+    '#sbscan .sbpick{display:inline-flex;align-items:center;gap:8px;border-radius:999px;background:#ffc531;color:#081130;padding:10px 20px;box-shadow:0 5px 0 #c79410;cursor:pointer;font-weight:900}' +
+    '#sbscan .sbpick input{display:none}';
+  var IC = {
+    back: '<svg viewBox="0 0 24 24" fill="none" stroke="#081130" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M15 5l-7 7 7 7"/></svg>',
+    flip: '<svg viewBox="0 0 24 24" fill="none" stroke="#081130" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M4 9h11l-3-3M20 15H9l3 3"/></svg>',
+    cam: '<svg viewBox="0 0 64 64" width="56" height="56"><path d="M10 22a5 5 0 0 1 5-5h7l4-6h12l4 6h7a5 5 0 0 1 5 5v24a5 5 0 0 1-5 5H15a5 5 0 0 1-5-5z" fill="#fff" stroke="#081130" stroke-width="3.2" stroke-linejoin="round"/><circle cx="32" cy="33" r="10" fill="#d6ebff" stroke="#081130" stroke-width="3.2"/></svg>'
+  };
+  function shutterSVG(p, ready) {
+    var r = 42, C = 2 * Math.PI * r, off = C * (1 - clamp(p, 0, 1));
+    return '<svg viewBox="0 0 96 96"><circle cx="48" cy="48" r="42" fill="none" stroke="rgba(255,255,255,.35)" stroke-width="7"/>' +
+      '<circle cx="48" cy="48" r="42" fill="none" stroke="' + (ready ? '#3fc35a' : '#fff') + '" stroke-width="7" stroke-linecap="round" stroke-dasharray="' + C.toFixed(1) + '" stroke-dashoffset="' + off.toFixed(1) + '" transform="rotate(-90 48 48)"/>' +
+      '<circle cx="48" cy="48" r="33" fill="#ffc531" stroke="#081130" stroke-width="3"/></svg>';
+  }
+  function ensureCSS() { if (document.getElementById('sbscancss')) return; var s = document.createElement('style'); s.id = 'sbscancss'; s.textContent = CSS; document.head.appendChild(s); }
+  function sound(kind) {
+    try {
+      var A = window.AudioContext || window.webkitAudioContext; if (!A) return; var a = SB._ac || (SB._ac = new A());
+      var o = a.createOscillator(), g = a.createGain(), t = a.currentTime; o.type = 'triangle';
+      if (kind === 'snap') { o.frequency.setValueAtTime(880, t); o.frequency.exponentialRampToValueAtTime(1320, t + 0.08); }
+      else { o.frequency.setValueAtTime(660, t); }
+      g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(0.12, t + 0.01); g.gain.exponentialRampToValueAtTime(0.0001, t + 0.18);
+      o.connect(g); g.connect(a.destination); o.start(t); o.stop(t + 0.2);
+    } catch (e) { }
+  }
+
+  var CUR = null;
+  SB.open = function (o) {
+    o = o || {}; if (CUR) CUR.close();
+    ensureCSS();
+    var el = document.createElement('div'); el.id = 'sbscan';
+    el.innerHTML = '<div class="sbv"><video playsinline muted autoplay></video><canvas class="sbo"></canvas></div>' +
+      '<div class="sbtop"><button class="sbr" data-a="back" aria-label="Back">' + IC.back + '</button><button class="sbr" data-a="flip" aria-label="Switch camera" hidden>' + IC.flip + '</button></div>' +
+      '<button class="sbshut" aria-label="Take the photo">' + shutterSVG(0, false) + '</button><div class="sbflash"></div><div class="sbbusy"><i></i></div>';
+    (o.parent || document.getElementById('app') || document.body).appendChild(el);
+    var box = el.querySelector('.sbv'), video = el.querySelector('video'), ov = el.querySelector('canvas.sbo'), og = ov.getContext('2d');
+    var shut = el.querySelector('.sbshut'), flipB = el.querySelector('[data-a="flip"]'), flash = el.querySelector('.sbflash'), busy = el.querySelector('.sbbusy');
+    var S = {
+      stream: null, track: null, facing: o.facing || 'environment', kind: 'webcam', vw: 0, vh: 0, finder: null, aw: 0, ah: 0, an: null, ax: null,
+      quad: null, shown: null, hist: [], prog: 0, last: 0, lostAt: 0, start: 0, state: 'starting', ic: null, photoCaps: null, usePhoto: false,
+      mirror: !!o.mirror, dead: false, detMs: 0, frames: 0, liveFound: 0
+    };
+    var api = { el: el, close: close, state: S };
+    CUR = api;
+    function close() { S.dead = true; stop(); if (el.parentNode) el.parentNode.removeChild(el); if (CUR === api) CUR = null; }
+    function stop() { if (S.stream) S.stream.getTracks().forEach(function (t) { t.stop(); }); S.stream = null; }
+    function fail(err) {
+      stop(); S.state = 'failed'; shut.hidden = true; flipB.hidden = true; box.style.display = 'none';
+      var m = document.createElement('div'); m.className = 'sbmsg';
+      m.innerHTML = '<div>' + IC.cam + '<label class="sbpick">' + '<span>Choose a photo</span><input type="file" accept="image/*"></label></div>';
+      el.appendChild(m);
+      m.querySelector('input').onchange = function (e) {
+        var f = e.target.files && e.target.files[0]; if (!f) return; var u = URL.createObjectURL(f), im = new Image();
+        im.onload = function () { busy.classList.add('on'); setTimeout(function () { SB.processImage(im).then(function (r) { URL.revokeObjectURL(u); close(); if (o.onPhoto) o.onPhoto(r); }); }, 30); };
+        im.src = u;
+      };
+      if (o.onError) o.onError(err);
+    }
+    function layout() {
+      if (!S.vw) return;
+      var W = el.clientWidth, H = el.clientHeight, s = Math.min(W / S.vw, H / S.vh), dw = S.vw * s, dh = S.vh * s;
+      box.style.width = dw + 'px'; box.style.height = dh + 'px';
+      box.style.left = ((W - dw) / 2) + 'px'; box.style.top = ((H - dh) / 2) + 'px';
+      box.style.transform = S.mirror ? 'translateX(' + dw + 'px) scaleX(-1)' : '';
+      var dpr = Math.min(2, window.devicePixelRatio || 1); ov.width = Math.round(dw * dpr); ov.height = Math.round(dh * dpr);
+      S.disp = { w: dw, h: dh, dpr: dpr };
+    }
+    window.addEventListener('resize', layout);
+    async function openStream() {
+      var tries = [
+        { audio: false, video: { facingMode: { ideal: S.facing }, width: { ideal: 3840 }, height: { ideal: 2160 }, frameRate: { ideal: 30 } } },
+        { audio: false, video: { facingMode: { ideal: S.facing }, width: { ideal: 1920 }, height: { ideal: 1080 } } },
+        { audio: false, video: true }], err = null;
+      for (var i = 0; i < tries.length; i++) {
+        try { return await navigator.mediaDevices.getUserMedia(tries[i]); }
+        catch (e) { err = e; if (e && (e.name === 'NotAllowedError' || e.name === 'SecurityError')) break; }
+      }
+      throw err;
+    }
+    async function start() {
+      stop(); shut.disabled = true; S.state = 'starting';
+      if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) { fail('nocam'); return; }
+      var st; try { st = await openStream(); } catch (e) { fail(e); return; }
+      if (S.dead) { st.getTracks().forEach(function (t) { t.stop(); }); return; }
+      S.stream = st; S.track = st.getVideoTracks()[0];
+      var set = S.track.getSettings ? S.track.getSettings() : {};
+      S.kind = (set.facingMode === 'environment') ? 'rear' : 'webcam';
+      if (set.facingMode === undefined && /Android|iPhone|iPad/i.test(navigator.userAgent) && S.facing === 'environment') S.kind = 'rear';
+      try { var caps = S.track.getCapabilities && S.track.getCapabilities(); if (caps && caps.focusMode && caps.focusMode.indexOf('continuous') >= 0) S.track.applyConstraints({ advanced: [{ focusMode: 'continuous' }] }).catch(function () { }); } catch (e) { }
+      video.srcObject = st; var pl = video.play(); if (pl && pl.catch) pl.catch(function () { });
+      await new Promise(function (r) { if (video.videoWidth) r(); else { video.onloadedmetadata = function () { r(); }; setTimeout(r, 2500); } });
+      S.vw = video.videoWidth; S.vh = video.videoHeight; if (!S.vw) { fail('novideo'); return; }
+      var as = analysisSize(S.vw, S.vh, 360); S.aw = as[0]; S.ah = as[1]; S.finder = new Finder(S.aw, S.ah);
+      S.an = mkCanvas(S.aw, S.ah); S.ax = ctxOf(S.an);
+      S.ic = null; S.photoCaps = null; S.usePhoto = false;
+      if ('ImageCapture' in window && S.kind === 'rear') {
+        try {
+          S.ic = new window.ImageCapture(S.track);
+          S.photoCaps = await S.ic.getPhotoCapabilities();
+          var pw = S.photoCaps && S.photoCaps.imageWidth && S.photoCaps.imageWidth.max, ph = S.photoCaps && S.photoCaps.imageHeight && S.photoCaps.imageHeight.max;
+          S.usePhoto = !!(pw && ph && pw * ph >= S.vw * S.vh * 1.15);
+        } catch (e) { S.ic = null; S.usePhoto = false; }
+      }
+      layout(); S.state = 'live'; S.start = NOW(); shut.disabled = false;
+      try { navigator.mediaDevices.enumerateDevices().then(function (d) { flipB.hidden = d.filter(function (x) { return x.kind === 'videoinput'; }).length < 2; }); } catch (e) { }
+      loop();
+    }
+    function nextFrame() {
+      return new Promise(function (r) {
+        if (video.requestVideoFrameCallback) video.requestVideoFrameCallback(function () { r(); });
+        else requestAnimationFrame(function () { r(); });
+      });
+    }
+    async function loop() {
+      while (!S.dead && S.state === 'live') {
+        await nextFrame(); if (S.dead || S.state !== 'live') break;
+        tick();
+      }
+    }
+    function tick() {
+      var t = NOW(), dt = S.last ? Math.min(100, t - S.last) : 16; S.last = t;
+      S.ax.drawImage(video, 0, 0, S.aw, S.ah);
+      var d = S.ax.getImageData(0, 0, S.aw, S.ah).data;
+      /* average the last few frames: grain cancels out while the paper is held still */
+      if (!S.avg || S.avg.length !== d.length) { S.avg = new Float32Array(d.length); for (var a0 = 0; a0 < d.length; a0++) S.avg[a0] = d[a0]; }
+      else { var al = S.spd !== undefined && S.spd < 0.15 ? 0.45 : 0.85; for (var a1 = 0; a1 < d.length; a1++) S.avg[a1] += (d[a1] - S.avg[a1]) * al; }
+      if (!S.avgU8 || S.avgU8.length !== d.length) S.avgU8 = new Uint8ClampedArray(d.length);
+      for (var a2 = 0; a2 < d.length; a2++) S.avgU8[a2] = S.avg[a2];
+      var r = S.finder.detect(S.avgU8, S.quad); S.detMs = S.detMs * 0.9 + r.ms * 0.1; S.frames++;
+      var dg = Math.hypot(S.aw, S.ah);
+      if (r.quad) {
+        /* speed of the paper (share of the frame diagonal per second), smoothed */
+        /* speed from smoothed corners, median of recent frames (one odd frame can't reset the ring) */
+        var sm0 = S.sm;
+        S.sm = sm0 ? r.quad.map(function (p, ii) { return [sm0[ii][0] * 0.5 + p[0] * 0.5, sm0[ii][1] * 0.5 + p[1] * 0.5]; }) : r.quad.map(function (p) { return p.slice(); });
+        if (sm0 && S.hist.length) {
+          var md = 0; for (var c4 = 0; c4 < 4; c4++) md += dist(S.sm[c4], sm0[c4]) / 4;
+          S.dh = (S.dh || []); S.dh.push(md / dg / (dt / 1000)); if (S.dh.length > 7) S.dh.shift();
+          var srt = S.dh.slice().sort(function (a, b) { return a - b; }); S.spd = srt[srt.length >> 1];
+        } else { S.spd = 1; S.dh = []; }
+        S.quad = r.quad; S.lostAt = 0; S.liveFound++;
+        S.hist.push(r.quad); if (S.hist.length > 8) S.hist.shift();
+      } else {
+        if (!S.lostAt) S.lostAt = t;
+        if (t - S.lostAt > 350) { S.quad = null; S.hist = []; S.spd = 1; S.sm = null; S.dh = []; }
+      }
+      /* steady + big enough + fully in view -> fill the ring */
+      var good = false, ready = false, big = false;
+      if (S.quad && S.hist.length >= 4) {
+        var af = Math.abs(polyArea(S.quad)) / (S.aw * S.ah), inside = true, i;
+        for (i = 0; i < 4; i++) { var p = S.quad[i]; if (p[0] < S.aw * 0.01 || p[1] < S.ah * 0.01 || p[0] > S.aw * 0.99 || p[1] > S.ah * 0.99) inside = false; }
+        var minA = S.kind === 'webcam' ? 0.13 : 0.16;
+        big = inside && af >= minA && !!r.quad;
+        good = big && S.spd < 0.06;
+      }
+      if (good) S.prog += dt / 800; else S.prog = Math.max(0, S.prog - dt / 300);
+      /* found and big enough but never quite still (wriggly hands): take it anyway after a while,
+         the burst keeps only the sharpest frames */
+      S.bigFor = big ? (S.bigFor || 0) + dt : 0;
+      ready = S.prog >= 1 || S.bigFor > 4500;
+      var liveFor = t - S.start;
+      /* nothing found for a long time: count down and take what is in the frame */
+      var noFindFor = S.quad ? 0 : t - Math.max(S.start, S.lostAt || S.start);
+      S.box = !S.quad && noFindFor > 4000;
+      if (S.box) { S.boxProg = (S.boxProg || 0) + dt / 2500; } else S.boxProg = 0;
+      draw(r.quad || S.quad, good, big, S.prog);
+      shut.innerHTML = shutterSVG(S.box ? S.boxProg : S.prog, ready || good);
+      if (ready || (S.box && S.boxProg >= 1)) capture(S.box ? 'box' : 'auto');
+      else if (liveFor > 8500) { if (!(big)) { S.quad = null; } capture(big ? 'auto' : 'box'); } /* never leave a child stuck */
+    }
+    function guide(W, H, k, col) {
+      var land = S.aw >= S.ah, gw, gh; if (land) { gh = H * 0.74; gw = Math.min(W * 0.8, gh * 1.414); } else { gw = W * 0.84; gh = Math.min(H * 0.7, gw * 1.414); }
+      var x0 = (W - gw) / 2, y0 = (H - gh) / 2, L = Math.min(gw, gh) * 0.16, lw = 7 * S.disp.dpr;
+      og.strokeStyle = col; og.lineWidth = lw; og.lineCap = 'round';
+      [[x0, y0, 1, 1], [x0 + gw, y0, -1, 1], [x0 + gw, y0 + gh, -1, -1], [x0, y0 + gh, 1, -1]].forEach(function (c) {
+        og.beginPath(); og.moveTo(c[0], c[1] + c[3] * L); og.lineTo(c[0], c[1]); og.lineTo(c[0] + c[2] * L, c[1]); og.stroke();
+      });
+      S.guide = [[x0 / k, y0 / k], [(x0 + gw) / k, y0 / k], [(x0 + gw) / k, (y0 + gh) / k], [x0 / k, (y0 + gh) / k]];
+    }
+    function draw(q, good, big, prog) {
+      if (!S.disp) return; var W = ov.width, H = ov.height, k = W / S.aw, dpr = S.disp.dpr; og.clearRect(0, 0, W, H);
+      if (q) {
+        var sq = S.shown ? S.shown.map(function (p, i) { return [p[0] * 0.45 + q[i][0] * 0.55, p[1] * 0.45 + q[i][1] * 0.55]; }) : q; S.shown = sq;
+        og.fillStyle = 'rgba(8,17,48,.38)'; og.beginPath(); og.rect(0, 0, W, H);
+        og.moveTo(sq[0][0] * k, sq[0][1] * k); for (var i = 3; i >= 0; i--) og.lineTo(sq[i][0] * k, sq[i][1] * k); og.closePath(); og.fill('evenodd');
+        og.lineJoin = 'round'; og.lineWidth = 9 * dpr; og.strokeStyle = 'rgba(255,255,255,.9)'; og.beginPath();
+        sq.forEach(function (p, i) { if (i) og.lineTo(p[0] * k, p[1] * k); else og.moveTo(p[0] * k, p[1] * k); }); og.closePath(); og.stroke();
+        og.lineWidth = 5 * dpr; og.strokeStyle = good ? '#3fc35a' : '#ffc531'; og.stroke();
+        if (!big) guide(W, H, k, 'rgba(255,255,255,.75)'); /* too small: show how big it should be */
+        if (good && prog > 0.02) { /* a big ring in the middle of the paper fills up while it is held still */
+          var c = centroid(sq), rad = Math.min(dist(sq[0], sq[1]), dist(sq[1], sq[2])) * k * 0.13;
+          og.lineCap = 'round'; og.lineWidth = rad * 0.32;
+          og.strokeStyle = 'rgba(255,255,255,.75)'; og.beginPath(); og.arc(c[0] * k, c[1] * k, rad, 0, 6.2832); og.stroke();
+          og.strokeStyle = '#3fc35a'; og.beginPath(); og.arc(c[0] * k, c[1] * k, rad, -1.5708, -1.5708 + 6.2832 * clamp(prog, 0, 1)); og.stroke();
+        }
+      } else {
+        S.shown = null;
+        guide(W, H, k, S.box ? '#ffc531' : 'rgba(255,255,255,.9)');
+      }
+    }
+    function fullFrame() {
+      var c = mkCanvas(S.vw, S.vh), x = ctxOf(c); x.drawImage(video, 0, 0, S.vw, S.vh);
+      return { c: c, img: x.getImageData(0, 0, S.vw, S.vh) };
+    }
+    async function capture(why) {
+      if (S.state !== 'live') return; S.state = 'capturing';
+      var t0 = NOW(); flash.classList.add('on'); setTimeout(function () { flash.classList.remove('on'); }, 70); sound('snap');
+      /* anchor = median of the last few live outlines (one odd frame can't decide the crop) */
+      function medQuad(list) { return [0, 1, 2, 3].map(function (c6) { var xs = list.map(function (q6) { return q6[c6][0]; }).sort(function (a, b) { return a - b; }), ys = list.map(function (q6) { return q6[c6][1]; }).sort(function (a, b) { return a - b; }); return [xs[xs.length >> 1], ys[ys.length >> 1]]; }); }
+      var anchorA = S.quad && S.hist.length >= 3 ? medQuad(S.hist.slice(-6)) : S.quad;
+      var sx = S.vw / S.aw, frames = [], raw = null, method = 'burst', photoWH = null, quadFull = anchorA ? scaleQuad(anchorA, sx) : null;
+      var boxMode = !quadFull;
+      if (boxMode) quadFull = scaleQuad(S.guide || [[S.aw * 0.1, S.ah * 0.1], [S.aw * 0.9, S.ah * 0.1], [S.aw * 0.9, S.ah * 0.9], [S.aw * 0.1, S.ah * 0.9]], sx);
+      /* 1. a real still photo where the device gives a better one than the video (Android, Chromebook rear cameras) */
+      if (S.usePhoto && S.ic && !boxMode) {
+        try {
+          var fr0 = fullFrame(); raw = fr0.c;
+          var blob = await S.ic.takePhoto({ imageWidth: S.photoCaps.imageWidth.max, imageHeight: S.photoCaps.imageHeight.max }).catch(function () { return S.ic.takePhoto(); });
+          var bmp = await createImageBitmap(blob);
+          var pc = orientLike(bmp, fr0.c), pd = detectOn(pc, scaleQuad(quadFull, pc.width / S.vw, pc.height / S.vh));
+          var pq = pd.quad || scaleQuad(quadFull, pc.width / S.vw, pc.height / S.vh);
+          var lim = 2600, s = Math.min(1, lim / Math.max(pc.width, pc.height));
+          var c2 = mkCanvas(pc.width * s, pc.height * s); ctxOf(c2).drawImage(pc, 0, 0, c2.width, c2.height);
+          var img2 = ctxOf(c2).getImageData(0, 0, c2.width, c2.height), q2 = scaleQuad(pq, s);
+          q2 = refineQuad(grayOf(img2), c2.width, c2.height, q2).quad;
+          frames = [{ img: img2, quad: q2 }]; method = 'photo'; photoWH = [pc.width, pc.height];
+        } catch (e) { frames = []; method = 'burst'; }
+      }
+      /* 2. otherwise a quick burst of frames, each straightened, then merged to remove grain */
+      if (!frames.length) {
+        var N = boxMode ? 1 : (S.kind === 'webcam' ? 10 : 5), prevA = anchorA, prevF = quadFull, moving = !(S.spd < 0.06);
+        var dgA = Math.hypot(S.aw, S.ah), dgF = Math.hypot(S.vw, S.vh);
+        function near(qa, qb, lim) { var m = 0; for (var c5 = 0; c5 < 4; c5++) m = Math.max(m, dist(qa[c5], qb[c5])); return m < lim; }
+        for (var k = 0; k < N && !S.dead; k++) {
+          if (k) await nextFrame();
+          var fr = fullFrame(); if (!raw) raw = fr.c;
+          var q = prevF;
+          if (!boxMode) {
+            var G0 = grayOf(fr.img), rq = null;
+            /* still paper: refine round where it was. Moving paper (or a weak refine): look again, but only
+               accept an outline close to where the paper just was (never jump to a door frame behind) */
+            if (!moving) rq = refineQuad(G0, S.vw, S.vh, prevF);
+            if (moving || rq.used < 3) {
+              S.ax.drawImage(fr.c, 0, 0, S.aw, S.ah);
+              var dr = S.finder.detect(S.ax.getImageData(0, 0, S.aw, S.ah).data, prevA);
+              if (dr.quad && near(dr.quad, prevA, dgA * 0.08)) { prevA = dr.quad; rq = refineQuad(G0, S.vw, S.vh, scaleQuad(dr.quad, sx)); }
+              else if (!rq) rq = refineQuad(G0, S.vw, S.vh, prevF);
+            }
+            if (!near(rq.quad, prevF, dgF * (moving ? 0.08 : 0.035))) rq = { quad: prevF, used: 0 };
+            q = rq.quad; prevF = q;
+          }
+          if (boxMode) { var dbq = drawingBox(fr.img); if (dbq) q = dbq; }
+          frames.push({ img: fr.img, quad: q });
+          if (S.kind !== 'webcam' && S.vw * S.vh > 4e6 && frames.length >= 3) break;
+        }
+        if (frames.length >= 3) { /* corners jitter a little from frame to frame with grainy webcams: smooth them over time */
+          var sm = frames.map(function (f, ii) {
+            var a = frames[Math.max(0, ii - 1)].quad, b = f.quad, cq = frames[Math.min(frames.length - 1, ii + 1)].quad;
+            return b.map(function (p, jj) { return [(a[jj][0] + 2 * p[0] + cq[jj][0]) / 4, (a[jj][1] + 2 * p[1] + cq[jj][1]) / 4]; });
+          });
+          frames.forEach(function (f, ii) { f.quad = sm[ii]; });
+        }
+        method = boxMode ? 'box' : 'burst';
+      }
+      var t1 = NOW();
+      try { og.clearRect(0, 0, ov.width, ov.height); og.drawImage(raw, 0, 0, ov.width, ov.height); } catch (e) { } /* keep the photo on screen */
+      stop(); /* camera off while we work: frees the processor on slow laptops */
+      busy.classList.add('on'); await new Promise(function (r) { setTimeout(r, 30); });
+      var webcamLike = S.kind === 'webcam' || Math.max(S.vw, S.vh) < 1600;
+      var pg = buildPage(frames, { maxLong: 2000, webcam: webcamLike && method !== 'photo', box: method === 'box' });
+      var t2 = NOW();
+      var result = {
+        page: pg.page, before: pg.before, raw: raw, quad: frames[0].quad,
+        info: {
+          method: method, found: !boxMode, frames: pg.used, grabbed: frames.length, video: [S.vw, S.vh], photo: photoWH, kind: S.kind, page: [pg.W, pg.H],
+          white: pg.white, up: Math.round(pg.up * 100) / 100, removed: pg.removed, shifts: pg.shifts, sharp: pg.sharp && pg.sharp.map(function (v) { return Math.round(v); }), sigma: Math.round(pg.sigma * 10) / 10, ms: { capture: Math.round(t1 - t0), process: Math.round(t2 - t1), warpMerge: Math.round(pg.ms.warpMerge), enhance: Math.round(pg.ms.enhance), detect: Math.round(S.detMs) }, why: why
+        }
+      };
+      SB.last = result;
+      close();
+      if (o.onPhoto) o.onPhoto(result);
+    }
+    /* takePhoto can come back turned 90 degrees on some phones: match it to what the live view showed */
+    function orientLike(bmp, ref) {
+      var land = ref.width >= ref.height, bl = bmp.width >= bmp.height;
+      var c;
+      if (land === bl) { c = mkCanvas(bmp.width, bmp.height); ctxOf(c).drawImage(bmp, 0, 0); return c; }
+      var small = mkCanvas(64, Math.round(64 * ref.height / ref.width)), sx = ctxOf(small); sx.drawImage(ref, 0, 0, small.width, small.height);
+      var R = grayOf(sx.getImageData(0, 0, small.width, small.height)), best = null, bv = 1e30;
+      [90, -90].forEach(function (a) {
+        var t = mkCanvas(small.width, small.height), tx = ctxOf(t); tx.translate(t.width / 2, t.height / 2); tx.rotate(a * Math.PI / 180);
+        tx.drawImage(bmp, -t.height / 2, -t.width / 2, t.height, t.width);
+        var F = grayOf(tx.getImageData(0, 0, t.width, t.height)), s = 0; for (var i = 0; i < F.length; i++) s += Math.abs(F[i] - R[i]);
+        if (s < bv) { bv = s; best = a; }
+      });
+      c = mkCanvas(bmp.height, bmp.width); var cx = ctxOf(c); cx.translate(c.width / 2, c.height / 2); cx.rotate(best * Math.PI / 180); cx.drawImage(bmp, -bmp.width / 2, -bmp.height / 2);
+      return c;
+    }
+    shut.onclick = function () { if (S.state === 'live') capture('tap'); };
+    el.querySelector('[data-a="back"]').onclick = function () { close(); if (o.onCancel) o.onCancel(); };
+    flipB.onclick = function () { S.facing = S.facing === 'environment' ? 'user' : 'environment'; S.quad = null; S.hist = []; start(); };
+    api.setMirror = function (m) { S.mirror = !!m; layout(); };
+    start();
+    return api;
+  };
+  SB.close = function () { if (CUR) CUR.close(); };
+  SB._t = { Finder: Finder, refineQuad: refineQuad, warp: warp, enhance: enhance, mergePages: mergePages, buildPage: buildPage, pageSize: pageSize, grayOf: grayOf, detectOn: detectOn, homography: homography };
+  window.SBScan = SB;
+})();
+
+(function(){if(!window.SBScan)return;var old=window.SBCam;
+window.SBCam={open:function(o){o=o||{};return window.SBScan.open({onCancel:o.onCancel,onPhoto:function(r){r.page.toBlob(function(bl){if(!bl)return;bl.__scan=true;if(o.onPhoto)o.onPhoto(bl)},"image/png")}})},close:function(){window.SBScan.close()},_old:old};})();
 </script>
 <style>/* 24 Oct 2026: Make it move button is a film clapper icon only, no words */
 #funbtn,#fxrow #funbtn{width:76px!important;height:76px!important;padding:0!important;border-radius:50%!important;justify-content:center!important;gap:0!important}
