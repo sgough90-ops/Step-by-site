@@ -5942,6 +5942,12 @@ document.addEventListener("click",function(){setTimeout(fill,50)},true);
 })();
 </script>
 
+<script>
+/* 26 Oct 2026: TEMPORARY Step by Block tile on the home page for testing at home. Opens the separate /block/ page. Remove this script to take it off. */
+(function(){var css=document.createElement("style");css.textContent='#grid.grid{grid-template-rows:repeat(4,minmax(0,1fr))!important}#blocktile{grid-column:1/-1;--t:#8cc985;--d:#2d7726}#blocktile img{max-height:100%}';document.head.appendChild(css);
+function put(){var g=document.getElementById("grid");if(!g)return;if(document.getElementById("blocktile")){g.style.setProperty("grid-template-rows","repeat(4,minmax(0,1fr))","important");return}var b=document.createElement("button");b.className="tile";b.id="blocktile";b.setAttribute("aria-label","Step by Block");b.innerHTML='<img src="img/da951256e72b5f92.webp" alt="Step by Block">';b.onclick=function(){location.href="/block/"};g.appendChild(b);g.style.setProperty("grid-template-rows","repeat(4,minmax(0,1fr))","important")}
+put();new MutationObserver(put).observe(document.documentElement,{childList:true,subtree:true});})();
+</script>
 </body></html>
 
 <style>/* 24 Oct 2026: in-app camera (a file picker opened instead of the camera on Chromebooks). Make it move uses only a real photo. */
