@@ -43,8 +43,9 @@ function model(key){if(CACHE[key])return CACHE[key];var P=null,plan=planOf(key);
  var parts=[],by={},owner={},dups=[],bad=[],rest=null;
  plan.parts.forEach(function(sp){var pt={id:sp.id,role:sp.role||(sp.parent?"part":"still"),parent:sp.parent||null,pivot:sp.pivot||null,motion:sp.motion||[],behind:!!sp.behind,under:sp.under||null,react:sp.react||null,
    fills:[],lines:[],pf:[],pl:[],uf:[],kids:[],sp:sp};parts.push(pt);by[pt.id]=pt;if(sp.items==="rest")rest=pt});
- plan.parts.forEach(function(sp){if(sp.items==="rest")return;var r=refs(sp.items,P);(Array.isArray(sp.items)?sp.items:[sp.items]).forEach(function(x){if(!/^(\d+)\.(\*|\d+)(?:-(\d+))?$/.test(String(x).trim()))bad.push(sp.id+":"+x)});
+ plan.parts.forEach(function(sp){if(sp.items==="rest")return;var r=refs(sp.items,P);(sp.items==null?[]:Array.isArray(sp.items)?sp.items:[sp.items]).forEach(function(x){if(!/^(\d+)\.(\*|\d+)(?:-(\d+))?$/.test(String(x).trim()))bad.push(sp.id+":"+x)});
   r.forEach(function(k){if(owner[k])dups.push(k);owner[k]=sp.id})});
+ if(plan.raster)plan.parts.forEach(function(sp){if(!sp.region)return;var pt=by[sp.id];[].concat(sp.region).forEach(function(d){pt.fills.push({d:d,fill:"#000",region:1})})});
  var hero=parts.filter(function(p){return p.role==="hero"})[0]||null;
  P.steps.forEach(function(st,s){st.add.forEach(function(it,i){var k=s+"."+i,id=owner[k]||(rest?rest.id:hero?hero.id:parts[0].id),pt=by[id];(it.fill?pt.fills:pt.lines).push(it)})});
  (plan.patches||[]).forEach(function(pa){var pt=by[pa.part];if(!pt)return;(pa.fill?pt.pf:pt.pl).push(pa)});
@@ -53,7 +54,7 @@ function model(key){if(CACHE[key])return CACHE[key];var P=null,plan=planOf(key);
   if(typeof pt.under==="object"&&pt.under.clip==="parent"){clip=new Path2D();par.fills.forEach(function(f){clip.addPath(pth(f.d))})}
   pt.fills.forEach(function(f){par.uf.push({d:f.d,cut:null,fill:col,from:pt.id,clip:clip})})});
  parts.forEach(function(pt){pt.bb=bboxDraw(function(g){pt.fills.forEach(function(f){fillIt(g,f,"#000")});pt.lines.forEach(function(l){lineIt(g,l)})});if(!pt.bb)pt.bb={x:50,y:50,w:0,h:0}});
- var M={key:key,P:P,plan:plan,parts:parts,by:by,hero:hero,roots:parts.filter(function(p){return!p.parent||!by[p.parent]}),dups:dups,bad:bad,points:plan.points||{},kind:plan.kind||"walk",opt:plan.opt||{}};
+ var M={raster:!!plan.raster,key:key,P:P,plan:plan,parts:parts,by:by,hero:hero,roots:parts.filter(function(p){return!p.parent||!by[p.parent]}),dups:dups,bad:bad,points:plan.points||{},kind:plan.kind||"walk",opt:plan.opt||{}};
  M.bb=unionBB(parts.map(function(p){return p.bb}));M.hb=hero?unionBB(desc(hero).map(function(p){return p.bb})):M.bb;
  CACHE[key]=M;return M}
 function desc(pt){var out=[pt];pt.kids.forEach(function(k){out=out.concat(desc(k))});return out}
@@ -673,7 +674,7 @@ function doSplit(M,canvas){var W0=canvas.width,H0=canvas.height,k=Math.min(1,520
  /* score: how much of the photo ink lands on the plan, and the other way round */var inkN=0,hit=0;
  for(i=0;i<N;i++){if(dd[i*4+3]<=40)continue;var real=dd[i*4]+dd[i*4+1]+dd[i*4+2]<690;if(real)inkN++;for(var p=nP-1;p>=0;p--)if(lab[p][i*4+3]>20){own[i]=p;if(real)hit++;break}}
  var planN=0,planHit=0;for(i=0;i<N;i+=2){var any=false;for(var p2=0;p2<nP;p2++)if(lab[p2][i*4+3]>20){any=true;break}if(any){planN++;if(dd[i*4+3]>40&&dd[i*4]+dd[i*4+1]+dd[i*4+2]<690)planHit++}}
- var score=Math.min(hit/Math.max(1,inkN),planHit/Math.max(1,planN));if(score<.3)return{key:M.key,fail:true,score:score};
+ var score=M.raster?Math.max(0,1-2*Math.abs(Math.log((pw/ph)/(B.w/B.h)))):Math.min(hit/Math.max(1,inkN),planHit/Math.max(1,planN));if(score<.3)return{key:M.key,fail:true,score:score};
  /* unassigned ink goes to the nearest part (multi-source spread) */var q=[],dist=new Int32Array(N).fill(1e9);for(i=0;i<N;i++)if(own[i]>=0){q.push(i);dist[i]=0}
  for(var hd=0;hd<q.length;hd++){var cur=q[hd],cx=cur%w,cy=(cur/w)|0,nb=[cx>0?cur-1:-1,cx<w-1?cur+1:-1,cy>0?cur-w:-1,cy<h-1?cur+w:-1];for(var n=0;n<4;n++){var j=nb[n];if(j>=0&&dist[j]>dist[cur]+1){dist[j]=dist[cur]+1;own[j]=own[cur];q.push(j)}}}
  /* layers: each part keeps its own pixels; a part that moves leaves the parent's colour behind */var layers=M.parts.map(function(pt,pi){var lc=document.createElement("canvas");lc.width=w;lc.height=h;var lg=lc.getContext("2d");var L2=lg.createImageData(w,h),ld=L2.data;for(var a=0;a<N;a++)if(own[a]===pi&&dd[a*4+3]>8){ld[a*4]=dd[a*4];ld[a*4+1]=dd[a*4+1];ld[a*4+2]=dd[a*4+2];ld[a*4+3]=dd[a*4+3]}lg.putImageData(L2,0,0);return lc});
@@ -699,7 +700,7 @@ function drawGlows(g,M,C,B,list){(list||painter(M,C)).forEach(function(e){if(!(e
 MIM.split=function(key,canvas){var M=model(key);return M?splitPhoto(M,canvas):null};
 
 /* ---------- the frame ---------- */
-function frame(ctx,w,h,t,once,mode,canvas,item,sound){var M=model(item.key);if(!M)return false;
+function frame(ctx,w,h,t,once,mode,canvas,item,sound){var M=model(item.key);if(!M)return false;if(M.raster&&(item.src==="sample"||!canvas))return false;
  var useM=M,photo=false;
  if(item.src!=="sample"&&canvas){var sp=splitPhoto(M,canvas);if(sp&&!sp.fail){useM=sp.M;photo=true}else{/* photo doesn't match the plan: the whole photo moves as one */useM=wholePhoto(M,canvas);photo=true}}
  X=ctx;W=w;H=h;T=t;ONCE=once;S=sound||{};MODE=mode;var kind=KINDS[M.kind]?M.kind:"walk",pl=PLACE[kind]||PLACE.walk;
@@ -739,7 +740,7 @@ MIM.check=function(key){var out=[],plan=planOf(key);function R(rule,pass,msg){ou
  var badP=[];M.parts.forEach(function(p){if(p.pivot&&(p.pivot[0]<-10||p.pivot[0]>110||p.pivot[1]<-10||p.pivot[1]>110))badP.push(p.id)});R("Pivots are on the paper",!badP.length,badP.join(", "));
  R("There is a star part that moves (or it is a whole-picture scene)",!!M.hero||M.kind==="scene",M.hero?M.hero.id:"no hero");
  var empty=M.parts.filter(function(p){return!p.fills.length&&!p.lines.length&&!p.pf.length&&!p.pl.length}).map(function(p){return p.id});R("Every part has something in it",!empty.length,empty.join(", "));
- var diff=homeDiff(M);R("At rest the parts look exactly like the finished drawing",diff<.01,(diff*100).toFixed(2)+"% of the drawing differs");
+ var diff=M.raster?0:homeDiff(M);R("At rest the parts look exactly like the finished drawing",diff<.01,(diff*100).toFixed(2)+"% of the drawing differs");
  return out};
 function homeDiff(M){var a=document.createElement("canvas"),b=document.createElement("canvas");a.width=a.height=b.width=b.height=300;var ga=a.getContext("2d",{willReadFrequently:true}),gb=b.getContext("2d",{willReadFrequently:true});
  ga.fillStyle=gb.fillStyle="#fff";ga.fillRect(0,0,300,300);gb.fillRect(0,0,300,300);ga.setTransform(3,0,0,3,0,0);
@@ -764,7 +765,7 @@ var LIVEST=typeof WeakMap!=="undefined"?new WeakMap():null;
 MIM.live=function(g,canvas,item,dx,dy,dw,dh,o){o=o||{};
  if(!item||!item.key||!canvas||!dw||!dh||!planOf(item.key))return false;
  var M=model(item.key);if(!M)return false;
- var U,Bl,vec=item.src==="sample";
+ var U,Bl,vec=item.src==="sample";if(vec&&M.raster)return false;
  if(vec){/* a "Try one" sample: the clean drawing itself, placed exactly where the Show's sample picture sits */
   var sb=sampleBox(item.key,M);if(!sb)return false;var kx=dw/canvas.width,ky=dh/canvas.height;U=M;Bl=[6*kx,0,0,6*ky,dx-sb[0]*kx,dy-sb[1]*ky]}
  else{/* the child's photo, split into the same parts (the photo must line up with the plan well enough) */
