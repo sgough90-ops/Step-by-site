@@ -4706,8 +4706,8 @@ function openMode(fromDone){FROMDONE=!!fromDone;var vid=SEL[0]&&SEL[0].src==="vi
 /* ---------- player ---------- */
 var RAF=0,CV=null,X=null,VID=null;
 function stopAll(){cancelAnimationFrame(RAF);RAF=0;recDrop();stopMusic();stopVoices();releaseMic();if(VID){try{VID.pause()}catch(e){}VID.removeAttribute("src");try{VID.load()}catch(e){}VID=null}if(CV){CV.onpointerdown=CV.onpointermove=CV.onpointerup=CV.onpointercancel=null}}
-function play(mode,saved){stopAll();ac();W=stageW(mode);CUR={mode:mode,rec:saved&&saved.rec||null};if(CUR.rec)fitRec(CUR.rec);
- sec("shplay",topbar("shxback",'<b id="shttl">'+MODENAME[mode]+'</b>')+'<div class="shstage"><canvas id="shcv" width="'+W+'" height="'+H+'"></canvas></div><div class="shctl" id="shctl"></div>');
+function play(mode,saved){stopAll();ac();W=stageW(mode);CUR={mode:mode,rec:saved&&saved.rec||null};if(NEXTO){CUR.mim=!!NEXTO.mim;CUR.retake=NEXTO.retake||null;CUR.magic=NEXTO.magic||null;NEXTO=null}if(CUR.rec)fitRec(CUR.rec);
+ sec("shplay",topbar("shxback",'<b id="shttl">'+(CUR.mim&&STORY[mode]?SV["e_"+mode]:MODENAME[mode])+'</b>')+'<div class="shstage"><canvas id="shcv" width="'+W+'" height="'+H+'"></canvas></div><div class="shctl" id="shctl"></div>');
  G("shxback").innerHTML=SV.x;G("shxback").setAttribute("aria-label","Close");G("shxback").onclick=function(){stopAll();if(saved)openShow();else openMode(FROMDONE)};
  CV=G("shcv");X=CV.getContext("2d");only("shplay");loading();
  if(mode==="movie"){prepVideo().then(function(){runMovie()});return}
@@ -4715,7 +4715,7 @@ function play(mode,saved){stopAll();ac();W=stageW(mode);CUR={mode:mode,rec:saved
 function loading(){X.fillStyle="#e3f1ff";X.fillRect(0,0,W,H);X.fillStyle="#081130";X.font="900 40px ui-rounded,system-ui,sans-serif";X.textAlign="center";X.fillText("…",W/2,H/2)}
 function btn(b){var e=document.createElement(b.tag||"button");e.className=b.cls||"shc";if(b.html)e.innerHTML=b.html;if(b.label)e.setAttribute("aria-label",b.label);if(b.id)e.id=b.id;if(b.on)e.onclick=b.on;return e}
 function ctl(rows){var c=G("shctl");c.innerHTML="";(rows.length&&!Array.isArray(rows[0])?[rows]:rows).forEach(function(r){var d=document.createElement("div");d.className="shrow";r.forEach(function(b){d.appendChild(btn(b))});c.appendChild(d)})}
-function afterCtl(){if(EXP){var ef=EXP;EXP=null;setTimeout(ef,400)}var b=[{html:SV.replay,label:"Watch again",on:function(){if(CUR.mode==="movie")runMovie();else if(CUR.mode==="puppet")prepVoices(CUR.rec).then(start);else start()}}];
+function afterCtl(){if(CUR&&CUR.mim&&STORY[CUR.mode]){mimCtl();return}if(EXP){var ef=EXP;EXP=null;setTimeout(ef,400)}var b=[{html:SV.replay,label:"Watch again",on:function(){if(CUR.mode==="movie")runMovie();else if(CUR.mode==="puppet")prepVoices(CUR.rec).then(start);else start()}}];
  if(CUR.mode==="dance"&&!SAVED)b.push({html:SV.edit,label:"Move the dots",on:function(){danceSetup()}});
  if(CUR.mode==="puppet"&&!SAVED)b.push({html:SV.edit,label:"Change my turns",on:function(){if(CUR.rec&&CUR.rec.v!==3)CUR.rec=null;puppetSetup()}});
  var can=!!(CV&&CV.captureStream&&window.MediaRecorder);
@@ -4727,11 +4727,13 @@ function afterCtl(){if(EXP){var ef=EXP;EXP=null;setTimeout(ef,400)}var b=[{html:
 function keep(){var k=G("shkeep");if(k&&k.disabled)return;if(KEEPING||SAVED)return;KEEPING=1;if(k)k.disabled=true;var o={id:"s"+Date.now(),t:Date.now(),mode:CUR.mode,items:SEL.map(function(it){return it.src==="sample"?{src:"sample",key:it.key}:{src:it.src,blob:it.blob,key:it.key,title:it.title}}),rec:CUR.rec||null};
  SHOWS.put(o).then(function(){SAVED=o;KEEPING=0;if(k){k.className="shc done";k.innerHTML=SV.tick;k.setAttribute("aria-label","Kept")}SFX.pop()},function(){KEEPING=0})}
 function start(){cancelAnimationFrame(RAF);stopMusic();var m=CUR.mode,T0=performance.now(),dur={dance:9,silly:9,cool:9,spooky:9,sleepy:10,party:9,hero:9,sadhappy:10,star:STL*4+1.4,story:2+SEL.length*2.8+2,puppet:(CUR.rec?CUR.rec.d:5)+3.2}[m],fired={},IN=(m==="puppet"||m==="story")?0:INTRO;
+ var FL=null;if(STORY[m]){CUR.v=(Math.random()*1e6)|0;FL=filmLen(m);if(FL){IN=CUR.mim?FL.intro:INTRO;dur=FL.story+(CUR.mim?FL.outro:0)+1.4}}
  ctl([]);recStart();music(m==="dance"?"cool":m==="star"?starMus():{spooky:"spooky",sleepy:"sleepy",party:"happy",hero:"adventure",sadhappy:"sleepy"}[m]?{spooky:"spooky",sleepy:"sleepy",party:"happy",hero:"adventure",sadhappy:"sleepy"}[m]:m==="cool"?"cool":m==="puppet"?((CUR.rec&&CUR.rec.mus)||"happy"):m==="story"?"happy":"happy");if(m==="puppet")PUPS=null;
+ if(FL)music2(m==="cool"?"exciting":m==="silly"?"funny":"sadhappy",CUR.v,{turn:IN+3.75,happy:IN+4.8});
  POKE=null;CV.onpointerdown=function(e){var tt=(performance.now()-T0)/1000-IN;if(tt>=0&&tt<dur-1.6)poke(e,m)};
  function once(k,f){if(!fired[k]){fired[k]=1;f()}}
  function fr(now){var t=(now-T0)/1000-IN;X.setTransform(1,0,0,1,0,0);
-  if(t<0){try{drawIntro(t+IN,once)}catch(err){}}
+  if(t<0){try{if(FL&&CUR.mim)mimDraw(m,t,once);else drawIntro(t+IN,once)}catch(err){}}
   else if(t>=dur-1.4){stopMusic();endCard(t-(dur-1.4));once("end",SFX.tada)}
   else{try{if(m==="silly")drawSilly(t,once);else if(m==="cool")drawCool(t,once);else if(m==="star")drawStar(t,once);else if(m==="spooky")drawSpooky(t,once);else if(m==="sleepy")drawSleepy(t,once);else if(m==="party")drawParty(t,once);else if(m==="hero")drawHero(t,once);else if(m==="sadhappy")drawSadHappy(t,once);else if(m==="story")drawStory(t,once);else if(m==="dance")drawDance(t,once);else drawPuppetPlay(t,once)}catch(err){}pokeFx()}
   if(t<dur)RAF=requestAnimationFrame(fr);else{afterCtl()}}
@@ -4741,13 +4743,13 @@ function ease(x){x=Math.max(0,Math.min(1,x));return 1-Math.pow(1-x,3)}
 function hsh(i,k){var v=Math.sin(i*12.9898+k*78.233)*43758.5453;return v-Math.floor(v)}
 function bgFun(t){X.fillStyle="#fff6e0";X.fillRect(0,0,W,H);for(var i=0;i<26;i++){var x=hsh(i,1)*W,y=(hsh(i,2)*H+t*40*(1+i%3))%(H+40)-20;X.fillStyle=["#ffc531","#e5484d","#2a8fd6","#2fb344"][i%4];X.globalAlpha=.35;X.beginPath();X.arc(x,y,6+i%4*2,0,7);X.fill()}X.globalAlpha=1;X.fillStyle="#f1e3bf";X.fillRect(0,H*.78,W,H*.22)}
 function shadow(x,y,w){w=Math.max(6,w||0);X.fillStyle="rgba(8,17,48,.15)";X.beginPath();X.ellipse(x,y,w,w*.16,0,0,7);X.fill()}
-function drawSilly(t,once){if(window.__mimAnim&&SEL&&SEL[0]&&window.__mimAnim(X,W,H,t,once,"silly",CUR.cs[0],SEL[0],{tone:tone,noise:noise,SFX:SFX}))return;bgFun(t);var c=CUR.cs[0];if(!c)return;var sz=fit(c,330),cx=W/2,floor=H*.78,y,sx=1,sy=1,r=0;
+function drawSilly(t,once){if(window.__mimAnim&&SEL&&SEL[0]&&window.__mimAnim(X,W,H,t,once,"silly",CUR.cs[0],SEL[0],SND2()))return;bgFun(t);var c=CUR.cs[0];if(!c)return;var sz=fit(c,330),cx=W/2,floor=H*.78,y,sx=1,sy=1,r=0;
  if(t<1.1){var p=ease(t/1.1);y=-200+(floor+200)*p;if(t>.95)once("b0",SFX.boing)}
  else if(t<4.6){var q=(t-1.1)%0.7/0.7,hop=Math.sin(q*Math.PI);y=floor-hop*170;sy=1+(1-hop)*-.22+hop*.12;sx=1/sy;if(q<.1)once("b"+Math.floor((t-1.1)/.7),SFX.boing)}
  else if(t<6.4){y=floor;r=Math.sin((t-4.6)*9)*.22;sx=1+Math.sin((t-4.6)*14)*.06;once("toot",SFX.toot);if(t>5.5)once("toot2",SFX.toot)}
  else{var u=(t-6.4)/1.2;y=floor-Math.sin(Math.min(1,u)*Math.PI)*260;r=Math.min(1,u)*Math.PI*2;once("spin",SFX.whoosh)}
  shadow(cx,floor+6,sz[0]*.42*(1-(floor-y)/700));var k=PK(0)||K0;X.save();X.translate(cx+k[0],y+k[1]);X.rotate(r+k[2]);X.scale(sx*k[3],sy*k[4]);LIVE(c,SEL[0],-sz[0]/2,-sz[1],sz[0],sz[1]);X.restore()}
-function drawCool(t,once){if(window.__mimAnim&&SEL&&SEL[0]&&window.__mimAnim(X,W,H,t,once,"cool",CUR.cs[0],SEL[0],{tone:tone,noise:noise,SFX:SFX}))return;var g=X.createLinearGradient(0,0,0,H);g.addColorStop(0,"#1b2a6b");g.addColorStop(1,"#3b3fa8");X.fillStyle=g;X.fillRect(0,0,W,H);
+function drawCool(t,once){if(window.__mimAnim&&SEL&&SEL[0]&&window.__mimAnim(X,W,H,t,once,"cool",CUR.cs[0],SEL[0],SND2()))return;var g=X.createLinearGradient(0,0,0,H);g.addColorStop(0,"#1b2a6b");g.addColorStop(1,"#3b3fa8");X.fillStyle=g;X.fillRect(0,0,W,H);
  var beat=(t*2)%1,pulse=1+(beat<.15?.04*(1-beat/.15):0);X.fillStyle="rgba(255,255,255,.12)";X.beginPath();X.moveTo(W/2-60,0);X.lineTo(W/2+60,0);X.lineTo(W/2+220,H*.82);X.lineTo(W/2-220,H*.82);X.fill();
  X.fillStyle="#232a5e";X.fillRect(0,H*.82,W,H*.18);
  var c=CUR.cs[0];if(!c)return;var sz=fit(c,320),floor=H*.82,cx;
@@ -4910,7 +4912,7 @@ function drawHero(t,once){sky("#4f7fe0","#a8d0ff");
  /* cape */
  var kc=PK(0)||K0;X.save();X.translate(x+kc[0],y+kc[1]);X.rotate(r+kc[2]);X.scale(kc[3],kc[4]);var wave=Math.sin(t*12)*14;X.fillStyle="#e5484d";X.strokeStyle="#081130";X.lineWidth=4;var cw=Math.min(sz[0],sz[1])*.22,ct=-sz[1]*.68,cb=fly?-sz[1]*.05+30:-sz[1]*.08;X.beginPath();X.moveTo(-cw,ct);X.lineTo(cw,ct);X.quadraticCurveTo(cw*1.6+wave,(ct+cb)/2,cw*1.5+(fly?30:0),cb);X.lineTo(-cw*1.5-(fly?30:0),cb);X.quadraticCurveTo(-cw*1.6-wave,(ct+cb)/2,-cw,ct);X.fill();X.stroke();LIVE(c,SEL[0],-sz[0]/2,-sz[1],sz[0],sz[1]);X.restore();
  if(t>6.5){var e=Math.min(1,(t-6.5)*3);X.save();X.translate(W*.78,H*.36);X.scale(e,e);X.fillStyle="#ffc531";X.strokeStyle="#081130";X.lineWidth=5;X.beginPath();for(var i=0;i<16;i++){var a2=i/16*Math.PI*2,rr=i%2?50:95;X.lineTo(Math.cos(a2)*rr,Math.sin(a2)*rr)}X.closePath();X.fill();X.stroke();star(0,0,34,"#e5484d");X.restore();twinkles(t,10,100,H*.6)}}
-function drawSadHappy(t,once){var h=t<4?0:Math.min(1,(t-4)/1.6);sky(h?"#8fd3ff":"#8a93a6",h?"#e9f7ff":"#c3c8d2");
+function drawSadHappy(t,once){try{if(mimDraw("sadhappy",t,once))return}catch(e){}var h=t<4?0:Math.min(1,(t-4)/1.6);sky(h?"#8fd3ff":"#8a93a6",h?"#e9f7ff":"#c3c8d2");
  if(h>0){X.globalAlpha=h;X.fillStyle="#ffc531";X.beginPath();X.arc(W-110,150,58,0,7);X.fill();X.globalAlpha=1}
  var cx=W/2-60+h*(W+200);cloud(cx-60,170,1.6,h?"#d9dde6":"#6c7488");
  if(h<1){for(var i=0;i<40;i++){var rx=cx-80+hsh(i,1)*260,ry=(hsh(i,2)*400+t*600)%400+230;X.strokeStyle="rgba(90,140,220,"+(.7*(1-h))+")";X.lineWidth=3;X.beginPath();X.moveTo(rx,ry);X.lineTo(rx-4,ry+20);X.stroke()}once("rain",function(){noise(3.6,.05,1200,0,"bandpass")})}
@@ -5228,6 +5230,61 @@ function runMovie(){cancelAnimationFrame(RAF);stopMusic();ctl([]);if(!VID){prepV
   RAF=requestAnimationFrame(fr)}
  RAF=requestAnimationFrame(fr)}
 
+/* ---------- 7 Nov 2026: Make it move stories: Exciting, Funny, Sad to happy ----------
+   From a finished drawing, Make it move plays Exciting straight away. At the end, three faces pick a story (the one just
+   played plays again, a little different each time), with a camera to retake the photo, the Magic sparkle and the big
+   save button. The three stories use the film look in mim2.js (paper intro and outro, cut-out edge, camera, slow motion)
+   and their own music: Exciting drives, Funny bounces, Sad to happy starts slow and turns bright when the sun comes out. */
+var NEXTO=null,STORY={cool:"Exciting",silly:"Funny",sadhappy:"Sad to happy"},STORYM=["cool","silly","sadhappy"];
+SV.e_cool='<svg viewBox="0 0 60 60" aria-hidden="true"><circle cx="30" cy="30" r="26" fill="#ffc531" stroke="#081130" stroke-width="3"/><path d="M8 21h44v3c-1 9-6 11-11.5 11S31 32 30 26c-1 6-4 9-9.5 9S9 33 8 24z" fill="#081130"/><path d="M14 24q3-3 7-1M36 24q3-3 7-1" stroke="#fff" stroke-width="2" fill="none" stroke-linecap="round" opacity=".7"/><path d="M18 42q12 9 24 0" fill="none" stroke="#081130" stroke-width="3.2" stroke-linecap="round"/></svg>';
+SV.e_silly='<svg viewBox="0 0 60 60" aria-hidden="true"><circle cx="30" cy="30" r="26" fill="#ffc531" stroke="#081130" stroke-width="3"/><path d="M14 25q5-7 10 0M36 25q5-7 10 0" fill="none" stroke="#081130" stroke-width="3.2" stroke-linecap="round"/><path d="M14 33q16 24 32 0z" fill="#081130"/><path d="M23 44q7 6 14 0q-7-5-14 0z" fill="#e5484d"/><path d="M8 25q-6 9 1 12q5-3-1-12z" fill="#7cc4ff" stroke="#081130" stroke-width="1.6"/><path d="M52 25q6 9-1 12q-5-3 1-12z" fill="#7cc4ff" stroke="#081130" stroke-width="1.6"/></svg>';
+SV.e_sadhappy='<svg viewBox="0 0 60 60" aria-hidden="true"><circle cx="30" cy="30" r="26" fill="#ffc531" stroke="#081130" stroke-width="3"/><path d="M14 18q5-4 10-1M36 17q5-3 10 1" fill="none" stroke="#081130" stroke-width="2.6" stroke-linecap="round"/><circle cx="21" cy="28" r="6.5" fill="#081130"/><circle cx="39" cy="28" r="6.5" fill="#081130"/><circle cx="23.5" cy="25.5" r="2.2" fill="#fff"/><circle cx="41.5" cy="25.5" r="2.2" fill="#fff"/><path d="M14.5 31.5q6.5 5 13 0" stroke="#7cc4ff" stroke-width="3.2" fill="none" stroke-linecap="round"/><path d="M32.5 31.5q6.5 5 13 0" stroke="#7cc4ff" stroke-width="3.2" fill="none" stroke-linecap="round"/><path d="M24 43q6 4 12 0" fill="none" stroke="#081130" stroke-width="3" stroke-linecap="round"/></svg>';
+SV.cam2='<svg viewBox="0 0 64 64" aria-hidden="true"><path d="M10 22a5 5 0 0 1 5-5h7l4-6h12l4 6h7a5 5 0 0 1 5 5v24a5 5 0 0 1-5 5H15a5 5 0 0 1-5-5z" fill="#fff" stroke="#081130" stroke-width="3.4" stroke-linejoin="round"/><circle cx="32" cy="33" r="10" fill="#d6ebff" stroke="#081130" stroke-width="3.4"/></svg>';
+SV.spark2='<svg viewBox="0 0 48 48" aria-hidden="true"><path d="M22 6l3.6 9.6L35 19l-9.4 3.4L22 32l-3.6-9.6L9 19l9.4-3.4z" fill="#ffc531" stroke="#081130" stroke-width="2.6" stroke-linejoin="round"/><path d="M36 28l1.8 4.6L42 34l-4.2 1.6L36 40l-1.8-4.4L30 34l4.2-1.4z" fill="#ffc531" stroke="#081130" stroke-width="2.2" stroke-linejoin="round"/></svg>';
+function storyMode(m){return m==="sadhappy"?"sad":m}
+function filmLen(m){try{if(!window.MIM||!MIM.length||!SEL||!SEL[0]||!CUR||!CUR.cs||!CUR.cs[0]||!(MIM.has&&MIM.has(SEL[0])))return null;return MIM.length(W,H,storyMode(m),CUR.cs[0],SEL[0])}catch(e){return null}}
+function SND2(){return{tone:tone,noise:noise,SFX:SFX,v:CUR&&CUR.v||0,film:1,paper:!!(CUR&&CUR.mim),slow:musSlow}}
+/* music for the three stories, through its own bus so slow motion can make it go muffled */
+var MBUS=null,MLP=null;
+function mbus(){var a=ac();if(!a)return null;if(!MBUS){MLP=a.createBiquadFilter();MLP.type="lowpass";MLP.frequency.value=18000;MLP.Q.value=.7;MBUS=a.createGain();MBUS.gain.value=2.2;MBUS.connect(MLP);MLP.connect(MG)}return MBUS}
+function musSlow(k){if(!MLP||!AC)return;var f=18000*Math.pow(650/18000,Math.max(0,Math.min(1,k||0)));try{MLP.frequency.setTargetAtTime(f,AC.currentTime,.06)}catch(e){}}
+function syn(f,d,ty,v,at,f2,att){var a=AC;if(!a||!MBUS)return;var t=a.currentTime+Math.max(0,at||0),o=a.createOscillator(),g=a.createGain();o.type=ty||"sine";o.frequency.setValueAtTime(f,t);if(f2)o.frequency.exponentialRampToValueAtTime(f2,t+d);g.gain.setValueAtTime(0.0001,t);g.gain.exponentialRampToValueAtTime(v,t+(att||.01));g.gain.exponentialRampToValueAtTime(0.0001,t+d);o.connect(g);g.connect(MBUS);o.start(t);o.stop(t+d+.05)}
+var NZB=null;function nzb(d,v,ff,at,ty){var a=AC;if(!a||!MBUS)return;if(!NZB){var n=Math.floor(a.sampleRate*1.5);NZB=a.createBuffer(1,n,a.sampleRate);var c=NZB.getChannelData(0);for(var i=0;i<n;i++)c[i]=Math.random()*2-1}
+ var t=a.currentTime+Math.max(0,at||0),s=a.createBufferSource();s.buffer=NZB;var f=a.createBiquadFilter();f.type=ty||"bandpass";f.frequency.value=ff||1200;var g=a.createGain();g.gain.setValueAtTime(0.0001,t);g.gain.exponentialRampToValueAtTime(v,t+.005);g.gain.exponentialRampToValueAtTime(0.0001,t+d);s.connect(f);f.connect(g);g.connect(MBUS);s.start(t,Math.random()*.5);s.stop(t+d+.02)}
+function NF(n){return 261.63*Math.pow(2,n/12)}
+function kick(at,v){syn(150,.3,"sine",v,at,42,.004)}
+function clap(at,v){nzb(.09,v,1500,at,"bandpass");nzb(.07,v*.8,1500,at+.014,"bandpass")}
+function hat(at,v){nzb(.035,v,8500,at,"highpass")}
+var PAT={
+ exciting:{bpm:126,f:function(s,at,k,sp,tt){var bar=(s>>4)%4,st=s%16,root=[0,7,9,5][bar]+k,mi=bar===2,ch=[0,mi?3:4,7];
+  if(st%4===0)kick(at,.42);if(st===4||st===12)clap(at,.11);if(st%2===1)hat(at,.03);
+  if(st%2===0)syn(NF(root-24),sp*1.7,"sawtooth",.04,at,0,.004);
+  if(st%4===2)ch.forEach(function(c){syn(NF(root+c),sp*1.3,"triangle",.02,at)});
+  if(tt>1.7&&st%2===0){var ar=[0,ch[1],7,12,7,ch[1]];syn(NF(root+12+ar[(st>>1)%6]),sp*.95,"square",.016,at,0,.004)}}},
+ funny:{bpm:112,f:function(s,at,k,sp,tt){var bar=(s>>4)%4,st=s%16,root=[0,5,7,0][bar]+k;
+  if(st===0||st===8)syn(NF(root-24),sp*1.8,"square",.045,at,0,.004);if(st===4||st===12)syn(NF(root-17),sp*1.3,"square",.03,at,0,.004);
+  if(st%4===2)nzb(.03,.08,2700,at,"bandpass");
+  var mel=[0,4,7,4,9,7,4,2][(s>>1)%8];if(st%2===0&&st%8!==6){syn(NF(root+12+mel),sp*1.2,"sine",.05,at,0,.003);syn(NF(root+24+mel),sp*.5,"sine",.012,at,0,.003)}
+  if(st===14&&bar===3)syn(480,.32,"sine",.035,at,1500)}},
+ sadhappy:{bpm:76,happyBpm:118,f:function(s,at,k,sp,tt,o){var st=s%16;
+  if(tt<o.turn){var bar=Math.floor(tt/(60/76*4))%4,ch=[[9,12,16],[5,9,12],[0,4,7],[4,8,11]][bar];if(st%2===0){var n=ch[(st>>1)%3]+(st%8===6?12:0);syn(NF(n+k-12),sp*5,"triangle",.045,at,0,.006);syn(NF(n+k),sp*3,"sine",.012,at,0,.006)}if(st===0){syn(NF(ch[0]+k-24),sp*14,"sine",.05,at,0,.02)}}
+  else if(tt<o.happy){var sc=[0,2,4,5,7,9,11,12,14,16,17,19];syn(NF(sc[Math.min(11,Math.floor((tt-o.turn)/(o.happy-o.turn)*12))]+k+12),.35,"sine",.04,at,0,.004);if(st===0)nzb(1.1,.03,6000,at,"highpass")}
+  else{var bar2=(s>>4)%4,root=[0,5,7,0][bar2]+k,mel=[12,16,19,16,21,19,16,14][(s>>1)%8];if(st%4===0)syn(NF(root-24),sp*2,"triangle",.06,at,0,.004);if(st===4||st===12)clap(at,.09);if(st%2===1)hat(at,.025);
+   if(st%2===0){syn(NF(root+mel),sp*2.2,"sine",.045,at,0,.002);syn(NF(root+mel)*2.76,sp*.8,"sine",.01,at,0,.002)}}}}};
+function music2(style,v,o){stopMusic();var a=ac();if(!a)return;if(!mbus())return;try{MLP.frequency.cancelScheduledValues(a.currentTime);MLP.frequency.setValueAtTime(18000,a.currentTime)}catch(e){}
+ var P=PAT[style];if(!P)return;o=o||{};var k=[0,2,-3,5][(v>>>0)%4],t0=a.currentTime+.06,next=t0,step=0,f1=1+(((v>>>0)%3)-1)*.03;
+ MUS=setInterval(function(){var now=a.currentTime;while(next<now+.25){var tt=next-t0,bpm=(P.happyBpm&&tt>=o.happy?P.happyBpm:P.bpm)*f1,sp=60/bpm/4;try{P.f(step,next-now,k,sp,tt,o)}catch(e){}step++;next+=sp}},60)}
+function mimDraw(m,t,once){if(!(window.__mimAnim&&SEL&&SEL[0]&&CUR.cs))return false;return window.__mimAnim(X,W,H,t,once,storyMode(m),CUR.cs[0],SEL[0],SND2())}
+/* the end of a Make it move story: three faces, retake, magic, save */
+function mimCtl(){if(EXP){var ef=EXP;EXP=null;setTimeout(ef,400)}
+ var row1=STORYM.map(function(k){var on=k===CUR.mode;return{cls:"shc emo"+(on?" on":""),html:SV["e_"+k]+(on?'<i class="again">'+SV.replay+'</i>':''),label:STORY[k]+(on?" again":""),on:function(){SAVED=null;CUR.mode=k;var tt=G("shttl");if(tt)tt.innerHTML=SV["e_"+k];start()}}});
+ var row2=[],can=!!(CV&&CV.captureStream&&window.MediaRecorder);
+ if(CUR.retake)row2.push({cls:"shc sm",html:SV.cam2,label:"Take the photo again",on:function(){var f=CUR.retake;stopAll();f()}});
+ if(CUR.magic)row2.push({cls:"shc sm",html:SV.spark2,label:"Magic",on:function(){var f=CUR.magic;stopAll();f()}});
+ if(can)row2.push({cls:"shc big keep wait",html:SV.savevid,label:"Save my video",id:"shsave",on:saveVid});else if(!SAVED)row2.push({cls:"shc keep",html:SV.heart,label:"Keep",id:"shkeep",on:keep});
+ ctl([row1,row2]);var sb=G("shsave");if(sb)sb.disabled=true;
+ recFinish(function(v){LASTVID=v;var x=G("shsave");if(!x)return;if(v){x.disabled=false;x.classList.remove("wait")}else if(!SAVED){x.className="shc keep";x.id="shkeep";x.innerHTML=SV.heart;x.setAttribute("aria-label","Keep");x.disabled=false;x.onclick=keep}else x.remove()})}
+
 /* ---------- 31 Oct 2026: title card ----------
    Every show (not Puppet show or Story, which open their own way) starts with 1.6 s of curtains opening on the make in a
    spotlight, with a drum roll. No words. It is in the saved video too. */
@@ -5319,7 +5376,7 @@ function danceSetup(){cancelAnimationFrame(RAF);stopMusic();var c=CUR.cs&&CUR.cs
 /* ---------- wire up ---------- */
 function wire(){var t=G("showtile");if(t&&!t.__sb2){t.__sb2=1;t.addEventListener("click",openShow)}}
 wire();setTimeout(wire,500);setTimeout(wire,1600);
-window.__showTest={run:function(items,mode,onClose){SEL=items;SAVED=null;FROMDONE=false;play(mode);var x=G("shxback");if(x)x.onclick=function(){stopAll();onClose()}},open:openShow,sound:{tone:tone,noise:noise,SFX:SFX},pick:openPick,mode:function(items){SEL=items;openMode()},play:play,sel:function(){return SEL},cur:function(){return CUR},cutout:cutout,cutoutScan:function(img){var c=null;try{c=cutout0(img,false)}catch(e){c=null}return c||framed(img)},makes:MAKES,mkButtons:mkButtons,gotFile:gotFile};
+window.__showTest={stop:stopAll,run:function(items,mode,onClose,opts){SEL=items;SAVED=null;FROMDONE=false;NEXTO=opts||null;play(mode);var x=G("shxback");if(x)x.onclick=function(){stopAll();onClose()}},open:openShow,sound:{tone:tone,noise:noise,SFX:SFX},pick:openPick,mode:function(items){SEL=items;openMode()},play:play,sel:function(){return SEL},cur:function(){return CUR},cutout:cutout,cutoutScan:function(img){var c=null;try{c=cutout0(img,false)}catch(e){c=null}return c||framed(img)},makes:MAKES,mkButtons:mkButtons,gotFile:gotFile};
 })();</script>
 
 </body></html><style>/* 24 Oct 2026: "Make it move" on every Draw finish screen. One button; a photo of the child's own drawing (optional); Silly or Cool; plays with the Step by Show player. Nothing leaves the device. */
@@ -5387,7 +5444,8 @@ function paint(){var c=G("mimcard"),im=G("mimimg");if(!c)return;var own=!!OWN;c.
  var lg=document.querySelector("#showtile img");G("mimlogo").innerHTML=lg?'<img src="'+lg.getAttribute("src")+'" alt="Step by Show">':""}
 function show(){[].forEach.call(document.querySelectorAll(".conf"),function(e){e.remove()});var d=G("dn");if(d)d.classList.add("hide");G("mim").classList.remove("hide")}
 function latestMake(k){var M=window.__showTest&&window.__showTest.makes;if(!M)return Promise.resolve(null);try{return M.all().then(function(a){return a.filter(function(o){return o.key===k&&o.kind==="img"&&o.blob}).sort(function(p,q){return q.t-p.t})[0]||null}).catch(function(){return null})}catch(e){return Promise.resolve(null)}}
-function openMim(){refresh();if(!KEY)return;build();if(OWN){paint();show();return}var k=KEY;latestMake(k).then(function(x){if(k!==KEY)return;if(x&&!OWN){OWN=x.blob;OWNURL=URL.createObjectURL(x.blob)}if(OWN){paint();show()}else cam()})}
+/* 7 Nov 2026: one tap plays the Exciting story straight away (the photo is taken first if there is none yet) */
+function openMim(){refresh();if(!KEY)return;build();if(OWN){paint();go("cool");return}var k=KEY;latestMake(k).then(function(x){if(k!==KEY)return;if(x&&!OWN){OWN=x.blob;OWNURL=URL.createObjectURL(x.blob)}if(OWN){paint();go("cool")}else cam()})}
 function isPhone(){var u=navigator.userAgent||"";if(/CrOS/.test(u))return false;return /iPhone|iPad|iPod|Android/.test(u)||(/Macintosh/.test(u)&&navigator.maxTouchPoints>1)}
 function cam(){var C=window.SBCam;if(!C||isPhone()){build();paint();show();G("mimfile").click();return}C.open({onPhoto:function(bl){build();paint();show();usePhoto(bl)}})}
 function closeMim(){var m=G("mim");if(m)m.classList.add("hide");var d=G("dn");if(d)d.classList.remove("hide")}
@@ -5397,13 +5455,15 @@ function title(){try{return V.p.t||V.p.title||KEY}catch(e){return KEY}}
 function usePhoto(f){var S=window.__showTest,c=G("mimcard");if(!S||!S.cutout)return;c.classList.add("busy");var u=URL.createObjectURL(f),im=new Image();
  im.onload=function(){URL.revokeObjectURL(u);setTimeout(function(){var cv=null;try{cv=(f&&f.__scan&&S.cutoutScan)?S.cutoutScan(im):S.cutout(im)}catch(e){cv=null}
   if(!cv){c.classList.remove("busy");c.classList.add("again");setTimeout(function(){c.classList.remove("again")},1600);return}
-  cv.toBlob(function(bl){c.classList.remove("busy");if(!bl)return;dropOwn();OWN=bl;OWNURL=URL.createObjectURL(bl);paint();keepMake(bl)},"image/png")},30)};
+  cv.toBlob(function(bl){c.classList.remove("busy");if(!bl)return;dropOwn();OWN=bl;OWNURL=URL.createObjectURL(bl);paint();keepMake(bl);go("cool")},"image/png")},30)};
  im.onerror=function(){URL.revokeObjectURL(u);c.classList.remove("busy")};im.src=u}
 function keepMake(bl){var M=window.__showTest&&window.__showTest.makes,k=KEY;if(!M)return;try{M.put({id:"m"+Date.now(),t:Date.now(),key:k,title:title(),prod:"draw",kind:"img",blob:bl}).then(function(){try{window.__showTest.mkButtons()}catch(e){}})}catch(e){}}
 function loadMake(){var M=window.__showTest&&window.__showTest.makes,k=KEY;if(!M||OWN)return;try{M.all().then(function(a){var x=a.filter(function(o){return o.key===k&&o.kind==="img"}).sort(function(p,q){return q.t-p.t})[0];if(x&&k===KEY&&!OWN){OWN=x.blob;OWNURL=URL.createObjectURL(x.blob);paint()}})}catch(e){}}
 
 function go(mode){var S=window.__showTest;if(!S||!S.run)return;var item=OWN?{src:"make",blob:OWN,key:KEY,title:title()}:null;if(!item){cam();return}
- G("mim").classList.add("hide");S.run([item],mode,function(){var p=G("shplay");if(p)p.classList.add("hide");G("mim").classList.remove("hide")})}
+ function hidePlay(){var p=G("shplay");if(p)p.classList.add("hide")}
+ [].forEach.call(document.querySelectorAll(".conf"),function(e){e.remove()});G("mim").classList.add("hide");var d=G("dn");if(d)d.classList.add("hide");
+ S.run([item],mode,function(){hidePlay();closeMim()},{mim:true,retake:function(){hidePlay();cam()},magic:function(){hidePlay();closeMim();var k=KEY;latestMake(k).then(function(ph){if(ph&&window.__magicHands)window.__magicHands.open(ph)})}})}
 
 /* hook into the finish screen */
 function hook(){if(typeof openDone!=="function"||openDone.__mim)return false;var od=openDone;openDone=function(){var r=od.apply(this,arguments);try{refresh()}catch(e){}return r};openDone.__mim=1;return true}
@@ -7554,6 +7614,20 @@ HTMLInputElement.prototype.click=function(){
  return origClick.apply(this,arguments)};
 })();
 </script>
+<style>/* 7 Nov 2026: Make it move stories. The end screen has three faces (Exciting, Funny, Sad to happy), then retake, Magic and save.
+   The old grid of mood faces is not shown any more (Make it move plays straight away). */
+#mim .mimmodes{display:none!important}
+#shctl .shrow+.shrow{margin-top:12px}
+#shctl .shc.emo{width:84px;height:84px;border-radius:26px;padding:7px;background:#fff;box-shadow:0 6px 0 rgba(0,0,0,.35)}
+#shctl .shc.emo svg{width:100%;height:100%}
+#shctl .shc.emo.on{box-shadow:0 0 0 4px #ffc531,0 6px 0 rgba(0,0,0,.35)}
+#shctl .shc.emo .again{position:absolute;right:-6px;top:-6px;width:30px;height:30px;border-radius:50%;background:#ffc531;border:2.5px solid #081130;display:flex;align-items:center;justify-content:center;color:#081130}
+#shctl .shc.emo .again svg{width:17px;height:17px}
+#shctl .shc.sm{width:62px;height:62px}#shctl .shc.sm svg{width:38px;height:38px}
+#shctl .shc.emo:active,#shctl .shc.sm:active{transform:translateY(4px)}
+#shttl svg{width:40px;height:40px;display:block;margin:0 auto}
+@media (max-height:700px){#shctl .shc.emo{width:70px;height:70px;border-radius:22px}#shctl .shc.sm{width:54px;height:54px}}
+</style>
 <style>/* 24 Oct 2026: Make it move button is a film clapper icon only, no words */
 #funbtn,#fxrow #funbtn{width:76px!important;height:76px!important;padding:0!important;border-radius:50%!important;justify-content:center!important;gap:0!important}
 #funbtn svg{width:52px!important;height:52px!important}
