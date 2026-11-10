@@ -4506,7 +4506,7 @@ var SV={
 var MODEIC={silly:"m_silly",cool:"m_cool",puppet:"m_pup",story:"m_story",movie:"m_movie"};
 var MODENAME={silly:"Silly",cool:"Cool",puppet:"Puppet show",story:"Story",movie:"Movie"};
 function logoSrc(){var i=document.querySelector("#showtile img");return i?i.getAttribute("src"):""}
-var LOGO=null;function logoImg(){if(LOGO)return LOGO;var s=logoSrc();if(!s)return null;LOGO=new Image();LOGO.src=s;return LOGO}
+var LOGO=null;function logoImg(){if(LOGO)return LOGO;var s="img/33811a1051920075.webp";/* 10 Nov 2026: the video end card shows the Step by Draw logo */if(!s)return null;LOGO=new Image();LOGO.src=s;return LOGO}
 
 /* ---------- storage ---------- */
 function store(name,os){var p=null,mem=[];function db(){if(p)return p;p=new Promise(function(res){try{var r=indexedDB.open(name,1);r.onupgradeneeded=function(){r.result.createObjectStore(os,{keyPath:"id"})};r.onsuccess=function(){res(r.result)};r.onerror=function(){res(null)}}catch(e){res(null)}});return p}
@@ -7641,3 +7641,302 @@ HTMLInputElement.prototype.click=function(){
      Pinch-zoom inside the 3D/step viewers is the app's own and still works. -->
 <style>*{touch-action:manipulation}html,body{touch-action:pan-x pan-y}</style>
 <script>(function(){function no(e){e.preventDefault()}["gesturestart","gesturechange","gestureend"].forEach(function(t){document.addEventListener(t,no,{passive:false})});})();</script>
+<!-- ===== Step by Draw home, rows idea (10 Nov 2026) ===== -->
+<style id="sbstudio">
+/* hide the old product tiles and section labels; the Studio layout replaces them */
+html body #home #grid,html body #home .zlab,html body #home #showzone,html body #home #mlogo{display:none!important}
+html body #hpills #grtile,html body #hpills #theattile{display:none!important}
+html body #hpills #drawtile{display:flex!important;order:3!important;grid-column:auto!important}
+html body #hpills #achtile{order:4!important;grid-column:auto!important}
+#sstudio{display:flex;flex-direction:column;gap:14px;flex:1;min-height:0}
+#sshead{position:relative;display:flex;flex-direction:column;align-items:center;gap:2px;padding-top:2px}
+#sshead img{height:88px;width:auto;display:block}
+#ssgr{display:none!important}
+html body #home.scr{padding-top:max(8px,env(safe-area-inset-top))!important}
+#sstudio{gap:10px!important}
+#ssgrbig{flex:none;display:flex;align-items:center;justify-content:center;gap:12px;width:100%;min-height:68px;border:0;border-radius:999px;background:#081130;color:#fff;box-shadow:0 6px 0 #000;font:inherit;cursor:pointer;-webkit-tap-highlight-color:transparent;margin-top:4px}
+#ssgrbig svg{width:34px;height:34px;flex:none}
+#ssgrbig b{font-weight:900;font-size:1.35rem;letter-spacing:.01em}
+#ssgrbig:active{transform:translateY(5px);box-shadow:0 1px 0 #000}
+#sscw{flex:1 1 auto!important;min-height:220px!important}
+@media (max-height:760px){
+ #ssms .sst,#ssms #showtile{aspect-ratio:auto!important;height:96px!important}
+ #ssms .sst svg.ic{max-height:46px}
+ #ssms #showtile img{max-height:76px!important}
+ html body #hpills{gap:10px!important;margin-top:2px!important}
+ html body #hpills>button{height:52px!important;min-height:0!important}
+ #ssgrbig{min-height:56px}
+ #sscw{min-height:172px!important;gap:8px!important}
+ #sstudio{gap:8px!important}
+ .sslab{margin:0!important}
+ #sstudio>.ssg{display:none!important}
+ .ssc .cvr{max-height:62%!important}
+ #sshead img{height:66px}
+}
+#sshead .sw{font:900 1.3rem/1 -apple-system,BlinkMacSystemFont,"Arial Rounded MT Bold",sans-serif;letter-spacing:.32em;color:#081130;padding-left:.32em;margin-top:-2px}
+#ssgr{position:absolute;top:0;right:0;width:52px;height:52px;border:0;border-radius:50%;background:#e3eaf3;box-shadow:0 5px 0 #9eafc6;display:flex;align-items:center;justify-content:center;color:#081130;cursor:pointer;-webkit-tap-highlight-color:transparent}
+#ssgr:active{transform:translateY(4px);box-shadow:0 1px 0 #9eafc6}
+#ssgr svg{width:28px;height:28px}
+.sslab{display:flex;align-items:center;gap:10px;color:#b58a1a;margin:2px 0 -2px}
+.sslab svg{width:24px;height:24px;flex:none}
+.sslab:after{content:"";flex:1;height:2px;border-radius:2px;background:#e6d6ae}
+.sslab button{order:3;border:0;background:#fff;border-radius:999px;box-shadow:0 4px 0 rgba(8,17,48,.16);padding:6px 14px;display:flex;align-items:center;gap:6px;font:800 .95rem -apple-system,BlinkMacSystemFont,sans-serif;color:#081130;cursor:pointer}
+.sslab button svg{width:18px;height:18px}
+.ssg{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px 14px}
+.sst{position:relative;border:0;border-radius:24px;aspect-ratio:1/0.66;max-width:100%;background:var(--t);box-shadow:0 7px 0 var(--d);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;color:#081130;cursor:pointer;-webkit-tap-highlight-color:transparent;font:inherit;animation:pop .55s cubic-bezier(.3,1.5,.5,1) both}
+.sst:active{transform:translateY(6px);box-shadow:0 1px 0 var(--d)}
+.sst svg.ic{width:52%;height:52%;max-height:76px}
+.sst b{font-weight:900;font-size:clamp(1rem,4.6vw,1.2rem)}
+.sst.soon{opacity:.62}
+.sst .bd{position:absolute;top:10px;right:10px;background:#081130;color:#fff;border-radius:999px;padding:3px 9px;font:800 .72rem -apple-system,sans-serif;letter-spacing:.04em}
+.sst.wig{animation:wig .4s}
+@keyframes wig{0%,100%{transform:none}25%{transform:rotate(-3deg)}75%{transform:rotate(3deg)}}
+#ssms{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px}
+#ssms .sst{aspect-ratio:1/0.74}
+#ssms #showtile{position:relative;height:auto!important;min-height:0!important;aspect-ratio:1/0.74;grid-column:auto!important;border-radius:24px;margin:0}
+#ssms #showtile img{max-width:92%!important;max-height:80%!important;width:auto!important;height:auto!important}
+#sstudio #hpills{margin-top:6px!important}
+@media (min-width:900px) and (min-aspect-ratio:4/3){#sstudio{max-width:760px;width:100%;margin:0 auto}.ssg{grid-template-columns:repeat(4,minmax(0,1fr))}}
+@media (prefers-reduced-motion:reduce){.sst,.sst.wig{animation:none}}
+</style>
+<style id="sbcats">
+/* 25 Oct 2026: top of home = 7 category icons + one swipeable shelf of that category's collections */
+#sscw{flex:1;min-height:0;display:flex;flex-direction:column;gap:12px}
+#sscat{display:grid;grid-template-columns:repeat(8,minmax(0,1fr));gap:5px}
+.ssct.ssall{background:#fff;box-shadow:0 4px 0 rgba(8,17,48,.18);color:#081130;padding:9px!important}
+.ssct.ssall svg{width:100%;height:100%}
+.ssct{border:3px solid transparent;border-radius:16px;aspect-ratio:1;padding:4px;background:var(--t);box-shadow:0 4px 0 var(--d);display:flex;align-items:center;justify-content:center;cursor:pointer;-webkit-tap-highlight-color:transparent;transition:transform .12s}
+.ssct svg{width:100%;height:100%}
+.ssct.on{border-color:#081130;transform:translateY(-2px)}
+.ssct:active{transform:translateY(3px);box-shadow:0 1px 0 var(--d)}
+#ssshelf{flex:1;min-height:150px;max-height:320px;display:flex;gap:14px;overflow-x:auto;overflow-y:hidden;scroll-snap-type:x mandatory;scrollbar-width:none;margin:0 -16px;padding:2px 16px 9px;scroll-padding-left:16px;touch-action:pan-x}
+#ssshelf::-webkit-scrollbar{display:none}
+.ssc{position:relative;flex:0 0 42%;animation:none!important;scroll-snap-align:start;border:0;border-radius:24px;background:var(--t);box-shadow:0 7px 0 var(--d);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;color:#081130;font:inherit;cursor:pointer;-webkit-tap-highlight-color:transparent;animation:pop .45s cubic-bezier(.3,1.5,.5,1) both;padding:10px}
+.ssc .cvr{width:72%;max-height:64%;aspect-ratio:1;background:#fff;border-radius:18px;display:flex;align-items:center;justify-content:center}
+.ssc .cvr svg{width:78%;height:78%}
+.ssct img{width:100%;height:100%;object-fit:contain;display:block;pointer-events:none}
+.ssc .cvr{width:80%!important;max-height:70%!important}
+.ssc .cvr img{width:92%;height:92%;object-fit:contain;display:block;pointer-events:none}
+.ssct{padding:2px!important}
+.ssc b{font-weight:900;font-size:clamp(.95rem,4.4vw,1.15rem);text-align:center;line-height:1.1}
+.ssc.soon{opacity:.62}
+.ssc .bd{position:absolute;top:10px;right:10px;background:#081130;color:#fff;border-radius:999px;padding:3px 9px;font:800 .72rem -apple-system,sans-serif;letter-spacing:.04em}
+.ssc:active{transform:translateY(6px);box-shadow:0 1px 0 var(--d)}
+.ssc.wig{animation:wig .4s}
+.ssc.first{margin-left:14px}
+.ssc.first:before{content:"";position:absolute;left:-22px;top:18%;bottom:18%;width:3px;border-radius:2px;background:#e6d6ae}
+@media (prefers-reduced-motion:reduce){.ssc{animation:none}}
+</style>
+<style id="sbnotext">
+/* 26 Oct 2026: wordless home. Only the Grown-ups button keeps words (plus the Draw and Show logos). Every button keeps an aria-label for screen readers. */
+.ssc b,#ssms .sst b{display:none!important}
+.ssc{padding:6px!important}
+.ssc .cvr{width:100%!important;max-height:94%!important;background:transparent!important}
+.ssc .cvr img{width:100%!important;height:100%!important}
+.ssc .bd,#ssms .sst .bd{font-size:0!important;width:34px;height:34px;padding:0!important;border-radius:50%!important;background:#081130 url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23fff' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M7 3h10M7 21h10M8 3v3a4 4 0 0 0 2 3.5L12 11l2-1.5A4 4 0 0 0 16 6V3M8 21v-3a4 4 0 0 1 2-3.5L12 13l2 1.5a4 4 0 0 1 2 3.5v3'/%3E%3C/svg%3E") center/20px no-repeat!important;opacity:1}
+.sslab button{font-size:0!important;gap:0!important;padding:8px 12px!important}
+.sslab button svg{width:22px!important;height:22px!important}
+#ssms .sst svg.ic{width:62%!important;height:62%!important;max-height:96px!important}
+html body #hpills{grid-template-columns:repeat(4,minmax(0,1fr))!important;gap:12px!important}
+html body #hpills>button{height:64px!important;min-height:0!important;padding:0!important;justify-content:center!important;border-radius:22px!important}
+html body #hpills>button b{display:none!important}
+html body #hpills>button svg,html body #hpills>button img{width:38px!important;height:38px!important;margin:0!important}
+@media (max-height:760px){html body #hpills>button{height:54px!important}html body #hpills>button svg{width:32px!important;height:32px!important}}
+</style>
+<style>/* 7 Nov 2026 (later): shorter collection tiles; the four small buttons sit two by two */
+#sstudio #sscw{flex:0 0 auto!important}#sstudio{justify-content:space-between!important}#sstudio #ssshelf{flex:0 0 auto!important;height:clamp(150px,26vh,230px)!important;min-height:0!important}
+html body #sstudio #hpills{grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:10px!important}
+html body #sstudio #hpills>button{height:58px!important}
+@media (max-height:760px){html body #sstudio #hpills>button{height:50px!important}}
+</style>
+<style>/* 7 Nov 2026: no Make tile; Step by Show fills the row */
+#ssms{grid-template-columns:minmax(0,1fr)!important}
+#ssms #showtile{aspect-ratio:auto!important;height:clamp(96px,14vh,128px)!important}
+#ssms #showtile img{max-height:84%!important}
+</style>
+
+<style id="sbsets">
+/* 10 Nov 2026: the 200-drawing library on the home screen. 5 theme icons + All, one shelf of 12 whole sets.
+   Each set tile has a badge: ABC (capital letters), abc (small letters) or 123 (numbers 0 to 9). */
+#sscat{grid-template-columns:repeat(6,minmax(0,1fr))!important;gap:8px!important}
+.ssct{border-radius:18px!important}
+.ssc .sbbd{position:absolute;left:50%;bottom:10px;transform:translateX(-50%);width:62%;max-width:96px;pointer-events:none;filter:drop-shadow(0 3px 0 rgba(8,17,48,.18))}
+.sbbd svg{display:block;width:100%;height:auto}
+.ssc .cvr{align-self:stretch;margin-bottom:22px}
+/* the set screen (opens inside the Draw section, so its project page, steps and finish screen all work as before) */
+#proj.sbcolm #tabs,#proj.sbcolm #pager,#proj.sbcolm #sq,#proj.sbcolm #sheet{display:none!important}
+#proj.sbcolm #pfilt{visibility:hidden!important;pointer-events:none}
+#proj.sbcolm #pgrid{display:grid!important;justify-content:center;align-content:center;gap:10px;margin:10px 0 4px;overflow:hidden}
+.sbch{display:flex;align-items:center;justify-content:center;gap:8px;height:56px}
+.sbch img{height:56px;width:56px;object-fit:contain;display:block}
+.sbch .sbbd{width:78px;filter:drop-shadow(0 3px 0 rgba(8,17,48,.18))}
+.sbslot{position:relative;border:0;border-radius:18px;background:#fff;box-shadow:0 5px 0 var(--sbd,#c48a0c);display:flex;align-items:center;justify-content:center;padding:0;min-width:0;min-height:0;cursor:pointer;-webkit-tap-highlight-color:transparent;font:inherit;animation:pop .4s cubic-bezier(.3,1.5,.5,1) both}
+.sbslot:active{transform:translateY(4px);box-shadow:0 1px 0 var(--sbd,#c48a0c)}
+.sbslot .sbth{position:absolute;inset:5px;border-radius:14px;overflow:hidden;display:flex;align-items:center;justify-content:center;background:#fff}
+.sbslot .sbth img{width:100%;height:100%;object-fit:contain;display:block;pointer-events:none}
+.sbslot .sbl{position:absolute;left:5px;top:5px;z-index:2;min-width:calc(var(--s,80px)*.3);height:calc(var(--s,80px)*.3);padding:0 5px;border-radius:999px;background:#081130;color:#fff;display:flex;align-items:center;justify-content:center;font:900 calc(var(--s,80px)*.2)/1 -apple-system,BlinkMacSystemFont,"Arial Rounded MT Bold",sans-serif}
+.sbslot .dnt{right:5px;bottom:5px;width:calc(var(--s,80px)*.3);height:calc(var(--s,80px)*.3)}
+.sbslot .dnt svg{width:62%;height:62%}
+.sbslot.sbsoon{background:#fffaf0;box-shadow:0 5px 0 rgba(8,17,48,.10);outline:2px dashed rgba(8,17,48,.16);outline-offset:-7px}
+.sbslot.sbsoon:active{box-shadow:0 1px 0 rgba(8,17,48,.10)}
+.sbslot.sbsoon .sbgl{font:900 calc(var(--s,80px)*.56)/1 -apple-system,BlinkMacSystemFont,"Arial Rounded MT Bold",sans-serif;color:rgba(8,17,48,.17);pointer-events:none}
+.sbslot.sbsoon .sbhg{position:absolute;right:7px;top:7px;width:calc(var(--s,80px)*.26);height:calc(var(--s,80px)*.26);border-radius:50%;background:rgba(8,17,48,.38);display:flex;align-items:center;justify-content:center;pointer-events:none}
+.sbslot.sbsoon .sbhg svg{width:64%;height:64%}
+.sbslot.wig{animation:wig .4s}
+@media (prefers-reduced-motion:reduce){.sbslot,.sbslot.wig{animation:none}}
+</style>
+<script>
+/* 10 Nov 2026: Step by Draw home with the 200-drawing library (project doc claude/step-by-draw-library.md).
+   Built on the 25 Oct to 7 Nov draft home: theme icons on top, one swipeable shelf of every set (the icon follows the scroll),
+   the Show tile, the four small buttons and the big Grown-ups button. Every set is a whole set (26 letters or 10 numbers), so each can be a book.
+   Tapping a set opens it on one screen: the finished drawings to tap, and a placeholder (faint letter or number + hourglass) for each one still to make.
+   To add a finished drawing to a set, add its key to that set's "has" list below, e.g. has:{A:"dx_ant_a"}. */
+(function(){
+var IC={
+ pad:'<svg viewBox="0 0 24 24"><rect x="4.5" y="10.5" width="15" height="10.5" rx="2.6" fill="#f5c542" stroke="#081130" stroke-width="1.8"/><path d="M8 10.5V7.8a4 4 0 018 0v2.7" fill="none" stroke="#081130" stroke-width="2" stroke-linecap="round"/><circle cx="12" cy="15.4" r="1.6" fill="#081130"/></svg>',
+ grid:'<svg viewBox="0 0 24 24"><rect x="3" y="3" width="8" height="8" rx="2.4" fill="currentColor"/><rect x="13" y="3" width="8" height="8" rx="2.4" fill="currentColor"/><rect x="3" y="13" width="8" height="8" rx="2.4" fill="currentColor"/><rect x="13" y="13" width="8" height="8" rx="2.4" fill="currentColor"/></svg>',
+ clap:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="9" width="18" height="11" rx="2"/><path d="M3 9l2-5 16 3-1 2M8 4.6l2 3.8M13 5.5l2 3.6"/></svg>',
+ hour:'<svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M7 3h10M7 21h10M8 3v3a4 4 0 0 0 2 3.5L12 11l2-1.5A4 4 0 0 0 16 6V3M8 21v-3a4 4 0 0 1 2-3.5L12 13l2 1.5a4 4 0 0 1 2 3.5v3"/></svg>'
+};
+/* the set badges: the letters or numbers themselves, no words */
+function badge(a,b,c,ca,cb,cc){return'<svg viewBox="0 0 84 36" aria-hidden="true"><rect x="2" y="2" width="80" height="32" rx="16" fill="#fff" stroke="#081130" stroke-width="3"/><text x="42" y="26.5" text-anchor="middle" font-family="-apple-system,BlinkMacSystemFont,\'Arial Rounded MT Bold\',sans-serif" font-weight="900" font-size="22" letter-spacing="1"><tspan fill="'+ca+'">'+a+'</tspan><tspan fill="'+cb+'">'+b+'</tspan><tspan fill="'+cc+'">'+c+'</tspan></text></svg>'}
+var BADGE={AZ:badge('A','B','C','#E5392B','#2F7BF5','#3FA535'),az:badge('a','b','c','#E5392B','#2F7BF5','#3FA535'),'09':badge('1','2','3','#8B5CF6','#EC4899','#14B8A6')};
+var SLOTS={AZ:'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split(''),az:'abcdefghijklmnopqrstuvwxyz'.split(''),'09':'0123456789'.split('')};
+/* themes and sets (cover pictures are stand-ins until the real covers are made) */
+var CATS=[
+ {n:'Animals',t:'#cbefeb',d:'#0e8478',cols:[
+  {id:'animals-AZ',n:'Animals A to Z',cv:'cov_r_lion',set:'AZ',has:{B:'dx_bug_b',C:'dx_caterpillar_c',L:'dx_llama_l',P:'dx_parrot_p',S:'dx_seahorse_s'}},
+  {id:'animals-az',n:'Animals a to z',cv:'cov_r_monkey',set:'az'},
+  {id:'animals-09',n:'Animals 0 to 9',cv:'cov_r_elephant',set:'09'}]},
+ {n:'Vehicles',t:'#d6ebfb',d:'#2a74b8',cols:[
+  {id:'vehicles-AZ',n:'Vehicles A to Z',cv:'cov_r_fire',set:'AZ',has:{D:'dx_digger_d',F:'dn_fireengine'}},
+  {id:'vehicles-az',n:'Vehicles a to z',cv:'cov_r_plane',set:'az'},
+  {id:'vehicles-09',n:'Vehicles 0 to 9',cv:'cov_r_fire',set:'09'}]},
+ {n:'Around the house',t:'#ffe2c4',d:'#c46a1a',cols:[
+  {id:'house-AZ',n:'Around the house A to Z',cv:'cov_r_teddy',set:'AZ',has:{K:'dx_key_k'}},
+  {id:'house-az',n:'Around the house a to z',cv:'cov_r_house',set:'az'},
+  {id:'house-09',n:'Around the house 0 to 9',cv:'cov_r_teddy',set:'09'}]}
+];
+window.SBSETS=CATS;
+function G(i){return document.getElementById(i)}
+function esc(s){return String(s).replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;')}
+function img(n){return'<img src="img/'+n+'.webp" alt="" draggable="false">'}
+function madeIn(c){var by={},n=0,has=c.has||{};try{projects('draw').forEach(function(p){by[p.key]=p})}catch(e){}Object.keys(has).forEach(function(s){if(by[has[s]])n++});return{by:by,n:n}}
+
+/* ---- the set screen ---- */
+var COL=null;
+function openCol(c,cat){COL={c:c,cat:cat};openProj('draw')}
+function openAll(){COL=null;var pj=G('proj');if(pj)pj.classList.remove('sbcolm');openProj('draw')}
+function fit(){var g=G('pgrid');if(!g||!COL)return;var n=g.children.length;if(!n)return;
+ var r=g.getBoundingClientRect(),W=r.width,H=r.height,gap=10,best=0,bc=4;
+ if(W<50||H<50)return;
+ for(var c=2;c<=8;c++){var rows=Math.ceil(n/c),s=Math.min((W-(c-1)*gap)/c,(H-(rows-1)*gap)/rows);if(s>best+.5){best=s;bc=c}}
+ best=Math.floor(Math.min(best,200));var rw=Math.ceil(n/bc);
+ g.style.gridTemplateColumns='repeat('+bc+','+best+'px)';g.style.gridTemplateRows='repeat('+rw+','+best+'px)';g.style.setProperty('--s',best+'px')}
+/* square picture of the finished drawing, drawn by the app itself (the list's own pictures are wide, so drawings looked small) */
+var SQ={};
+function sq(p){if(SQ[p.key])return SQ[p.key];var cv=document.createElement('canvas'),u='';cv.style.cssText='position:fixed;left:-9999px;top:0;width:240px;height:240px';document.body.appendChild(cv);
+ try{paintFinal(cv,p);u=cv.toDataURL('image/jpeg',.88)}catch(e){}cv.remove();if(u)SQ[p.key]=u;return u}
+function thumb(p){var u=sq(p);return u?'<img src="'+u+'" alt="" draggable="false">':p.svg}
+function renderCol(){
+ var pj=G('proj'),g=G('pgrid'),c=COL.c,cat=COL.cat;if(!pj||!g)return;
+ pj.classList.add('sbcolm');pj.style.setProperty('--sbd',cat.d);
+ var lg=G('plogo');lg.innerHTML='<span class="sbch" role="img" aria-label="'+esc(c.n)+'">'+img(c.cv)+'<span class="sbbd">'+BADGE[c.set]+'</span></span>';
+ var m=madeIn(c),has=c.has||{};
+ g.innerHTML=SLOTS[c.set].map(function(s,i){var p=has[s]&&m.by[has[s]],dl='animation-delay:'+(i*16)+'ms';
+  if(p)return'<button class="sbslot sbm" data-k="'+esc(p.key)+'" style="'+dl+'" aria-label="'+esc(p.t)+'"><span class="sbth">'+thumb(p)+'</span><span class="sbl" aria-hidden="true">'+s+'</span>'+(isDone(p)?'<span class="dnt" aria-label="Made it">'+I.check+'</span>':'')+'</button>';
+  return'<button class="sbslot sbsoon" style="'+dl+'" aria-label="'+s+' (coming soon)"><span class="sbgl" aria-hidden="true">'+s+'</span><span class="sbhg">'+IC.hour+'</span></button>'}).join('');
+ [].forEach.call(g.querySelectorAll('.sbslot'),function(b){
+  b.onclick=b.classList.contains('sbm')?function(){var p=m.by[b.getAttribute('data-k')];if(p)openPv(p)}:function(){b.classList.remove('wig');void b.offsetWidth;b.classList.add('wig')}});
+ fit();requestAnimationFrame(fit)}
+var _rp=window.renderProj;
+window.renderProj=function(){
+ if(COL&&typeof prod!=='undefined'&&prod==='draw'&&typeof tab!=='undefined'&&tab==='proj'){try{return renderCol()}catch(e){if(window.console)console.error(e)}}
+ var pj=G('proj');if(pj&&pj.classList.contains('sbcolm')){pj.classList.remove('sbcolm');var g=G('pgrid');if(g){g.style.removeProperty('--s')}}
+ return _rp.apply(this,arguments)};
+window.addEventListener('resize',function(){if(COL)fit()});
+
+/* ---- the home screen ---- */
+function lab(icon){var d=document.createElement('div');d.className='sslab';d.setAttribute('aria-hidden','true');d.innerHTML=IC[icon];return d}
+function build(){
+ var home=G('home'),pills=G('hpills');if(!home||!pills)return;
+ var s=G('sstudio');
+ if(!s){s=document.createElement('div');s.id='sstudio';
+  var h=document.createElement('div');h.id='sshead';h.innerHTML='<img src="img/33811a1051920075.webp" alt="Step by Draw">';s.appendChild(h);
+  /* 10 Nov 2026: washing-line home. One line per starting set (ABC, abc, 123); each theme's picture is pegged on the line.
+     A line swipes sideways once more themes are added, and the string grows with it. */
+  s.classList.add('wl');
+  var LINES=[{set:'AZ',sets:[['animals-AZ','lion'],['vehicles-AZ','fire'],['house-AZ','teddy']]},
+   {set:'az',sets:[['animals-az','monkey'],['vehicles-az','plane'],['house-az','house']]},
+   {set:'09',sets:[['animals-09','giraffe'],['vehicles-09','fire'],['house-09','teddy']]}];
+  var BYID={};CATS.forEach(function(cat){cat.cols.forEach(function(c){BYID[c.id]={c:c,cat:cat}})});
+  var mid=document.createElement('div');mid.id='sswl';
+  LINES.forEach(function(r,ri){var row=document.createElement('div');row.className='wlrow';var tr=document.createElement('div');tr.className='wltrack';
+   tr.innerHTML='<div class="wlstr"></div><div class="wltag" aria-hidden="true">'+BADGE[r.set]+'</div>';
+   var rots=[[-3,2,-2,3],[2,-3,3,-2],[-2,3,-3,2]][ri];
+   r.sets.forEach(function(x,i){var o=BYID[x[0]];if(!o)return;var c=o.c,cat=o.cat;c.cv='cov_r_'+x[1];var made=madeIn(c).n,t=document.createElement('button');
+    t.className='wlcard';t.dataset.set=c.id;t.style.setProperty('--r',rots[i%4]+'deg');t.style.setProperty('--pd',cat.d);
+    t.setAttribute('aria-label',c.n+(made?'':' (coming soon)'));
+    t.innerHTML='<span class="wlpeg"></span>'+img(c.cv)+(made?'':'<span class="wlhg"></span>');t.onclick=function(){openCol(c,cat)};tr.appendChild(t)});
+   row.appendChild(tr);mid.appendChild(row)});
+  s.appendChild(mid);
+  /* the pegs sit on the sagging string */
+  function sag(){[].forEach.call(mid.querySelectorAll('.wltrack'),function(tr){var W=tr.scrollWidth||1;[].forEach.call(tr.querySelectorAll('.wlcard,.wltag'),function(el){var x=(el.offsetLeft+el.offsetWidth/2)/W,y=12*(1-Math.pow(2*x-1,2));el.style.marginTop=((el.classList.contains('wltag')?24:14)+y)+'px'})})}
+  requestAnimationFrame(sag);setTimeout(sag,400);window.addEventListener('resize',sag);
+  new MutationObserver(function(){if(!home.classList.contains('hide'))requestAnimationFrame(sag)}).observe(home,{attributes:true,attributeFilter:['class']});
+  var ms=document.createElement('div');ms.id='ssms';s.appendChild(ms);
+  home.insertBefore(s,home.firstChild)}
+ /* move the app's own Show tile and small buttons into the layout (keeps all their working code) */
+ var st=G('showtile');if(st&&s.classList.contains('wl')){if(st.parentNode!==pills)pills.insertBefore(st,pills.firstChild)}else{var ms2=G('ssms');if(st&&ms2&&st.parentNode!==ms2)ms2.appendChild(st)}
+ if(pills.parentNode!==s)s.appendChild(pills);
+ [].forEach.call(pills.children,function(b){if(!b.getAttribute('aria-label')){var x=b.querySelector('b');if(x)b.setAttribute('aria-label',x.textContent)}});
+ /* big Grown-ups button at the bottom (the parents' area is where income comes from) */
+ var gb=G('ssgrbig');if(!gb){gb=document.createElement('button');gb.id='ssgrbig';gb.setAttribute('aria-label','Grown-ups');var GW={en:'Grown-ups',es:'Padres',fr:'Parents',de:'Eltern',pt:'Pais'},gl=((navigator.languages&&navigator.languages[0])||navigator.language||'en').slice(0,2).toLowerCase(),gw=GW[gl]||GW.en;/* 10 Nov 2026: the one word on the home screen follows the phone's language */gb.setAttribute('aria-label',gw);gb.innerHTML='<svg viewBox="0 0 24 24"><rect x="4.5" y="10.5" width="15" height="10.5" rx="2.6" fill="#FFC531" stroke="#fff" stroke-width="1.6"/><path d="M8 10.5V7.8a4 4 0 018 0v2.7" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round"/><circle cx="12" cy="15.4" r="1.7" fill="#081130"/></svg><b>'+gw+'</b>';gb.onclick=function(){var g=G('grtile');if(g)g.click()}}
+ if(gb.parentNode!==s||s.lastChild!==gb)s.appendChild(gb);
+}
+var busy=0;function safe(){if(busy)return;busy=1;try{build()}catch(e){}busy=0}
+function start(){safe();var h=G('home');if(h){new MutationObserver(function(){safe()}).observe(h,{childList:true,subtree:false});
+  /* back on the home screen: leave the set screen behind */
+  new MutationObserver(function(){if(!h.classList.contains('hide')&&COL){COL=null;var pj=G('proj');if(pj)pj.classList.remove('sbcolm')}}).observe(h,{attributes:true,attributeFilter:['class']})}
+ setTimeout(safe,600);setTimeout(safe,1600)}
+if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',start);else start();
+})();
+</script>
+<script>/* 7 Nov 2026: the clapper picture replaces the "Step by Show" logo (no words). 10 Nov: picture kept as a file, not inside the page */
+(function(){var SRC="img/show-clapper.webp";function sw(){document.querySelectorAll('img[src="show-logo.png"]').forEach(function(i){i.src=SRC;i.alt=""});var t=document.getElementById("showtile");if(t)t.setAttribute("aria-label","Make a show")}
+sw();setTimeout(sw,300);setTimeout(sw,1500);new MutationObserver(sw).observe(document.documentElement,{childList:true,subtree:true})})();</script>
+
+<style>html body #sstudio #ssms #showtile{display:flex!important;align-items:center!important;justify-content:center!important;overflow:hidden!important}html body #sstudio #ssms #showtile img,html body #showtile img{height:clamp(64px,9vh,88px)!important;width:auto!important;max-height:none!important;max-width:70%!important;object-fit:contain!important;margin:0 auto!important;position:relative!important;flex:0 0 auto!important}</style>
+<style id="sbwl">
+/* 10 Nov 2026: washing-line home, logo just under the phone's camera, buttons in three rows */
+html body #home.scr{padding-top:max(6px,env(safe-area-inset-top))!important}
+#sstudio.wl{gap:8px!important}
+html body #sstudio.wl #sshead img{height:clamp(52px,8.6vh,84px)!important}
+#sstudio.wl>.ssg,#sstudio.wl #ssms{display:none!important}
+#sswl{flex:1 1 auto;min-height:0;display:flex;flex-direction:column;justify-content:space-evenly;container-type:size}
+.wlrow{--lh:31cqh;position:relative;height:var(--lh);margin:0 -16px;overflow-x:auto;overflow-y:hidden;scrollbar-width:none;scroll-snap-type:x proximity;touch-action:pan-x}
+.wlrow::-webkit-scrollbar{display:none}
+/* While a line has only a few pictures they spread across the screen; once more themes are added they sit closer together (10px apart) and the line swipes sideways. */
+.wltrack{position:relative;display:flex;align-items:flex-start;justify-content:space-between;gap:10px;height:100%;width:max-content;min-width:100%;padding:0 22px 0 22px}
+.wlstr{position:absolute;left:0;right:0;top:6px;height:22px;border-bottom:3px solid #a57b4a;border-radius:0 0 50% 50%/0 0 100% 100%;pointer-events:none}
+.wltag{position:relative;flex:none;width:54px;transform:rotate(-5deg);margin-top:24px;filter:drop-shadow(0 2px 0 rgba(8,17,48,.16))}
+.wltag svg{display:block;width:100%;height:auto}
+.wlcard{position:relative;flex:none;scroll-snap-align:start;margin-top:14px;width:min(calc((var(--lh) - 34px) * .78),calc((100cqw - 100px) / 3));height:calc(var(--lh) - 30px);background:#fff;border:0;border-radius:4px;box-shadow:0 3px 7px rgba(8,17,48,.16);display:flex;align-items:center;justify-content:center;padding:14px 7px 8px;cursor:pointer;-webkit-tap-highlight-color:transparent;transform:rotate(var(--r));transition:transform .15s}
+.wlcard img{max-width:100%;max-height:100%;object-fit:contain;display:block;pointer-events:none}
+.wlcard:active{transform:translateY(3px)}
+.wlpeg{position:absolute;top:-8px;left:50%;margin-left:-5px;width:10px;height:22px;border-radius:3px;background:var(--pd);box-shadow:0 1px 0 rgba(8,17,48,.25)}
+.wlhg{position:absolute;right:5px;bottom:5px;width:24px;height:24px;border-radius:50%;background:#081130 url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23fff' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M7 3h10M7 21h10M8 3v3a4 4 0 0 0 2 3.5L12 11l2-1.5A4 4 0 0 0 16 6V3M8 21v-3a4 4 0 0 1 2-3.5L12 13l2 1.5a4 4 0 0 1 2 3.5v3'/%3E%3C/svg%3E") center/14px no-repeat}
+/* bottom: Show + Keep going, then Favourites, My drawings, My trophies, then the big Grown-ups button */
+html body #sstudio.wl #hpills{display:grid!important;grid-template-columns:repeat(3,minmax(0,1fr))!important;gap:9px!important;margin:0!important}
+html body #sstudio.wl #hpills>button{height:clamp(50px,7.6vh,70px)!important;min-height:0!important;margin:0!important;border-radius:20px!important;grid-column:auto!important}
+html body #sstudio.wl #hpills>#showtile{order:0!important;grid-column:span 2!important;aspect-ratio:auto!important;display:flex!important;align-items:center!important;justify-content:center!important;overflow:hidden!important}
+html body #sstudio.wl #hpills>#showtile img{height:78%!important;width:auto!important;max-width:80%!important;max-height:none!important}
+html body #sstudio.wl #hpills>#conttile{order:1!important}
+html body #sstudio.wl #hpills>#favtile{order:2!important}
+html body #sstudio.wl #hpills>#drawtile{order:3!important}
+html body #sstudio.wl #hpills>#achtile{order:4!important}
+html body #sstudio.wl #hpills>button:not(#showtile) svg,html body #sstudio.wl #hpills>button:not(#showtile) img{width:40px!important;height:40px!important}
+#sstudio.wl #ssgrbig{min-height:clamp(56px,8.2vh,74px)!important;margin-top:2px}
+@media (prefers-reduced-motion:reduce){.wlcard{transition:none}}
+</style>
+
