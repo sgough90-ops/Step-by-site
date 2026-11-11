@@ -7940,4 +7940,22 @@ html body #sstudio.wl #hpills>button:not(#showtile) svg,html body #sstudio.wl #h
 #sstudio.wl #ssgrbig{min-height:clamp(56px,8.2vh,74px)!important;margin-top:2px}
 @media (prefers-reduced-motion:reduce){.wlcard{transition:none}}
 </style>
-
+<style>/* 11 Nov 2026: ticks are earned with a photo, not pressed */
+.dnb{pointer-events:none!important;cursor:default!important}</style>
+<script>
+/* ===== 11 Nov 2026: a project only gets its tick (and counts towards medals) when a photo of the finished make is saved.
+   Finishing the steps no longer ticks it, and the tick can no longer be pressed. Ticks earned before this change are kept. ===== */
+(function(){
+ function mark(rec){try{if(!rec||!rec.key||!rec.prod)return false;var p=null;projects(rec.prod).forEach(function(x){if(x.key===rec.key)p=x});if(!p)return false;
+   var k=rec.prod+":"+rec.key;if(DONE[k])return false;DONE[k]=lv(p);return true}catch(e){return false}}
+ function keep(){try{localStorage.setItem("sbdone",JSON.stringify(DONE))}catch(e){}try{syncERN()}catch(e){}}
+ /* reaching the finish screen clears the old button space but no longer ticks the project */
+ __pend=function(p,sel){setTimeout(function(){var box=document.querySelector(sel);if(!box)return;[].forEach.call(box.querySelectorAll(".made,.madeok"),function(x){x.remove()})},0)};
+ function hook(){var M=window.__showTest&&window.__showTest.makes;if(!M||M.__tick)return !!M;M.__tick=1;
+   var put=M.put;M.put=function(rec){var r=put.apply(this,arguments);try{Promise.resolve(r).then(function(){if(mark(rec)){keep();if(typeof confetti==="function")confetti()}})}catch(e){}return r};
+   try{M.all().then(function(a){var ch=false;(a||[]).forEach(function(x){if(mark(x))ch=true});if(ch)keep()})}catch(e){}
+   return true}
+ if(!hook()){var n=0,t=setInterval(function(){if(hook()||++n>40)clearInterval(t)},250)}
+ window.__tickTest={mark:mark};
+})();
+</script>
