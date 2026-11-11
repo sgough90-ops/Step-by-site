@@ -347,7 +347,7 @@ KINDS.fly=function(t,silly){var f=K.M.opt.face||1,R={h:st({}),D:{flap:1,speak:0}
   if(t<1.6){var u=e3(t/1.6);h.x=f*L(-W*.75,0,u);h.y=L(-260,0,u)+Math.sin(u*Math.PI)*-120;h.r=f*L(.25,0,u);snd("bz",buzz,.1)}
   else if(t<4.2){var q=seg(t,1.6,4.2)*TAU;h.x=Math.sin(q)*130;h.y=-Math.sin(q*2)*80;h.r=Math.cos(q)*.15*f;R.trail=1}
   else if(t<5.4){var u2=seg(t,4.2,5.4);h.y=-Math.sin(u2*Math.PI)*220;h.r=f*u2*TAU;snd("sp","spin",4.2)}
-  else if(t<6.4){h.y=Math.sin(t*3)*10;R.D.flap=.5;R.D.flapRate=.5;R.flower=1}
+  else if(t<6.4){h.y=Math.sin(t*3)*10;R.D.flap=.5;R.D.flapRate=.5;if(K.M.opt.plane)h.r=Math.sin(seg(t,5.4,6.4)*TAU*2)*.18;else R.flower=1}
   else{h.y=Math.sin(t*3)*8;R.D.flap=.3;R.D.flapRate=.4;R.spark=1;snd("tw","sparkle",6.5)}}
  else{
   if(t<1.2){var a=e3(t/1.2);h.x=f*L(-W*.7,0,a)+Math.sin(t*20)*20;h.y=Math.sin(t*14)*40;R.D.flapRate=1.8;snd("bz",buzz,0)}
@@ -406,7 +406,7 @@ KINDS.drive=function(t,silly){var o=K.M.opt,f=o.face||1,v=o.vehicle||"car",R={h:
  if(R.act){if(v==="digger"){R.D.dig=Math.sin(seg(t,4.4,6)*TAU)*.5+.5;snd("dg","rumble",4.5)}
   else if(v==="fireengine"){R.D.glow=.5+.5*Math.sin(t*Math.PI*2*1.5);snd("sr","siren",4.4);snd("sr2","siren",5.2)}
   else if(v==="train"){snd("cc","choochoo",4.5);R.smk=2}
-  else{R.D.glow=.6;snd("hk","honk",4.6)}}
+  else if(o.siren){R.D.glow=.5+.5*Math.sin(t*Math.PI*2*1.5);snd("sr","siren",4.4);snd("sr2","siren",5.2)}else{R.D.glow=.6;snd("hk","honk",4.6)}}
  function fire(){var U=K.hbU,front=f>0?K.X0+(U.x+U.w)*K.s:K.X0+U.x*K.s;return{x:f>0?Math.min(W-45,front+55):Math.max(45,front-55),y:K.gy}}
  R.back=function(){if(v==="fireengine"&&!silly&&t>=4.2&&t<6.4){var F=fire();var a=(1-seg(t,5.4,6.2))*seg(t,4.2,4.5);if(a>0){flameFx(F.x,F.y,1.6*a,t);flameFx(F.x+f*26,F.y,1.1*a,t+1);flameFx(F.x-f*20,F.y,.9*a,t+2)}}};
  R.front=function(){var p=heroPx(R.h),hw=K.hb.w,hh=K.hb.h;var e=ex?heroPoint(R.h,ex):{x:p.x-f*hw*.5,y:p.y-hh*.25};
