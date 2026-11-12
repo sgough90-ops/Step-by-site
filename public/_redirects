@@ -1,0 +1,11 @@
+# 12 Nov 2026: step-by.com is now just Step by Draw.
+# The home address shows the Draw app straight away. The app itself still lives in draw/index.html
+# (keep editing that file); this rule serves it at / without changing the address bar.
+/          /draw/   200
+
+# Old Step By and Step by Block moved off this site on 12 Nov 2026 (now on the Steps Forward games site).
+# Any old links or home-screen shortcuts land on the Draw home instead of a missing page.
+/old       /        302
+/old/*     /        302
+/block     /        302
+/block/*   /        302

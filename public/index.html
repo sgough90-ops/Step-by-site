@@ -2,34 +2,15 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="robots" content="noindex, nofollow">
-<title>STEP BY</title>
-<link rel="icon" href="icon-32.png">
-<link rel="apple-touch-icon" href="icon-180.png">
-<style>
-/* 10 Nov 2026: temporary front page. Step by Draw is the new app; Old Step By keeps the other products
-   (Block, Magnet, Craft, Science) for now, until they move to the Step Forward website. */
-:root{--cream:#fff6e0;--navy:#081130;--draw:#ffe7a3;--draw-d:#d9a514;--old:#ffffff;--old-d:#c9ccd6}
-*,*::before,*::after{box-sizing:border-box}
-html,body{height:100%;margin:0}
-body{background:var(--cream);color:var(--navy);font-family:-apple-system,BlinkMacSystemFont,"Arial Rounded MT Bold","Segoe UI",system-ui,sans-serif;-webkit-tap-highlight-color:transparent}
-main{min-height:100%;display:flex;flex-direction:column;justify-content:center;gap:22px;max-width:520px;margin:0 auto;padding-block:calc(env(safe-area-inset-top,0px) + 24px) calc(env(safe-area-inset-bottom,0px) + 24px);padding-left:max(20px,env(safe-area-inset-left,0px));padding-right:max(20px,env(safe-area-inset-right,0px))}
-a{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;text-decoration:none;color:var(--navy);border-radius:28px;padding:22px 18px 20px;min-height:min(34vh,260px)}
-a:active{transform:translateY(5px)}
-a:focus-visible{outline:4px solid var(--navy);outline-offset:4px}
-a img{max-width:78%;max-height:150px;width:auto;height:auto;display:block}
-a b{font-size:1.5rem;font-weight:900;letter-spacing:.01em}
-.draw{background:var(--draw);box-shadow:0 7px 0 var(--draw-d)}
-.draw:active{box-shadow:0 2px 0 var(--draw-d)}
-.old{background:var(--old);box-shadow:0 7px 0 var(--old-d)}
-.old:active{box-shadow:0 2px 0 var(--old-d)}
-</style>
+<title>Step by Draw</title>
+<!-- 12 Nov 2026: the two-button front page (Step by Draw / Old Step By) is gone. _redirects serves the
+     Draw app at / directly, so this file is only a fallback that sends visitors to /draw/ if that rule
+     is ever missing. -->
+<meta http-equiv="refresh" content="0; url=/draw/">
+<script>location.replace("/draw/")</script>
+<style>html,body{margin:0;height:100%;background:#fff6e0}</style>
 </head>
-<body>
-<main>
- <a class="draw" href="/draw/"><img src="img/33811a1051920075.webp" alt=""><b>Step by Draw</b></a>
- <a class="old" href="/old/"><img src="stepby-logo.png" alt=""><b>Old Step By</b></a>
-</main>
-</body>
+<body></body>
 </html>
