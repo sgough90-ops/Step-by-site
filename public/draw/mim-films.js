@@ -1,12 +1,17 @@
 /* 12 Nov 2026: Make it move films.
-   A drawing that has ready-made felt-toy films (D is for Digger for now) gets a film picker when its
+   A drawing that has ready-made felt-toy films (D is for Digger and T is for Tiger for now) gets a film picker when its
    Make it move button is tapped: Silly, Wonky and Starring role, plus the camera button for the existing
    Make it move with a photo of your own drawing. Icons only, no words on screen.
    Drawings without films keep the Make it move button exactly as before.
    Films live in /mim-films/<drawing key>/ as silly.mp4, wonky.mp4, star.mp4 and poster.jpg. */
 (function () {
   "use strict";
-  var FILMS = { dx_digger_d: { dir: "mim-films/dx_digger_d/", v: "1" } };
+  var FILMS = {
+    dx_digger_d: { dir: "mim-films/dx_digger_d/", v: "1" },
+    /* 12 Nov 2026 (evening): the felt tiger from a 4-year-old's T is for Tiger, with the founder's voices and
+       Claude's own comedy tunes played on sampled instruments (TimGM6mb sound set, GPL-2) */
+    dx_tiger_t: { dir: "mim-films/dx_tiger_t/", v: "1" }
+  };
   var TYPES = [["silly", "Silly film"], ["wonky", "Wonky film"], ["star", "Starring role film"]];
   var NAVY = "#081130";
   var ICON = {
