@@ -5433,7 +5433,9 @@ function build(){if(G("mim"))return;var s=document.createElement("section");s.id
  s.innerHTML='<div class="shtop"><button class="round" id="mimback" aria-label="Back">'+IC.back+'</button><div class="shlogo" id="mimlogo"></div><div class="shsp"></div></div>'+
  '<div class="mimbody"><button class="mimcard app" id="mimcard" aria-label="Take a photo of your drawing"><img id="mimimg" alt=""><span class="mimcam"><i>'+IC.cam+'</i><span>Take a photo of yours</span></span></button>'+
  '<div class="mimmodes"><button class="mimm" data-m="silly" aria-label="Silly">'+IC.silly+'<span>Silly</span></button><button class="mimm" data-m="cool" aria-label="Cool">'+IC.cool+'<span>Cool</span></button></div></div>'+
- '<input id="mimfile" type="file" accept="image/*" capture="environment" hidden aria-hidden="true" tabindex="-1">';
+ /* TEMP-PHOTO-LIBRARY (12 Nov 2026, testing only): "capture" is left off so a phone offers Photo Library as well as the camera.
+    REMOVE BEFORE THE APP GOES LIVE: put capture="environment" back on this input so the camera opens straight away. */
+ '<input id="mimfile" type="file" accept="image/*" hidden aria-hidden="true" tabindex="-1">';
  G("app").appendChild(s);
  G("mimback").onclick=closeMim;
  G("mimcard").onclick=function(){cam()};
