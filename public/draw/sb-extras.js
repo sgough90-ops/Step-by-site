@@ -15,6 +15,11 @@
    (later 12 Nov) A drawing opened in My drawings has the finish screen's Make it move button (the blue film clapper) beside
       the cross. It plays that photo and comes back to it. No camera there, so no retake at the end. The big star is off
       that view for now (VIEWSTAR); the small star on each photo of a letter still picks the main one.
+   (evening 12 Nov) Tapping a letter in My drawings goes straight to its main photo (the starred one, or the newest) with
+      Make it move and the cross; the page of a letter's photos is no longer in the way. If the letter has more than one
+      photo, that view also has an all-photos button (with the count). It opens every photo of the letter together: tapping
+      a photo or its star makes it the main one and goes straight back to the Make it move view with it. Back does the same
+      without changing anything. The cross goes back to the set.
    Photos and everything else stay on this device. */
 (function(){
 'use strict';
@@ -52,7 +57,9 @@ var IC={
  cup:'<svg viewBox="0 0 48 48" aria-hidden="true"><path d="M14 6h20v10a10 10 0 0 1-20 0z" fill="#FFC531" stroke="#081130" stroke-width="2.6" stroke-linejoin="round"/><path d="M14 10H7v3a7 7 0 0 0 7 7M34 10h7v3a7 7 0 0 1-7 7" fill="none" stroke="#081130" stroke-width="2.6" stroke-linejoin="round"/><path d="M24 26v7" stroke="#081130" stroke-width="2.6"/><path d="M17 42h14l-1.5-9h-11z" fill="#FFC531" stroke="#081130" stroke-width="2.6" stroke-linejoin="round"/><path d="M24 9.5l1.6 3.3 3.6.5-2.6 2.5.6 3.6-3.2-1.7-3.2 1.7.6-3.6-2.6-2.5 3.6-.5z" fill="#fff"/></svg>',
  frame:'<svg viewBox="0 0 24 24" fill="none" stroke="#081130" stroke-width="2" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="2" fill="#FFC531"/><rect x="6" y="6" width="5" height="5" rx="1" fill="#fff"/><rect x="13" y="6" width="5" height="5" rx="1" fill="#fff"/><rect x="6" y="13" width="5" height="5" rx="1" fill="#fff"/><rect x="13" y="13" width="5" height="5" rx="1" fill="#fff"/></svg>',
  /* the finish screen's Make it move film clapper, exactly as it is there */
- mim:'<svg viewBox="0 0 48 48" aria-hidden="true"><rect x="7" y="18" width="34" height="22" rx="3" fill="#fff" stroke="#081130" stroke-width="2.6"/><path d="M7 18l2-8 34-4 1 8z" fill="#fff" stroke="#081130" stroke-width="2.6" stroke-linejoin="round"/><path d="M15 9l4 7M24 8l4 7M33 7l4 7" stroke="#081130" stroke-width="2.6"/><path d="M21 24l9 5-9 5z" fill="#2a8fd6"/></svg>'
+ mim:'<svg viewBox="0 0 48 48" aria-hidden="true"><rect x="7" y="18" width="34" height="22" rx="3" fill="#fff" stroke="#081130" stroke-width="2.6"/><path d="M7 18l2-8 34-4 1 8z" fill="#fff" stroke="#081130" stroke-width="2.6" stroke-linejoin="round"/><path d="M15 9l4 7M24 8l4 7M33 7l4 7" stroke="#081130" stroke-width="2.6"/><path d="M21 24l9 5-9 5z" fill="#2a8fd6"/></svg>',
+ /* (evening 12 Nov) all the photos of a letter: two photos stacked */
+ pics:'<svg viewBox="0 0 24 24" fill="none" stroke="#081130" stroke-width="2" stroke-linejoin="round" aria-hidden="true"><rect x="8.5" y="2.5" width="13" height="13" rx="2.5" fill="#d6ebff"/><rect x="2.5" y="8.5" width="13" height="13" rx="2.5" fill="#fff"/><path d="M5 19l3-3.4 2.4 2.2 1.6-1.5 1.6 2.7" stroke-linecap="round"/><circle cx="11.6" cy="12" r="1.4" fill="#FFC531" stroke-width="1.4"/></svg>'
 };
 function heart(on){try{if(typeof I!=='undefined'&&I&&I.heart)return I.heart(on)}catch(e){}return'<svg viewBox="0 0 24 24"><path d="M12 21s-8-5.2-8-11a4.6 4.6 0 0 1 8-3 4.6 4.6 0 0 1 8 3c0 5.8-8 11-8 11z" fill="'+(on?'#E5392B':'none')+'" stroke="#081130" stroke-width="2.4" stroke-linejoin="round"/></svg>'}
 function medal(l){var col=['#e7e1d2','#cd7f32','#cfd4db','#FFC531'][l],rim=l?'#081130':'#c9c1ad';
@@ -124,6 +131,9 @@ var st=document.createElement('style');st.id='sbx1112';st.textContent=[
 '.mdview .mdxmim:active{transform:translateY(5px);box-shadow:0 1px 0 #1b5f94}',
 '@media (max-width:380px){.mdview .mdxmim{width:66px;height:66px}.mdview .mdxmim svg{width:46px;height:46px}}',
 '@media (prefers-reduced-motion:reduce){.mdview .mdxmim{animation:none}}',
+/* (evening 12 Nov) the all-photos button beside Make it move, with how many photos the letter has */
+'.mdview .mdvb .mdxall{position:relative}',
+'.mdview .mdxall .mdxn{position:absolute;right:-6px;top:-6px;min-width:28px;height:28px;padding:0 7px;box-sizing:border-box;border-radius:999px;background:#FFC531;color:#081130;box-shadow:0 0 0 2.5px #081130;display:flex;align-items:center;justify-content:center;font:900 16px/1 '+FONT+';pointer-events:none}',
 /* the medal moment */
 '#mdxwin{position:fixed;inset:0;z-index:96;background:rgba(8,17,48,.74);display:flex;align-items:center;justify-content:center;animation:fade .2s both;cursor:pointer}',
 '#mdxwin .w{position:relative;width:min(70vw,300px);aspect-ratio:3/4;background:#fff;border-radius:28px;box-shadow:0 8px 0 var(--pd,#c79410);display:flex;align-items:center;justify-content:center;padding:18px 18px 80px;animation:pop .45s cubic-bezier(.3,1.5,.5,1) both}',
@@ -238,12 +248,23 @@ function closeView(){[].forEach.call(document.querySelectorAll('#mydraw .mdview'
    photo of the letter still picks the main one. Set VIEWSTAR to true to bring the big star back. */
 var VIEWSTAR=false;
 function view(o,key){closeView();var v=document.createElement('div');v.className='mdview mdv1';
- var on=key&&chosen(key,BY[key]||[]).id===o.id,mv=!!(key&&canMove());
- v.innerHTML='<img src="'+url(o)+'" alt=""><div class="mdvb">'+(key&&VIEWSTAR?'<button class="mdxstar'+(on?' on':'')+'" aria-label="Show this one for the letter" aria-pressed="'+(on?'true':'false')+'">'+IC.star+'</button>':'')+(mv?'<button class="mdxmim" type="button" aria-label="Make it move">'+IC.mim+'</button>':'')+'<button class="round" aria-label="Close">'+IC.x+'</button></div>';
+ var all=key?(BY[key]||[]):[],on=key&&chosen(key,all).id===o.id,mv=!!(key&&canMove()),many=all.length>1;
+ v.innerHTML='<img src="'+url(o)+'" alt=""><div class="mdvb">'+(many?'<button class="round mdxall" type="button" aria-label="All '+all.length+' drawings">'+IC.pics+'<span class="mdxn" aria-hidden="true">'+all.length+'</span></button>':'')+(key&&VIEWSTAR?'<button class="mdxstar'+(on?' on':'')+'" aria-label="Show this one for the letter" aria-pressed="'+(on?'true':'false')+'">'+IC.star+'</button>':'')+(mv?'<button class="mdxmim" type="button" aria-label="Make it move">'+IC.mim+'</button>':'')+'<button class="round" aria-label="Close">'+IC.x+'</button></div>';
  v.onclick=function(){v.remove()};
+ var a=v.querySelector('.mdxall');if(a)a.onclick=function(e){e.stopPropagation();openAll(key)};
  var s=v.querySelector('.mdxstar');if(s)s.onclick=function(e){e.stopPropagation();setStar(key,o.id);v.remove();draw()};
  var m=v.querySelector('.mdxmim');if(m)m.onclick=function(e){e.stopPropagation();makeItMove(o,key)};
  G('mydraw').appendChild(v)}
+/* (evening 12 Nov) a letter's photos all together, opened from its Make it move view; back from there, or picking a
+   photo, returns to the Make it move view with the main photo */
+function openAll(key){var c=ST.c,s=null;if(c){var h=c.has||{};Object.keys(h).forEach(function(x){if(h[x]===key)s=x})}
+ if(s)ST={lv:2,c:c,cat:ST.cat,slot:s};else{var w=colOfKey(key);if(!w)return;ST={lv:2,c:w.c,cat:w.cat,slot:w.slot}}
+ closeView();draw()}
+function backToPhoto(key){var L=BY[key]||[];ST.lv=1;draw();if(L.length)view(chosen(key,L),key)}
+var pickT=null;
+function pickPhoto(key,o){if(!o)return;setStar(key,o.id);draw();clearTimeout(pickT);
+ /* a moment to see the star move, then straight back to Make it move with that photo */
+ pickT=setTimeout(function(){if(ST.lv===2&&ST.c&&(ST.c.has||{})[ST.slot]===key)backToPhoto(key)},280)}
 
 /* (later 12 Nov) Make it move from My drawings: plays this photo, the same story films as the finish screen.
    No camera here (photos only come from the finish screen), so the end has the three faces, Magic and save, but no retake.
@@ -285,18 +306,19 @@ function drawSet(){var m=G('mdin'),c=ST.c,cat=ST.cat,hs=c.has||{},n=made(c),q=ne
  m.innerHTML='<div class="mdxgrid" style="--sbd:'+cat.d+'">'+SLOTS[c.set].map(function(s,i){var L=hs[s]&&BY[hs[s]],dl='animation-delay:'+(i*14)+'ms';
   if(L&&L.length)return'<button class="sbslot sbm" data-s="'+s+'" style="'+dl+'" aria-label="'+s+', '+L.length+(L.length>1?' drawings':' drawing')+'"><span class="sbth"><img src="'+url(chosen(hs[s],L))+'" alt="" draggable="false"></span><span class="sbl" aria-hidden="true">'+s+'</span>'+(L.length>1?'<span class="mdxmore" aria-hidden="true">'+L.length+'</span>':'')+'</button>';
   return'<button class="sbslot sbsoon mdxno" style="'+dl+'" aria-label="'+s+' (no drawing yet)"><span class="sbgl" aria-hidden="true">'+s+'</span></button>'}).join('')+'</div>';
- [].forEach.call(m.querySelectorAll('.sbslot'),function(b){b.onclick=b.classList.contains('sbm')?function(){ST.lv=2;ST.slot=b.getAttribute('data-s');draw()}:function(){wiggle(b)}});
+ /* (evening 12 Nov) a letter with drawings opens straight on its main photo, ready for Make it move */
+ [].forEach.call(m.querySelectorAll('.sbslot'),function(b){b.onclick=b.classList.contains('sbm')?function(){var s=b.getAttribute('data-s'),key=hs[s],L=BY[key]||[];if(!L.length)return;ST.slot=s;view(chosen(key,L),key)}:function(){wiggle(b)}});
  dotsFor(G('mydraw'),c.id);refit();requestAnimationFrame(refit)}
 
-/* level 2: one letter, every photo of it; the star picks the one that shows */
+/* level 2: one letter, every photo of it; the star picks the one that shows. (evening 12 Nov) Opened only from the
+   all-photos button; tapping a photo or its star makes it the main one and goes back to Make it move with it */
 function drawSlot(){var m=G('mdin'),c=ST.c,cat=ST.cat,key=(c.has||{})[ST.slot],L=BY[key]||[];
  if(!L.length){ST.lv=1;return drawSet()}
  var pick=chosen(key,L).id;spacer('');dotsFor(G('mydraw'),null);
  head('<img src="img/'+c.cv+'.webp" alt=""><span class="mdxl">'+esc(ST.slot)+'</span>','mdxh');
  m.innerHTML='<div class="mdxgrid" style="--sbd:'+cat.d+'">'+L.map(function(o,i){var on=o.id===pick;
   return'<div class="mdxph'+(on?' on':'')+'"><button class="mdxpic" data-i="'+i+'" aria-label="Drawing '+(L.length-i)+'"><img src="'+url(o)+'" alt="" draggable="false"></button><button class="mdxstar" data-i="'+i+'" aria-label="Show this one for the letter" aria-pressed="'+(on?'true':'false')+'">'+IC.star+'</button></div>'}).join('')+'</div>';
- [].forEach.call(m.querySelectorAll('.mdxpic'),function(b){b.onclick=function(){view(L[+b.getAttribute('data-i')],key)}});
- [].forEach.call(m.querySelectorAll('.mdxstar'),function(b){b.onclick=function(){setStar(key,L[+b.getAttribute('data-i')].id);draw()}});
+ [].forEach.call(m.querySelectorAll('.mdxpic,.mdxstar'),function(b){b.onclick=function(){pickPhoto(key,L[+b.getAttribute('data-i')])}});
  refit();requestAnimationFrame(refit)}
 
 function draw(){var m=G('mdin');if(!m)return;closeView();m.classList.add('mdx');if(ST.lv===2)drawSlot();else if(ST.lv===1)drawSet();else drawSets()}
@@ -304,7 +326,7 @@ function mdSetOn(){var s=G('mydraw');return !!(s&&!s.classList.contains('hide')&
 function mdGo(dir){var nx=ST.c?neighbour(ST.c.id,dir):null,g=document.querySelector('#mdin .mdxgrid');if(!nx){anim(g,dir>0?'sbnl':'sbnr');return}
  var o=colById(nx);if(!o)return;ST={lv:1,c:o.c,cat:o.cat,slot:null};draw();anim(document.querySelector('#mdin .mdxgrid'),dir>0?'sbsl':'sbsr')}
 var homeBack=null;
-function back(){if(ST.lv===2){ST.lv=1;draw()}else if(ST.lv===1){ST={lv:0,c:null,cat:null,slot:null};draw()}else if(homeBack)homeBack();else goHomeScreen()}
+function back(){if(ST.lv===2){var bk=((ST.c&&ST.c.has)||{})[ST.slot];clearTimeout(pickT);if(bk)backToPhoto(bk);else{ST.lv=1;draw()}}else if(ST.lv===1){ST={lv:0,c:null,cat:null,slot:null};draw()}else if(homeBack)homeBack();else goHomeScreen()}
 function open(state){var s=G('mydraw');if(!s)return;
  [].forEach.call(document.querySelectorAll('#app > section.scr'),function(x){x.classList.add('hide')});['pv','sheet'].forEach(function(i){var e=G(i);if(e)e.classList.add('hide')});
  s.classList.remove('hide');var bk=G('mdback');if(bk&&bk.onclick!==back){homeBack=bk.onclick;bk.onclick=back}
