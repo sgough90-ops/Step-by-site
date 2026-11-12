@@ -30,7 +30,9 @@ function colOfKey(key){var r=null;sets().forEach(function(cat){cat.cols.forEach(
 /* rows in the same order as the home screen's lines */
 function rows(){var out=[];[].forEach.call(document.querySelectorAll('#sswl .wlrow'),function(r){var ids=[].map.call(r.querySelectorAll('.wlcard[data-set]'),function(b){return b.getAttribute('data-set')});if(ids.length)out.push(ids)});
  if(!out.length)ORDER.forEach(function(set){var r=[];sets().forEach(function(cat){var c=colIn(cat,set);if(c)r.push(c.id)});out.push(r)});return out}
-function neighbour(id,dir){var R=rows();for(var i=0;i<R.length;i++){var j=R[i].indexOf(id);if(j>-1){var k=j+dir;return k>=0&&k<R[i].length?R[i][k]:null}}return null}
+/* 12 Nov 2026: swiping runs through all nine sets in home order (ABC row, then abc, then 123) and stops at the first and last */
+function flat(){return [].concat.apply([],rows())}
+function neighbour(id,dir){var F=flat(),j=F.indexOf(id);if(j<0)return null;var k=j+dir;return k>=0&&k<F.length?F[k]:null}
 function badge(a,b,c,ca,cb,cc){return'<svg viewBox="0 0 84 36" aria-hidden="true"><rect x="2" y="2" width="80" height="32" rx="16" fill="#fff" stroke="#081130" stroke-width="3"/><text x="42" y="26.5" text-anchor="middle" font-family="Arial Rounded MT Bold,Arial,Helvetica,sans-serif" font-weight="900" font-size="22" letter-spacing="1"><tspan fill="'+ca+'">'+a+'</tspan><tspan fill="'+cb+'">'+b+'</tspan><tspan fill="'+cc+'">'+c+'</tspan></text></svg>'}
 var BADGE={AZ:badge('A','B','C','#E5392B','#2F7BF5','#3FA535'),az:badge('a','b','c','#E5392B','#2F7BF5','#3FA535'),'09':badge('1','2','3','#8B5CF6','#EC4899','#14B8A6')};
 /* open a set the same way the home screen does (its picture on the washing line holds the set's own code) */
@@ -62,7 +64,7 @@ var st=document.createElement('style');st.id='sbx1112';st.textContent=[
 /* 3. swiping between sets */
 '#proj.sbcolm #pgrid{margin-bottom:26px!important}',
 '.sbsdots{position:absolute;left:0;right:0;bottom:max(10px,env(safe-area-inset-bottom,0px));display:flex;justify-content:center;gap:8px;pointer-events:none;z-index:2}',
-'.sbsdots i{width:9px;height:9px;border-radius:5px;background:rgba(8,17,48,.22);transition:width .2s}.sbsdots i.on{background:#081130;width:24px}',
+'.sbsdots i{width:8px;height:8px;border-radius:4px;background:rgba(8,17,48,.22);transition:width .2s}.sbsdots i.on{background:#081130;width:20px}.sbsdots{gap:6px!important}.sbsdots b{width:8px}',
 '#proj:not(.sbcolm) .sbsdots{display:none!important}',
 '@keyframes sbsl{from{transform:translateX(48px);opacity:.15}to{transform:none;opacity:1}}@keyframes sbsr{from{transform:translateX(-48px);opacity:.15}to{transform:none;opacity:1}}',
 '@keyframes sbnl{0%,100%{transform:none}40%{transform:translateX(-16px)}}@keyframes sbnr{0%,100%{transform:none}40%{transform:translateX(16px)}}',
@@ -177,8 +179,8 @@ function swiper(el,can,go){if(!el||el.__sbsw)return;el.__sbsw=1;var sx=0,sy=0,st
  el.addEventListener('pointerup',function(e){if(e.pointerType==='mouse'||e.pointerType==='pen')up(e.clientX,e.clientY)})}
 function anim(el,cls){if(!el)return;['sbsl','sbsr','sbnl','sbnr'].forEach(function(c){el.classList.remove(c)});void el.offsetWidth;el.classList.add(cls)}
 function dotsFor(host,id){if(!host)return;var d=host.querySelector(':scope > .sbsdots');if(!d){d=document.createElement('div');d.className='sbsdots';d.setAttribute('aria-hidden','true');host.appendChild(d)}
- var row=null;if(id)rows().forEach(function(r){if(r.indexOf(id)>-1)row=r});
- if(!row||row.length<2){d.style.display='none';return}d.style.display='';d.innerHTML=row.map(function(x){return'<i'+(x===id?' class="on"':'')+'></i>'}).join('')}
+ var R=rows(),n=0;R.forEach(function(r){n+=r.length});
+ if(!id||n<2){d.style.display='none';return}d.style.display='';d.innerHTML=R.map(function(r){return r.map(function(x){return'<i'+(x===id?' class="on"':'')+'></i>'}).join('')}).join('<b></b>')}
 /* the set screen inside Draw */
 function curSetId(){var el=document.querySelector('#proj.sbcolm #plogo .sbch');if(!el)return null;var n=el.getAttribute('aria-label'),id=null;sets().forEach(function(cat){cat.cols.forEach(function(c){if(c.n===n)id=c.id})});return id}
 function setScreenOn(){var pj=G('proj'),pv=G('pv');return !!(pj&&!pj.classList.contains('hide')&&pj.classList.contains('sbcolm')&&(!pv||pv.classList.contains('hide'))&&!G('sbprwrap'))}
