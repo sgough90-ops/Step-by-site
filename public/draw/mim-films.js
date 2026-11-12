@@ -10,7 +10,7 @@
     dx_digger_d: { dir: "mim-films/dx_digger_d/", v: "1" },
     /* 12 Nov 2026 (evening): the felt tiger from a 4-year-old's T is for Tiger, with the founder's voices and
        Claude's own comedy tunes played on sampled instruments (TimGM6mb sound set, GPL-2) */
-    dx_tiger_t: { dir: "mim-films/dx_tiger_t/", v: "1" }
+    dx_tiger_t: { dir: "mim-films/dx_tiger_t/", v: "2" }   /* v2: ends on the app's Step by Draw end page */
   };
   var TYPES = [["silly", "Silly film"], ["wonky", "Wonky film"], ["star", "Starring role film"]];
   var NAVY = "#081130";
