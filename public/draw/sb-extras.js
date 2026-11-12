@@ -6,9 +6,12 @@
       or 3 for a numbers set; silver at half; gold for the whole set). Nine golds win the trophy, and a finished set can be
       seen as one poster. The My trophies page and its home button are gone.
    5. Free print sheets: one page per drawing (the steps along the top, a box to draw in, a small colour picture, the logo and
-      step-by.com), sized to fit A4 and US Letter. The printer on each card opens the grown-ups gate, and the Grown-ups page
-      lists every sheet. A photo of a print sheet is cut down to the drawing box, found by its four corner squares.
+      step-by.com), sized to fit A4 and US Letter. Printing is only on the Grown-ups page (behind the gate): every sheet, and
+      the poster of any finished set. A photo of a print sheet is cut down to the drawing box, found by its four corner squares.
    6. Home pictures for the ABC and abc rows are drawings from each set (COVERS below). The 123 row keeps its pictures.
+   7. (later 12 Nov) The home screen is nine big tiles (rows ABC, abc, 123; each row swipes sideways once more themes are added),
+      then Keep going, Make a show and My drawings, then Favourites and Grown-ups. It replaces the washing line, whose hidden
+      pictures still open each set, so nothing about how sets open has changed.
    Photos and everything else stay on this device. */
 (function(){
 'use strict';
@@ -56,8 +59,6 @@ var st=document.createElement('style');st.id='sbx1112';st.textContent=[
 '.pvc .th .pvhb{position:absolute;right:10px;top:10px;z-index:3;width:52px;height:52px;border-radius:50%;border:0;background:#fff;box-shadow:0 4px 0 rgba(8,17,48,.18);display:flex;align-items:center;justify-content:center;padding:0;color:#081130;cursor:pointer;-webkit-tap-highlight-color:transparent}',
 '.pvc .th .pvhb svg{width:30px;height:30px}.pvc .th .pvhb:active{transform:translateY(3px);box-shadow:0 1px 0 rgba(8,17,48,.18)}',
 '.pvc .th .pvhb.pop svg{animation:sbhpop .45s cubic-bezier(.3,1.6,.5,1)}@keyframes sbhpop{0%{transform:scale(.5)}100%{transform:none}}',
-'.pvc .th .pvpr{position:absolute;left:10px;top:10px;z-index:3;width:44px;height:44px;border-radius:50%;border:0;background:rgba(255,255,255,.94);box-shadow:0 3px 0 rgba(8,17,48,.14);display:flex;align-items:center;justify-content:center;padding:0;cursor:pointer;-webkit-tap-highlight-color:transparent}',
-'.pvc .th .pvpr svg{width:26px;height:26px}',
 /* 3. swiping between sets */
 '#proj.sbcolm #pgrid{margin-bottom:26px!important}',
 '.sbsdots{position:absolute;left:0;right:0;bottom:max(10px,env(safe-area-inset-bottom,0px));display:flex;justify-content:center;gap:8px;pointer-events:none;z-index:2}',
@@ -160,10 +161,7 @@ function decorate(p){var pv=G('pv');if(!pv||!p)return;var th=pv.querySelector('.
  var on=false;try{on=isFav(p)}catch(e){}
  var h=document.createElement('button');h.className='pvhb';h.setAttribute('aria-label','Favourite');h.setAttribute('aria-pressed',on?'true':'false');h.innerHTML=heart(on);
  h.onclick=function(e){e.stopPropagation();try{var k=dk(p);if(FAV[k])delete FAV[k];else FAV[k]=1;saveFav();var o=!!FAV[k];h.innerHTML=heart(o);h.setAttribute('aria-pressed',o?'true':'false');h.classList.remove('pop');void h.offsetWidth;if(o)h.classList.add('pop')}catch(x){}};
- th.appendChild(h);
- /* the printer (grown-ups) */
- if(canPrint(p)){var b2=document.createElement('button');b2.className='pvpr';b2.setAttribute('aria-label','Print this drawing (grown-ups)');b2.innerHTML=IC.printer;
-  b2.onclick=function(e){e.stopPropagation();printDrawing(p,true)};th.appendChild(b2)}}
+ th.appendChild(h)}
 if(has('openPv')){var _op=window.openPv;window.openPv=function(p){var r=_op.apply(this,arguments);try{decorate(p)}catch(e){if(window.console)console.error(e)}return r}}
 
 /* ================================================================ 3. swiping between sets */
@@ -310,11 +308,10 @@ function posterCanvas(c){var slots=SLOTS[c.set],hs=c.has||{},cols=c.set==='09'?5
    var ph=im[2+i];if(ph){var sc=Math.min((cell-28)/ph.width,(cell-28)/ph.height),w=ph.width*sc,h=ph.height*sc;g.save();rr(g,x+8,y+8,cell-16,cell-16,24);g.clip();g.drawImage(ph,x+(cell-w)/2,y+(cell-h)/2,w,h);g.restore()}
    rr(g,x+12,y+12,66,66,33);g.fillStyle='#081130';g.fill();g.fillStyle='#fff';g.font='900 46px Arial,Helvetica,sans-serif';g.textAlign='center';g.textBaseline='middle';g.fillText(s,x+45,y+47)});
   return cv})}
+/* (printing a poster is on the Grown-ups page only) */
 function openPoster(c,cat){posterCanvas(c).then(function(cv){var u=cv.toDataURL('image/jpeg',.9);closeView();var v=document.createElement('div');v.className='mdview mdxposter';
- v.innerHTML='<img src="'+u+'" alt="'+esc(c.n)+'"><div class="mdvb"><button class="round mdxpp" aria-label="Print (grown-ups)">'+IC.printer+'</button><button class="round mdxpx" aria-label="Close">'+IC.x+'</button></div>';
- v.onclick=function(){v.remove()};v.querySelector('.mdxpp').onclick=function(e){e.stopPropagation();v.remove();
-  viaGate(function(){posterCanvas(c).then(function(cv2){return posterSheet(cv2.toDataURL('image/jpeg',.92),c)}).then(openSheet)},function(){var gr=G('grown');if(gr)gr.classList.add('hide');open({lv:1,c:c,cat:cat,slot:null})})};
- G('mydraw').appendChild(v)})}
+ v.innerHTML='<img src="'+u+'" alt="'+esc(c.n)+'"><div class="mdvb"><button class="round mdxpx" aria-label="Close">'+IC.x+'</button></div>';
+ v.onclick=function(){v.remove()};G('mydraw').appendChild(v)})}
 
 /* ================================================================ 5. print sheets */
 var LOGO=null;
@@ -356,14 +353,9 @@ function openSheet(svg){closeSheet();var w=document.createElement('div');w.id='s
  w.innerHTML='<div class="sbprpage">'+svg+'</div><div class="sbprbar"><button class="round" id="sbprx" aria-label="Close">'+IC.x+'</button><button class="big" id="sbprgo" aria-label="Print">'+IC.printer+'</button></div>';
  document.body.appendChild(w);document.documentElement.classList.add('sbprinting');
  G('sbprx').onclick=closeSheet;G('sbprgo').onclick=function(){try{window.print()}catch(e){}}}
-/* the grown-ups gate: the Grown-ups page's own gate, then the job */
-var PEND=null,RET=null,VIA=false;
-function viaGate(job,ret){var g=G('grtile');if(!g)return;PEND=job;RET=ret||null;VIA=true;g.click();VIA=false}
-document.addEventListener('click',function(e){var t=e.target&&e.target.closest;if(!t)return;
- if(e.target.closest('#grtile,#ssgrbig')&&!VIA){PEND=null;RET=null}
- if(e.target.closest('#grback')){PEND=null;closeSheet();if(RET){e.preventDefault();e.stopImmediatePropagation();var r=RET;RET=null;r()}}},true);
-function printDrawing(p,fromCard){var job=function(){drawingSheet(p).then(openSheet)};if(!fromCard){job();return}
- var info=colOfKey(p.key);viaGate(job,function(){var gr=G('grown');if(gr)gr.classList.add('hide');if(info&&clickSet(info.c.id)){if(has('showOnly'))showOnly('proj');openPv(p)}else goHomeScreen()})}
+/* printing only happens from the Grown-ups page, which is behind its own gate */
+document.addEventListener('click',function(e){if(e.target&&e.target.closest&&e.target.closest('#grback'))closeSheet()},true);
+function printDrawing(p){drawingSheet(p).then(openSheet)}
 /* the print section on the Grown-ups page */
 var TH={};
 function thumb(p){if(!TH[p.key])TH[p.key]=colourURL(p,150,'image/jpeg');return TH[p.key]}
@@ -377,12 +369,19 @@ function prList(c){var g=G('sbprg');if(!g||!c)return;var L=printable(c);
  g.innerHTML='<div class="sbprhd"><button class="round" aria-label="All sets">'+IC.back+'</button><img src="img/'+c.cv+'.webp" alt=""><span class="sbbd">'+BADGE[c.set]+'</span></div>'+
   L.map(function(o,i){return'<button class="sbprd" data-i="'+i+'" aria-label="Print '+esc(o.p.t)+'"><img src="'+thumb(o.p)+'" alt=""><span class="sbl" aria-hidden="true">'+esc(o.s)+'</span></button>'}).join('');
  g.querySelector('.sbprhd .round').onclick=prSets;
- [].forEach.call(g.querySelectorAll('.sbprd'),function(b){b.onclick=function(){printDrawing(L[+b.getAttribute('data-i')].p,false)}})}
+ [].forEach.call(g.querySelectorAll('.sbprd'),function(b){b.onclick=function(){printDrawing(L[+b.getAttribute('data-i')].p)}})}
+/* finished sets: their poster, made from the child's own photos (shown only once a set is finished) */
+function addPosters(gi){load().then(function(){var done=[];sets().forEach(function(cat){ORDER.forEach(function(set){var c=colIn(cat,set);if(c&&level(c,made(c))===3)done.push({c:c,cat:cat})})});
+ var old=gi.querySelector('.sbpost');if(old)old.remove();if(!done.length)return;
+ var d=document.createElement('div');d.className='grc sbprc sbpost';
+ d.innerHTML='<b>Print a finished set</b><p>Every drawing in the set on one poster, made from your child\'s own photos.</p><div class="sbprg">'+done.map(function(o,i){return'<button class="sbprs" data-i="'+i+'" style="--pd:'+o.cat.d+'" aria-label="Print the '+esc(o.c.n)+' poster"><img src="img/'+o.c.cv+'.webp" alt=""><span class="sbbd">'+BADGE[o.c.set]+'</span></button>'}).join('')+'</div>';
+ var first=gi.querySelector('.sbprc');if(first&&first.nextSibling)gi.insertBefore(d,first.nextSibling);else gi.appendChild(d);
+ [].forEach.call(d.querySelectorAll('.sbprs'),function(b){b.onclick=function(){var o=done[+b.getAttribute('data-i')];posterCanvas(o.c).then(function(cv){return posterSheet(cv.toDataURL('image/jpeg',.92),o.c)}).then(openSheet)}})})}
 function addPrintSection(gi){var d=document.createElement('div');d.className='grc sbprc';
  d.innerHTML='<b>Print a drawing</b><p>Free sheets for home or school: the steps along the top and a box to draw in. They fit A4 and US Letter paper.</p><div class="sbprg" id="sbprg"></div>';
- gi.insertBefore(d,gi.firstChild);prSets()}
+ gi.insertBefore(d,gi.firstChild);prSets();addPosters(gi)}
 function watchGrown(){var gi=G('grin');if(!gi)return false;if(gi.__sbx)return true;gi.__sbx=1;
- new MutationObserver(function(){if(!gi.querySelector('.grc'))return;if(!gi.querySelector('.sbprc'))addPrintSection(gi);if(PEND){var j=PEND;PEND=null;setTimeout(j,60)}}).observe(gi,{childList:true});return true}
+ new MutationObserver(function(){if(!gi.querySelector('.grc'))return;if(!gi.querySelector('.sbprc'))addPrintSection(gi)}).observe(gi,{childList:true});return true}
 if(!watchGrown()){var wg=0,wt=setInterval(function(){if(watchGrown()||++wg>60)clearInterval(wt)},250)}
 
 /* the camera: a photo of a print sheet is cut down to the drawing box */
@@ -427,6 +426,46 @@ var COVERS={'animals-AZ':'cov_d_parrot','vehicles-AZ':'cov_d_digger','house-AZ':
 function covers(){var cards=document.querySelectorAll('.wlcard[data-set]');if(!cards.length)return false;
  Object.keys(COVERS).forEach(function(id){var o=colById(id);if(o)o.c.cv=COVERS[id];var b=document.querySelector('.wlcard[data-set="'+id+'"] img');if(b)b.src='img/'+COVERS[id]+'.webp'});return true}
 if(!covers()){var cv0=0,cvt=setInterval(function(){if(covers()||++cv0>60)clearInterval(cvt)},150)}
+
+/* ================================================================ 7. the home screen: nine big tiles and two rows of buttons */
+var HIC={
+ play:'<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="10" fill="#fff" stroke="#081130" stroke-width="1.8"/><path d="M10 7.5v9l7-4.5z" fill="#081130"/></svg>',
+ show:'<svg viewBox="0 0 48 48" aria-hidden="true"><rect x="6" y="19" width="36" height="22" rx="4" fill="#2F7BF5" stroke="#081130" stroke-width="3" stroke-linejoin="round"/><path d="M6 19l3-10 33 5-2 5z" fill="#fff" stroke="#081130" stroke-width="3" stroke-linejoin="round"/><path d="M16 10.2l3 8M25 11.6l3 7.4M34 13l2.5 6" stroke="#081130" stroke-width="3" stroke-linecap="round"/><path d="M21 25v10l9-5z" fill="#fff" stroke="#081130" stroke-width="2.4" stroke-linejoin="round"/></svg>',
+ pic:'<svg viewBox="0 0 48 48" aria-hidden="true"><rect x="6" y="9" width="36" height="30" rx="5" fill="#fff" stroke="#081130" stroke-width="3"/><circle cx="17" cy="19" r="4" fill="#FFC531" stroke="#081130" stroke-width="2.4"/><path d="M8 35l10-10 7 6 6-8 9 10" fill="none" stroke="#3FA535" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round"/></svg>',
+ hour:'<svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7 3h10M7 21h10M8 3v3a4 4 0 0 0 2 3.5L12 11l2-1.5A4 4 0 0 0 16 6V3M8 21v-3a4 4 0 0 1 2-3.5L12 13l2 1.5a4 4 0 0 1 2 3.5v3"/></svg>',
+ lock:'<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="4.5" y="10.5" width="15" height="10.5" rx="2.6" fill="#FFC531" stroke="#fff" stroke-width="1.6"/><path d="M8 10.5V7.8a4 4 0 018 0v2.7" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round"/><circle cx="12" cy="15.4" r="1.7" fill="#081130"/></svg>'
+};
+var hst=document.createElement('style');hst.id='sbx1112home';hst.textContent=[
+'html body #sstudio.sb9 #sswl,html body #sstudio.sb9 #hpills,html body #sstudio.sb9 #ssgrbig,html body #sstudio.sb9 #ssms,html body #sstudio.sb9>.ssg{display:none!important}',
+'#sb9{flex:1 1 auto;min-height:0;display:flex;flex-direction:column;gap:10px;width:100%;max-width:560px;margin:0 auto}',
+'#sb9 .r{flex:1 1 0;min-height:0;display:flex;gap:10px;overflow-x:auto;overflow-y:hidden;scroll-snap-type:x mandatory;scrollbar-width:none;-webkit-overflow-scrolling:touch;margin:0 -16px;padding:0 16px 7px;touch-action:pan-x}',
+'#sb9 .r::-webkit-scrollbar{display:none}',
+'#sb9 .t{position:relative;flex:0 0 calc((100% - 20px) / 3);min-width:0;scroll-snap-align:start;background:#fff;border:0;border-radius:20px;box-shadow:0 6px 0 var(--d,#c48a0c);padding:10px 8px 42px;display:flex;align-items:center;justify-content:center;cursor:pointer;font:inherit;-webkit-tap-highlight-color:transparent}',
+'#sb9 .t:active{transform:translateY(5px);box-shadow:0 1px 0 var(--d,#c48a0c)}',
+'#sb9 .t>img{max-width:100%;max-height:100%;object-fit:contain;display:block;pointer-events:none}',
+'#sb9 .t .sbbd{position:absolute;left:50%;bottom:10px;transform:translateX(-50%);width:62%;max-width:84px;pointer-events:none;filter:drop-shadow(0 2px 0 rgba(8,17,48,.14))}#sb9 .t .sbbd svg{display:block;width:100%;height:auto}',
+'#sb9 .t .hg{position:absolute;right:7px;top:7px;width:26px;height:26px;border-radius:50%;background:#081130;display:flex;align-items:center;justify-content:center;pointer-events:none}#sb9 .t .hg svg{width:15px;height:15px}',
+'#sb9 .b3,#sb9 .b2{flex:none;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;padding-bottom:6px}',
+'#sb9 .bt{height:clamp(52px,7.4vh,66px);border:0;border-radius:20px;display:flex;align-items:center;justify-content:center;gap:10px;padding:0;cursor:pointer;font:inherit;-webkit-tap-highlight-color:transparent;background:var(--bg,#fff);box-shadow:0 6px 0 var(--sh,rgba(8,17,48,.16));color:#081130}',
+'#sb9 .bt:active{transform:translateY(5px);box-shadow:0 1px 0 var(--sh,rgba(8,17,48,.16))}',
+'#sb9 .bt svg{width:40px;height:40px;flex:none}',
+'#sb9 .bt.gr{grid-column:span 2;--bg:#081130;--sh:#000;color:#fff}#sb9 .bt.gr svg{width:30px;height:30px}#sb9 .bt.gr b{font-weight:900;font-size:1.3rem}',
+'@media (max-height:640px){#sb9 .t{padding-bottom:36px}#sb9 .t .sbbd{bottom:7px;width:54%}}',
+'@media (min-width:700px){#sb9{max-width:720px}#sb9 .bt{height:76px}#sb9 .bt svg{width:50px;height:50px}#sb9 .bt.gr svg{width:36px;height:36px}#sb9 .bt.gr b{font-size:1.5rem}}'
+].join('\n');document.body.appendChild(hst);
+function proxy(id){return function(){var b=G(id);if(b)b.click()}}
+function buildHome(){var s=G('sstudio'),head=G('sshead');if(!s||!head)return false;var wl=document.querySelectorAll('#sswl .wlrow');if(!wl.length)return false;
+ covers();var box=G('sb9');if(!box){box=document.createElement('div');box.id='sb9';head.parentNode.insertBefore(box,head.nextSibling)}
+ var h=[].map.call(wl,function(row){return'<div class="r">'+[].map.call(row.querySelectorAll('.wlcard[data-set]'),function(w){var id=w.getAttribute('data-set'),o=colById(id);if(!o)return'';
+   return'<button class="t" data-set="'+esc(id)+'" style="--d:'+o.cat.d+'" aria-label="'+esc(w.getAttribute('aria-label')||o.c.n)+'"><img src="img/'+o.c.cv+'.webp" alt="" draggable="false"><span class="sbbd">'+BADGE[o.c.set]+'</span>'+(w.querySelector('.wlhg')?'<span class="hg">'+HIC.hour+'</span>':'')+'</button>'}).join('')+'</div>'}).join('');
+ var gw=G('ssgrbig'),gwb=gw&&gw.querySelector('b'),word=gwb?gwb.textContent:'Grown-ups';
+ h+='<div class="b3"><button class="bt" data-p="conttile" style="--bg:#ffe9a6;--sh:#d4b13a" aria-label="Keep going">'+HIC.play+'</button><button class="bt" data-p="showtile" style="--bg:#d6ebff;--sh:#3b7fc4" aria-label="Make a show">'+HIC.show+'</button><button class="bt" data-p="drawtile" style="--bg:#dff3d6;--sh:#6aa84f" aria-label="My drawings">'+HIC.pic+'</button></div>';
+ h+='<div class="b2"><button class="bt" data-p="favtile" aria-label="Favourites">'+heart(true)+'</button><button class="bt gr" data-p="grtile" aria-label="'+esc(word)+'">'+HIC.lock+'<b>'+esc(word)+'</b></button></div>';
+ box.innerHTML=h;
+ [].forEach.call(box.querySelectorAll('.t'),function(b){b.onclick=function(){clickSet(b.getAttribute('data-set'))}});
+ [].forEach.call(box.querySelectorAll('.bt'),function(b){b.onclick=proxy(b.getAttribute('data-p'))});
+ s.classList.add('sb9');return true}
+if(!buildHome()){var bh0=0,bht=setInterval(function(){if(buildHome()||++bh0>80)clearInterval(bht)},150)}
 
 window.__sbx={open:open,state:function(){return ST},celebrate:celebrate,posterCanvas:posterCanvas,sheet:drawingSheet,openSheet:openSheet,findBox:findBox,cropBox:cropBox,goSet:goSet,mdGo:mdGo};
 })();
