@@ -467,5 +467,40 @@ function buildHome(){var s=G('sstudio'),head=G('sshead');if(!s||!head)return fal
  s.classList.add('sb9');return true}
 if(!buildHome()){var bh0=0,bht=setInterval(function(){if(buildHome()||++bh0>80)clearInterval(bht)},150)}
 
+/* ================================================================ 8. pencil colouring: every coloured area gets a pencil grain
+   (paper flecks showing through and darker strokes, all at one slant), like real colouring pencils. Outlines stay smooth.
+   Same drawing data, so every drawing (old and new) gets it, in the steps, the cards, the thumbnails and Make it move pictures. */
+(function(){if(typeof DX==='undefined'||!DX||!DX.paint||DX.__pencil)return;DX.__pencil=1;
+ function grain(dark){var n=document.createElement('canvas');n.width=n.height=320;var g=n.getContext('2d'),ang=-0.62,i,dx,dy;
+  for(i=0;i<(dark?1500:2600);i++){var x=Math.random()*320,y=Math.random()*320,l=4+Math.random()*12,a=ang+(Math.random()-.5)*.35;
+   g.strokeStyle=dark?'rgba(0,0,0,'+(0.05+Math.random()*0.09)+')':'rgba(255,255,255,'+(0.25+Math.random()*0.5)+')';g.lineWidth=.6+Math.random()*1.1;
+   for(dx=-320;dx<=320;dx+=320)for(dy=-320;dy<=320;dy+=320){g.beginPath();g.moveTo(x+dx,y+dy);g.lineTo(x+dx+Math.cos(a)*l,y+dy+Math.sin(a)*l);g.stroke()}}return n}
+ var GL=grain(false),GD=grain(true),PC={},CC={},LC={};
+ function pth(d){return PC[d]||(PC[d]=new Path2D(d))}
+ function cutp(d){return CC[d]||(CC[d]=new Path2D('M-9999 -9999H9999V9999H-9999Z '+d))}
+ function pe(d){if(!LC[d]){var e=document.createElementNS('http://www.w3.org/2000/svg','path');e.setAttribute('d',d);LC[d]={e:e,len:e.getTotalLength()}}return LC[d]}
+ function pencil(g,x,y){g.save();g.translate(x,y);g.rotate(.55);g.lineJoin='round';g.lineWidth=.6;g.strokeStyle='#1b1f4b';g.setLineDash([]);g.fillStyle='#8a93a3';g.beginPath();g.moveTo(0,0);g.lineTo(-2,-5);g.lineTo(2,-5);g.closePath();g.fill();g.stroke();g.fillStyle='#d7dce4';g.beginPath();g.moveTo(-2,-5);g.lineTo(2,-5);g.lineTo(2,-18);g.quadraticCurveTo(2,-20,0,-20);g.quadraticCurveTo(-2,-20,-2,-18);g.closePath();g.fill();g.stroke();g.fillStyle='#1b1f4b';g.beginPath();g.moveTo(0,0);g.lineTo(-.7,-1.8);g.lineTo(.7,-1.8);g.closePath();g.fill();g.restore()}
+ function texture(g,path,C,s){var pl=g.createPattern(GL,'repeat'),pd=g.createPattern(GD,'repeat');if(!pl||!pd)return;try{var M=new DOMMatrix().scale(1.2/s);pl.setTransform(M);pd.setTransform(M)}catch(e){}
+  var a=g.globalAlpha;g.save();g.clip(path);g.globalCompositeOperation='multiply';g.fillStyle=pd;g.fillRect(-10,-10,C.w+20,C.h+20);g.globalCompositeOperation='source-over';g.globalAlpha=a*.85;g.fillStyle=pl;g.fillRect(-10,-10,C.w+20,C.h+20);g.restore()}
+ var old=DX.paint;
+ DX.paint=function(g,cw,ch,key,i,p,final){var PR=DX.get(key);if(!PR||PR.rx||!PR.steps)return old.apply(this,arguments);
+  try{var C=PR.canvas;g.fillStyle='#fffef9';g.fillRect(0,0,cw,ch);
+  var s=Math.min(cw,ch)*.94/C.w,ox=(cw-C.w*s)/2,oy=(ch-C.h*s)/2;g.save();g.translate(ox,oy);g.scale(s,s);var j,tip=null;
+  for(j=0;j<=i;j++)PR.steps[j].add.forEach(function(it){if(!it.fill)return;g.globalAlpha=(j===i&&!final)?p:1;g.fillStyle=it.fill;g.save();
+    if(it.cut)it.cut.forEach(function(c){g.clip(cutp(c),'evenodd')});g.fill(pth(it.d));texture(g,pth(it.d),C,s);g.restore();g.globalAlpha=1});
+  g.lineCap='round';g.lineJoin='round';
+  for(j=0;j<=i;j++){var cur=j===i&&!final,items=PR.steps[j].add,n=items.filter(function(a){return !a.fill}).length,k2=0;
+   items.forEach(function(it){g.setLineDash([]);
+    if(it.fill){if(cur){g.strokeStyle='#e63946';g.lineWidth=1.2;g.setLineDash([2.5,2]);g.stroke(pth(it.d));g.setLineDash([])}return}
+    g.lineWidth=(it.w||1.4)*.6;
+    if(final){g.strokeStyle='#2b2b2b';g.stroke(pth(it.d));return}
+    if(!cur){g.strokeStyle='#6b7079';g.stroke(pth(it.d));return}
+    var q=Math.max(0,Math.min(1,p*n-k2)),o=pe(it.d),L=o.len+1;k2++;if(q<=0)return;
+    g.strokeStyle='#e63946';g.setLineDash([L,L]);g.lineDashOffset=L*(1-q);g.stroke(pth(it.d));
+    if(q<1){var pt=o.e.getPointAtLength(o.len*q);tip=[pt.x,pt.y]}})}
+  if(tip)pencil(g,tip[0],tip[1]);g.restore();g.setLineDash([])}catch(e){try{g.restore()}catch(x){}return old.apply(this,arguments)}}
+ /* the card pictures were made before this loaded: make them again with the pencil look */
+ try{if(typeof thumbURL==='function')projects('draw').forEach(function(p){if(p&&p.type==='draw'&&p.key&&DX.has(p.key)&&!DX.get(p.key).rx){var u=thumbURL(p);if(u)p.svg='<img src="'+u+'" alt="">'}})}catch(e){}})();
+
 window.__sbx={open:open,state:function(){return ST},celebrate:celebrate,posterCanvas:posterCanvas,sheet:drawingSheet,openSheet:openSheet,findBox:findBox,cropBox:cropBox,goSet:goSet,mdGo:mdGo};
 })();
