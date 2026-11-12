@@ -13,7 +13,8 @@
       then Keep going, Make a show and My drawings, then Favourites and Grown-ups. It replaces the washing line, whose hidden
       pictures still open each set, so nothing about how sets open has changed.
    (later 12 Nov) A drawing opened in My drawings has the finish screen's Make it move button (the blue film clapper) beside
-      the star and the cross. It plays that photo and comes back to it. No camera there, so no retake at the end.
+      the cross. It plays that photo and comes back to it. No camera there, so no retake at the end. The big star is off
+      that view for now (VIEWSTAR); the small star on each photo of a letter still picks the main one.
    Photos and everything else stay on this device. */
 (function(){
 'use strict';
@@ -233,9 +234,12 @@ function fit(g){if(!g)return;var n=g.children.length;if(!n)return;var r=g.getBou
  g.style.gridTemplateColumns='repeat('+bc+','+best+'px)';g.style.gridTemplateRows='repeat('+rr+','+best+'px)';g.style.setProperty('--s',best+'px')}
 function refit(){var g=document.querySelector('#mdin .mdxgrid');if(g)fit(g)}
 function closeView(){[].forEach.call(document.querySelectorAll('#mydraw .mdview'),function(v){v.remove()})}
+/* (later 12 Nov) the big star is off the opened drawing for now: just Make it move and the cross. The small star on each
+   photo of the letter still picks the main one. Set VIEWSTAR to true to bring the big star back. */
+var VIEWSTAR=false;
 function view(o,key){closeView();var v=document.createElement('div');v.className='mdview mdv1';
  var on=key&&chosen(key,BY[key]||[]).id===o.id,mv=!!(key&&canMove());
- v.innerHTML='<img src="'+url(o)+'" alt=""><div class="mdvb">'+(key?'<button class="mdxstar'+(on?' on':'')+'" aria-label="Show this one for the letter" aria-pressed="'+(on?'true':'false')+'">'+IC.star+'</button>':'')+(mv?'<button class="mdxmim" type="button" aria-label="Make it move">'+IC.mim+'</button>':'')+'<button class="round" aria-label="Close">'+IC.x+'</button></div>';
+ v.innerHTML='<img src="'+url(o)+'" alt=""><div class="mdvb">'+(key&&VIEWSTAR?'<button class="mdxstar'+(on?' on':'')+'" aria-label="Show this one for the letter" aria-pressed="'+(on?'true':'false')+'">'+IC.star+'</button>':'')+(mv?'<button class="mdxmim" type="button" aria-label="Make it move">'+IC.mim+'</button>':'')+'<button class="round" aria-label="Close">'+IC.x+'</button></div>';
  v.onclick=function(){v.remove()};
  var s=v.querySelector('.mdxstar');if(s)s.onclick=function(e){e.stopPropagation();setStar(key,o.id);v.remove();draw()};
  var m=v.querySelector('.mdxmim');if(m)m.onclick=function(e){e.stopPropagation();makeItMove(o,key)};
