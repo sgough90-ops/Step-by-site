@@ -30,9 +30,9 @@ function colOfKey(key){var r=null;sets().forEach(function(cat){cat.cols.forEach(
 /* rows in the same order as the home screen's lines */
 function rows(){var out=[];[].forEach.call(document.querySelectorAll('#sswl .wlrow'),function(r){var ids=[].map.call(r.querySelectorAll('.wlcard[data-set]'),function(b){return b.getAttribute('data-set')});if(ids.length)out.push(ids)});
  if(!out.length)ORDER.forEach(function(set){var r=[];sets().forEach(function(cat){var c=colIn(cat,set);if(c)r.push(c.id)});out.push(r)});return out}
-/* 12 Nov 2026: swiping runs through all nine sets in home order (ABC row, then abc, then 123) and stops at the first and last */
+/* 12 Nov 2026: swiping runs through all nine sets in home order (ABC row, then abc, then 123) and goes round: after the ninth comes the first, and back from the first goes to the ninth */
 function flat(){return [].concat.apply([],rows())}
-function neighbour(id,dir){var F=flat(),j=F.indexOf(id);if(j<0)return null;var k=j+dir;return k>=0&&k<F.length?F[k]:null}
+function neighbour(id,dir){var F=flat(),j=F.indexOf(id);if(j<0||F.length<2)return null;return F[(j+dir+F.length)%F.length]}
 function badge(a,b,c,ca,cb,cc){return'<svg viewBox="0 0 84 36" aria-hidden="true"><rect x="2" y="2" width="80" height="32" rx="16" fill="#fff" stroke="#081130" stroke-width="3"/><text x="42" y="26.5" text-anchor="middle" font-family="Arial Rounded MT Bold,Arial,Helvetica,sans-serif" font-weight="900" font-size="22" letter-spacing="1"><tspan fill="'+ca+'">'+a+'</tspan><tspan fill="'+cb+'">'+b+'</tspan><tspan fill="'+cc+'">'+c+'</tspan></text></svg>'}
 var BADGE={AZ:badge('A','B','C','#E5392B','#2F7BF5','#3FA535'),az:badge('a','b','c','#E5392B','#2F7BF5','#3FA535'),'09':badge('1','2','3','#8B5CF6','#EC4899','#14B8A6')};
 /* open a set the same way the home screen does (its picture on the washing line holds the set's own code) */
