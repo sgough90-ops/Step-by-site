@@ -12,6 +12,8 @@
    7. (later 12 Nov) The home screen is nine big tiles (rows ABC, abc, 123; each row swipes sideways once more themes are added),
       then Keep going, Make a show and My drawings, then Favourites and Grown-ups. It replaces the washing line, whose hidden
       pictures still open each set, so nothing about how sets open has changed.
+   (later 12 Nov) A drawing opened in My drawings has the finish screen's Make it move button (the blue film clapper) beside
+      the star and the cross. It plays that photo and comes back to it. No camera there, so no retake at the end.
    Photos and everything else stay on this device. */
 (function(){
 'use strict';
@@ -47,7 +49,9 @@ var IC={
  printer:'<svg viewBox="0 0 24 24" fill="none" stroke="#081130" stroke-width="2" stroke-linejoin="round" aria-hidden="true"><path d="M7 9V3.5h10V9" fill="#fff"/><rect x="3" y="9" width="18" height="8.5" rx="2.2" fill="#d6ebff"/><path d="M7 14h10v6.5H7z" fill="#fff"/><path d="M9.5 17h5" stroke-linecap="round"/><circle cx="17.6" cy="12" r="1" fill="#081130" stroke="none"/></svg>',
  star:'<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2.6l2.9 5.9 6.5.9-4.7 4.6 1.1 6.5L12 17.4l-5.8 3.1 1.1-6.5L2.6 9.4l6.5-.9z"/></svg>',
  cup:'<svg viewBox="0 0 48 48" aria-hidden="true"><path d="M14 6h20v10a10 10 0 0 1-20 0z" fill="#FFC531" stroke="#081130" stroke-width="2.6" stroke-linejoin="round"/><path d="M14 10H7v3a7 7 0 0 0 7 7M34 10h7v3a7 7 0 0 1-7 7" fill="none" stroke="#081130" stroke-width="2.6" stroke-linejoin="round"/><path d="M24 26v7" stroke="#081130" stroke-width="2.6"/><path d="M17 42h14l-1.5-9h-11z" fill="#FFC531" stroke="#081130" stroke-width="2.6" stroke-linejoin="round"/><path d="M24 9.5l1.6 3.3 3.6.5-2.6 2.5.6 3.6-3.2-1.7-3.2 1.7.6-3.6-2.6-2.5 3.6-.5z" fill="#fff"/></svg>',
- frame:'<svg viewBox="0 0 24 24" fill="none" stroke="#081130" stroke-width="2" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="2" fill="#FFC531"/><rect x="6" y="6" width="5" height="5" rx="1" fill="#fff"/><rect x="13" y="6" width="5" height="5" rx="1" fill="#fff"/><rect x="6" y="13" width="5" height="5" rx="1" fill="#fff"/><rect x="13" y="13" width="5" height="5" rx="1" fill="#fff"/></svg>'
+ frame:'<svg viewBox="0 0 24 24" fill="none" stroke="#081130" stroke-width="2" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="2" fill="#FFC531"/><rect x="6" y="6" width="5" height="5" rx="1" fill="#fff"/><rect x="13" y="6" width="5" height="5" rx="1" fill="#fff"/><rect x="6" y="13" width="5" height="5" rx="1" fill="#fff"/><rect x="13" y="13" width="5" height="5" rx="1" fill="#fff"/></svg>',
+ /* the finish screen's Make it move film clapper, exactly as it is there */
+ mim:'<svg viewBox="0 0 48 48" aria-hidden="true"><rect x="7" y="18" width="34" height="22" rx="3" fill="#fff" stroke="#081130" stroke-width="2.6"/><path d="M7 18l2-8 34-4 1 8z" fill="#fff" stroke="#081130" stroke-width="2.6" stroke-linejoin="round"/><path d="M15 9l4 7M24 8l4 7M33 7l4 7" stroke="#081130" stroke-width="2.6"/><path d="M21 24l9 5-9 5z" fill="#2a8fd6"/></svg>'
 };
 function heart(on){try{if(typeof I!=='undefined'&&I&&I.heart)return I.heart(on)}catch(e){}return'<svg viewBox="0 0 24 24"><path d="M12 21s-8-5.2-8-11a4.6 4.6 0 0 1 8-3 4.6 4.6 0 0 1 8 3c0 5.8-8 11-8 11z" fill="'+(on?'#E5392B':'none')+'" stroke="#081130" stroke-width="2.4" stroke-linejoin="round"/></svg>'}
 function medal(l){var col=['#e7e1d2','#cd7f32','#cfd4db','#FFC531'][l],rim=l?'#081130':'#c9c1ad';
@@ -112,6 +116,13 @@ var st=document.createElement('style');st.id='sbx1112';st.textContent=[
 '.mdxstar svg{width:68%;height:68%}.mdxstar svg path{fill:#fff;stroke:#081130;stroke-width:2;stroke-linejoin:round}',
 '.mdxph.on .mdxstar svg path,.mdview .mdxstar.on svg path{fill:#FFC531}.mdview .mdxstar{position:static;width:72px;height:72px}',
 '.mdview.mdxposter img{max-height:calc(100% - 120px)}',
+/* (later 12 Nov) the Make it move button on a drawing opened in My drawings: the same blue film clapper as the finish screen */
+'.mdview .mdvb{align-items:center}',
+'.mdview .mdxmim{flex:none;width:76px;height:76px;border:0;border-radius:50%;background:#2a8fd6;box-shadow:0 6px 0 #1b5f94;display:flex;align-items:center;justify-content:center;padding:0;cursor:pointer;animation:funwig 2.6s ease-in-out 1s infinite;-webkit-tap-highlight-color:transparent}',
+'.mdview .mdxmim svg{width:52px;height:52px;display:block}',
+'.mdview .mdxmim:active{transform:translateY(5px);box-shadow:0 1px 0 #1b5f94}',
+'@media (max-width:380px){.mdview .mdxmim{width:66px;height:66px}.mdview .mdxmim svg{width:46px;height:46px}}',
+'@media (prefers-reduced-motion:reduce){.mdview .mdxmim{animation:none}}',
 /* the medal moment */
 '#mdxwin{position:fixed;inset:0;z-index:96;background:rgba(8,17,48,.74);display:flex;align-items:center;justify-content:center;animation:fade .2s both;cursor:pointer}',
 '#mdxwin .w{position:relative;width:min(70vw,300px);aspect-ratio:3/4;background:#fff;border-radius:28px;box-shadow:0 8px 0 var(--pd,#c79410);display:flex;align-items:center;justify-content:center;padding:18px 18px 80px;animation:pop .45s cubic-bezier(.3,1.5,.5,1) both}',
@@ -223,11 +234,29 @@ function fit(g){if(!g)return;var n=g.children.length;if(!n)return;var r=g.getBou
 function refit(){var g=document.querySelector('#mdin .mdxgrid');if(g)fit(g)}
 function closeView(){[].forEach.call(document.querySelectorAll('#mydraw .mdview'),function(v){v.remove()})}
 function view(o,key){closeView();var v=document.createElement('div');v.className='mdview mdv1';
- var on=key&&chosen(key,BY[key]||[]).id===o.id;
- v.innerHTML='<img src="'+url(o)+'" alt=""><div class="mdvb">'+(key?'<button class="mdxstar'+(on?' on':'')+'" aria-label="Show this one for the letter" aria-pressed="'+(on?'true':'false')+'">'+IC.star+'</button>':'')+'<button class="round" aria-label="Close">'+IC.x+'</button></div>';
+ var on=key&&chosen(key,BY[key]||[]).id===o.id,mv=!!(key&&canMove());
+ v.innerHTML='<img src="'+url(o)+'" alt=""><div class="mdvb">'+(key?'<button class="mdxstar'+(on?' on':'')+'" aria-label="Show this one for the letter" aria-pressed="'+(on?'true':'false')+'">'+IC.star+'</button>':'')+(mv?'<button class="mdxmim" type="button" aria-label="Make it move">'+IC.mim+'</button>':'')+'<button class="round" aria-label="Close">'+IC.x+'</button></div>';
  v.onclick=function(){v.remove()};
  var s=v.querySelector('.mdxstar');if(s)s.onclick=function(e){e.stopPropagation();setStar(key,o.id);v.remove();draw()};
+ var m=v.querySelector('.mdxmim');if(m)m.onclick=function(e){e.stopPropagation();makeItMove(o,key)};
  G('mydraw').appendChild(v)}
+
+/* (later 12 Nov) Make it move from My drawings: plays this photo, the same story films as the finish screen.
+   No camera here (photos only come from the finish screen), so the end has the three faces, Magic and save, but no retake.
+   Closing it comes back to this same photo in My drawings. */
+function canMove(){var S=window.__showTest;return !!(S&&typeof S.run==='function')}
+function projOf(key){try{return(typeof REG!=='undefined'&&REG[key])||null}catch(e){return null}}
+function makeItMove(o,key){var S=window.__showTest,md=G('mydraw');if(!S||!S.run||!o||!o.blob)return;var p=projOf(key);
+ var item={src:'make',blob:o.blob,key:key,title:o.title||(p&&(p.t||p.title))||key};
+ function back(){var pl=G('shplay');if(pl)pl.classList.add('hide');if(md)md.classList.remove('hide')}
+ if(md)md.classList.add('hide');
+ /* started straight from the tap, so the sound can play on phones */
+ S.run([item],'cool',back,{mim:true,magic:function(){back();magicFor(o,key)}})}
+/* Magic hands needs a drawing to be open; if none is (opened straight from My drawings) it borrows this one until it closes */
+function magicFor(o,key){var M=window.__magicHands;if(!M||typeof M.open!=='function')return;var lent=null;
+ try{if(typeof V!=='undefined'&&V&&!V.p){var p=projOf(key);if(p){V.p=p;lent=p}}}catch(e){}
+ try{M.open(o)}catch(e){}
+ if(lent){var n=0,t=setInterval(function(){if(!G('mh')||++n>7200){clearInterval(t);try{if(V.p===lent)V.p=null}catch(e){}}},250)}}
 function wiggle(el){if(!el)return;el.classList.remove('wig');void el.offsetWidth;el.classList.add('wig')}
 
 /* level 0: the nine sets */
