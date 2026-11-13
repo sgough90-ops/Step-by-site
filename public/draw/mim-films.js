@@ -11,7 +11,11 @@
    13 Nov 2026 (afternoon): the tiger's films screen never shows the drawn face the films were made with (it showed as
    "the old tiger"): its picture has a blank paper face with the camera until the child's own photo is on it, Make it
    move on the finish screen always starts without a photo (earlier ones stay in My drawings), and the camera button
-   opens the phone's camera (and Photo Library while testing) in one tap. */
+   opens the phone's camera (and Photo Library while testing) in one tap.
+   13 Nov 2026 (later still): Make it move on a finish screen opens the blank camera page for every drawing (photo saved
+   or not); the tiger's films follow once the photo is in. And the photo is cleaned before it goes on (cleanFace): only
+   the drawing is kept, as one solid piece of paper (no lined-paper lines, paper edge or holes), so it is sized from the
+   drawing itself and fits the tiger instead of coming out far too big. */
 (function () {
   "use strict";
   var FILMS = {
@@ -346,13 +350,366 @@
     setTimeout(function () { c.classList.remove("again"); }, 600);
   }
   function faceOn() { return !!(FACE && FACE.key === KEY && FACE.D && FACE.F && FACE.D[KIND]); }
-  /* the face picture: white-balanced to the film's paper, and placed (scale + centre) so it covers the old face */
+  /* ---- 13 Nov 2026 (later): just the drawing, as one solid paper cut-out ----
+     The photo's cut-out can hold much more than the face: the lines of lined paper running right across (they made the
+     face far too big on the films, as the size is worked out from the cut-out), the paper's own edge, a name, and
+     holes where an outline has gaps. Before the face is sized, this finds the drawing itself and keeps only that:
+     1. ink = anything darker or more colourful than the paper around it;
+     2. ruled lines (and a margin line) = thin ink lying in long straight rows (or columns) right across the picture,
+        found at the best of a few small tilts: taken out;
+     3. the drawing = the biggest group of what's left (strokes close together count as one group), not touching the
+        edge (the paper's edge does), plus any group close by (an ear drawn apart);
+     4. its outline with small gaps closed and the inside filled, so it's one solid piece of paper (if the outline is
+        too open for that, a cut round its outside instead);
+     5. inside that, the ruled lines are painted over with the paper next to them, and any holes with the paper.
+     Gives back a canvas (transparent outside the drawing), or null to use the cut-out as it is. */
+  function chamfer(M, w, h, inv) {
+    /* distance (x3) to the nearest pixel of M (or of not-M when inv), two passes */
+    var N = w * h, D = new Int32Array(N), BIG = 1 << 28, x, y, i, v;
+    for (i = 0; i < N; i++) D[i] = (inv ? !M[i] : M[i]) ? 0 : BIG;
+    for (y = 0; y < h; y++) for (x = 0; x < w; x++) {
+      i = y * w + x; v = D[i]; if (!v) continue;
+      if (x > 0 && D[i - 1] + 3 < v) v = D[i - 1] + 3;
+      if (y > 0) {
+        if (D[i - w] + 3 < v) v = D[i - w] + 3;
+        if (x > 0 && D[i - w - 1] + 4 < v) v = D[i - w - 1] + 4;
+        if (x < w - 1 && D[i - w + 1] + 4 < v) v = D[i - w + 1] + 4;
+      }
+      D[i] = v;
+    }
+    for (y = h - 1; y >= 0; y--) for (x = w - 1; x >= 0; x--) {
+      i = y * w + x; v = D[i]; if (!v) continue;
+      if (x < w - 1 && D[i + 1] + 3 < v) v = D[i + 1] + 3;
+      if (y < h - 1) {
+        if (D[i + w] + 3 < v) v = D[i + w] + 3;
+        if (x < w - 1 && D[i + w + 1] + 4 < v) v = D[i + w + 1] + 4;
+        if (x > 0 && D[i + w - 1] + 4 < v) v = D[i + w - 1] + 4;
+      }
+      D[i] = v;
+    }
+    return D;
+  }
+  function cleanFace(img, DBG) {
+    var iw = img.naturalWidth || img.width, ih = img.naturalHeight || img.height;
+    if (!iw || !ih) return null;
+    var sc = Math.min(1, 640 / Math.max(iw, ih)), w = Math.max(1, Math.round(iw * sc)), h = Math.max(1, Math.round(ih * sc)), N = w * h;
+    if (w < 24 || h < 24) return null;
+    var cv = document.createElement("canvas"); cv.width = w; cv.height = h;
+    var cx = cv.getContext("2d", { willReadFrequently: true }); cx.drawImage(img, 0, 0, w, h);
+    var id = cx.getImageData(0, 0, w, h), d = id.data, i, j, x, y, k, q, big = Math.max(w, h);
+    var A = new Uint8Array(N), L = new Float32Array(N), S = new Float32Array(N), ls = [];
+    for (i = 0; i < N; i++) {
+      if (d[i * 4 + 3] < 128) continue;
+      var r = d[i * 4], g = d[i * 4 + 1], b = d[i * 4 + 2];
+      A[i] = 1; L[i] = 0.299 * r + 0.587 * g + 0.114 * b; S[i] = Math.max(r, g, b) - Math.min(r, g, b); ls.push(L[i]);
+    }
+    if (ls.length < 400) return null;
+    ls.sort(function (a1, b1) { return a1 - b1; });
+    var pT = ls[Math.floor(ls.length * 0.9)], pr = 0, pg = 0, pb = 0, ps = 0, pn = 0;
+    for (i = 0; i < N; i++) if (A[i] && L[i] >= pT) { pr += d[i * 4]; pg += d[i * 4 + 1]; pb += d[i * 4 + 2]; ps += S[i]; pn++; }
+    if (!pn) return null;
+    pr /= pn; pg /= pn; pb /= pn; ps /= pn;
+    /* 1. ink, against the paper's brightness nearby (so a shadow across the page isn't ink): K = clear ink,
+       KF = faint too (pale ruled lines are often only faint) */
+    var R = Math.max(6, Math.round(0.045 * big)), W1 = w + 1;
+    var IC = new Float64Array(W1 * (h + 1)), IL = new Float64Array(W1 * (h + 1));
+    for (y = 0; y < h; y++) {
+      var rc = 0, rl = 0;
+      for (x = 0; x < w; x++) {
+        i = y * w + x; var pp = A[i] && L[i] >= 0.8 * pT && S[i] <= ps + 30 ? 1 : 0;
+        rc += pp; rl += pp ? L[i] : 0;
+        IC[(y + 1) * W1 + x + 1] = IC[y * W1 + x + 1] + rc; IL[(y + 1) * W1 + x + 1] = IL[y * W1 + x + 1] + rl;
+      }
+    }
+    var K = new Uint8Array(N), KF = new Uint8Array(N), nk = 0;
+    for (y = 0; y < h; y++) for (x = 0; x < w; x++) {
+      i = y * w + x; if (!A[i]) continue;
+      var x0 = Math.max(0, x - R), y0 = Math.max(0, y - R), x1 = Math.min(w, x + R + 1), y1 = Math.min(h, y + R + 1);
+      var m = IC[y1 * W1 + x1] - IC[y0 * W1 + x1] - IC[y1 * W1 + x0] + IC[y0 * W1 + x0];
+      var lp = m > 8 ? (IL[y1 * W1 + x1] - IL[y0 * W1 + x1] - IL[y1 * W1 + x0] + IL[y0 * W1 + x0]) / m : pT;
+      if (L[i] < lp * 0.8 || S[i] > ps + 45) { K[i] = 1; nk++; }
+      if (L[i] < lp * 0.9 || S[i] > ps + 30) KF[i] = 1;
+    }
+    if (nk < 150) return null;
+    /* 2. ruled lines: thin faint-or-clear ink (a short run across it), lined up in long rows right across the
+       picture, at the best of a few tilts (the page may not be quite straight) */
+    var VR = new Uint16Array(N), HR = new Uint16Array(N), T = Math.max(3, Math.round(0.012 * big));
+    for (x = 0; x < w; x++) for (y = 0; y < h;) {
+      if (!KF[y * w + x]) { y++; continue; }
+      for (j = y; j < h && KF[j * w + x]; j++);
+      for (k = y; k < j; k++) VR[k * w + x] = j - y;
+      y = j;
+    }
+    for (y = 0; y < h; y++) for (x = 0; x < w;) {
+      if (!KF[y * w + x]) { x++; continue; }
+      for (j = x; j < w && KF[y * w + j]; j++);
+      for (k = x; k < j; k++) HR[y * w + k] = j - x;
+      x = j;
+    }
+    var LM = new Uint8Array(N), nLines = 0, LSYS = [];   /* 1 = part of a row line, 2 = part of a column line */
+    [true, false].forEach(function (rows) {
+      var span = rows ? w : h, len = rows ? h : w, P = [];
+      for (i = 0; i < N; i++) if (KF[i] && (rows ? VR[i] : HR[i]) <= T) P.push(i);
+      if (P.length < span * 0.3) return;
+      var best = null;
+      for (var a = -6; a <= 6.001; a += 0.5) {
+        var t = Math.tan(a * Math.PI / 180), off = Math.ceil(Math.abs(t) * span / 2) + 2, nb = len + 2 * off, cnt = new Float32Array(nb), sc2 = 0;
+        for (q = 0; q < P.length; q++) {
+          var px = P[q] % w, py = (P[q] / w) | 0;
+          cnt[(rows ? Math.round(py - (px - w / 2) * t) : Math.round(px - (py - h / 2) * t)) + off]++;
+        }
+        for (q = 0; q < nb; q++) sc2 += cnt[q] * cnt[q];
+        if (!best || sc2 > best.sc) best = { sc: sc2, t: t, off: off, cnt: cnt, nb: nb };
+      }
+      var lo = new Float32Array(best.nb).fill(1e9), hi = new Float32Array(best.nb).fill(-1e9), bins = new Int32Array(P.length);
+      for (q = 0; q < P.length; q++) {
+        var qx = P[q] % w, qy = (P[q] / w) | 0, along = rows ? qx : qy;
+        var bn = (rows ? Math.round(qy - (qx - w / 2) * best.t) : Math.round(qx - (qy - h / 2) * best.t)) + best.off;
+        bins[q] = bn; if (along < lo[bn]) lo[bn] = along; if (along > hi[bn]) hi[bn] = along;
+      }
+      /* a line = three neighbouring bands together (a page photographed a little out of square has lines at slightly
+         different tilts) holding a quarter of the width or more, spread across most of it */
+      var isL = new Uint8Array(best.nb), any = 0, C3 = best.cnt;
+      for (q = 1; q < best.nb - 1; q++) {
+        var c3 = C3[q - 1] + C3[q] + C3[q + 1], l3 = Math.min(lo[q - 1], lo[q], lo[q + 1]), h3 = Math.max(hi[q - 1], hi[q], hi[q + 1]);
+        if (c3 >= span * 0.25 && h3 - l3 >= span * 0.6 && C3[q] >= C3[q - 1] && C3[q] >= C3[q + 1]) { isL[q] = 1; nLines++; any = 1; }
+      }
+      var near2 = function (bq2) { for (var z2 = -2; z2 <= 2; z2++) if (bq2 + z2 >= 0 && bq2 + z2 < best.nb && isL[bq2 + z2]) return true; return false; };
+      var cntL = 0; for (q = 0; q < best.nb; q++) cntL += isL[q];
+      if (any) LSYS.push({ rows: rows, t: best.t, off: best.off, nb: best.nb, isL: isL, near: near2, n: cntL, P: P, bins: bins, cnt: best.cnt });
+    });
+    /* lined paper = 3 or more lines one way (then a margin line the other way counts too); one long straight line on
+       its own (the paper's edge, a fold, or a long stroke of the drawing) doesn't. Once it's clearly lined, shorter
+       lines at the same spacing count too (where the cut-out cut a line short) */
+    var ruled = LSYS.some(function (Z) { return Z.n >= 3; });
+    LSYS.forEach(function (Z) {
+      if (Z.n < 3) return;
+      var pos = [];
+      for (q = 0; q < Z.nb; q++) if (Z.isL[q] && (!pos.length || q - pos[pos.length - 1] >= 3)) pos.push(q);
+      var gaps = []; for (q = 1; q < pos.length; q++) gaps.push(pos[q] - pos[q - 1]);
+      gaps.sort(function (g1, g2) { return g1 - g2; });
+      var per = gaps[Math.floor(gaps.length / 2)];
+      if (!(per >= 6)) return;
+      var span2 = Z.rows ? w : h, C4 = Z.cnt, add = [], pi = 0;
+      for (q = 1; q < Z.nb - 1; q++) {
+        if (Z.near(q)) continue;
+        var c4 = C4[q - 1] + C4[q] + C4[q + 1];
+        if (c4 < span2 * 0.08 || C4[q] < C4[q - 1] || C4[q] < C4[q + 1]) continue;
+        /* at a whole number of spacings from the nearest long line */
+        while (pi < pos.length - 1 && Math.abs(pos[pi + 1] - q) <= Math.abs(pos[pi] - q)) pi++;
+        var dq = Math.abs(q - pos[pi]), kq = Math.round(dq / per);
+        if (kq >= 1 && kq <= 12 && Math.abs(dq - kq * per) <= 2) add.push(q);
+      }
+      add.forEach(function (q2) { Z.isL[q2] = 1; Z.n++; });
+    });
+    LSYS = ruled ? LSYS : [];
+    nLines = 0;
+    LSYS.forEach(function (Z) {
+      nLines += Z.n;
+      for (q = 0; q < Z.P.length; q++) if (Z.near(Z.bins[q])) LM[Z.P[q]] = Z.rows ? 1 : 2;
+      Z.P = Z.bins = Z.cnt = null;
+    });
+    var band = function (p10, want) {
+      /* which way the ruled line runs, if this pixel lies in one's band (1 rows, 2 columns), else 0 */
+      var bx = p10 % w, by = (p10 / w) | 0;
+      for (var z = 0; z < LSYS.length; z++) {
+        var Z = LSYS[z]; if (want && (Z.rows ? 1 : 2) !== want) continue;
+        var bn2 = (Z.rows ? Math.round(by - (bx - w / 2) * Z.t) : Math.round(bx - (by - h / 2) * Z.t)) + Z.off;
+        if (Z.near(bn2)) return Z.rows ? 1 : 2;
+      }
+      return 0;
+    };
+    /* where a stroke of the drawing crosses a ruled line, that bit is the stroke's: ink just beyond the line's band on
+       both sides, close by */
+    var LM2 = new Uint8Array(LM), rx2 = Math.max(2, Math.round(T / 3));
+    var inkAt = function (xx, yy) { return xx >= 0 && yy >= 0 && xx < w && yy < h && K[yy * w + xx] && !band(yy * w + xx); };
+    for (i = 0; i < N; i++) {
+      var dl = LM[i]; if (!dl || !K[i]) continue;
+      var lx = i % w, ly = (i / w) | 0, s1, e1, side1 = false, side2 = false, dd;
+      if (dl === 1) {
+        for (s1 = ly; s1 > 0 && band((s1 - 1) * w + lx, 1) && ly - s1 < 2 * T; s1--);
+        for (e1 = ly; e1 < h - 1 && band((e1 + 1) * w + lx, 1) && e1 - ly < 2 * T; e1++);
+        for (dd = -rx2; dd <= rx2 && !(side1 && side2); dd++) {
+          if (inkAt(lx + dd, s1 - 1) || inkAt(lx + dd, s1 - 2)) side1 = true;
+          if (inkAt(lx + dd, e1 + 1) || inkAt(lx + dd, e1 + 2)) side2 = true;
+        }
+      } else {
+        for (s1 = lx; s1 > 0 && band(i - (lx - s1) - 1, 2) && lx - s1 < 2 * T; s1--);
+        for (e1 = lx; e1 < w - 1 && band(i + (e1 - lx) + 1, 2) && e1 - lx < 2 * T; e1++);
+        for (dd = -rx2; dd <= rx2 && !(side1 && side2); dd++) {
+          if (inkAt(s1 - 1, ly + dd) || inkAt(s1 - 2, ly + dd)) side1 = true;
+          if (inkAt(e1 + 1, ly + dd) || inkAt(e1 + 2, ly + dd)) side2 = true;
+        }
+      }
+      if (side1 && side2) LM2[i] = 0;
+    }
+    LM = LM2;
+    /* 3. the paper's edge, if the photo's corners took in some of the table: thick dark ink joined to the edge of the
+       picture (only thick ink, so lines and strokes don't lead it into the drawing), and only if it really is a band
+       round the edge (a drawing that fills the picture is not) */
+    var FR = new Uint8Array(N), es = Math.max(5, Math.round(0.03 * big)), eb = Math.round(0.12 * big), frame = false;
+    var NP = new Uint8Array(N); for (i = 0; i < N; i++) NP[i] = K[i] && !LM[i] ? 1 : 0;
+    var DN = chamfer(NP, w, h, true), ER = new Uint8Array(N);
+    for (i = 0; i < N; i++) ER[i] = DN[i] > 6 ? 1 : 0;              /* thinner than ~4 px: gone */
+    var DE = chamfer(ER, w, h, false), OP = new Uint8Array(N);
+    for (i = 0; i < N; i++) OP[i] = DE[i] <= 6 && NP[i] ? 1 : 0;   /* the thick ink, back to its own size */
+    var Q0 = new Int32Array(N), h0 = 0, t0 = 0, nfr = 0, nband = 0, nstrip = 0;
+    for (y = 0; y < h; y++) for (x = 0; x < w; x++) {
+      if (x >= es && y >= es && x < w - es && y < h - es) continue;
+      nstrip++; i = y * w + x; if (OP[i] && !FR[i]) { FR[i] = 1; Q0[t0++] = i; }
+    }
+    var seeds = t0;
+    while (h0 < t0) {
+      var p0 = Q0[h0++], zx = p0 % w, zy = (p0 / w) | 0;
+      nfr++; if (zx < eb || zy < eb || zx >= w - eb || zy >= h - eb) nband++;
+      if (zx > 0 && OP[p0 - 1] && !FR[p0 - 1]) { FR[p0 - 1] = 1; Q0[t0++] = p0 - 1; }
+      if (zx < w - 1 && OP[p0 + 1] && !FR[p0 + 1]) { FR[p0 + 1] = 1; Q0[t0++] = p0 + 1; }
+      if (zy > 0 && OP[p0 - w] && !FR[p0 - w]) { FR[p0 - w] = 1; Q0[t0++] = p0 - w; }
+      if (zy < h - 1 && OP[p0 + w] && !FR[p0 + w]) { FR[p0 + w] = 1; Q0[t0++] = p0 + w; }
+    }
+    /* a frame runs along the edge (a good part of the strip round it), not just touching it here and there */
+    if (nfr >= N * 0.03 && nband >= nfr * 0.6 && seeds >= nstrip * 0.2) {
+      frame = true;
+      var DF0 = chamfer(FR, w, h, false);
+      for (i = 0; i < N; i++) if (DF0[i] <= 9 && NP[i]) FR[i] = 1;    /* and its soft edge */
+    } else FR.fill(0);
+    var ein = seeds, etot = nstrip;
+    var K2 = new Uint8Array(N), nk2 = 0;
+    for (i = 0; i < N; i++) if (K[i] && !LM[i] && !FR[i]) { K2[i] = 1; nk2++; }
+    if (DBG) { DBG.w = w; DBG.h = h; DBG.K = K; DBG.LM = LM; DBG.FR = FR; DBG.T = T; DBG.pT = pT; DBG.paper = [pr, pg, pb, ps]; DBG.frame = frame; DBG.edgeInk = Math.round(ein / Math.max(1, etot) * 100) / 100; }
+    if (nk2 < 150) return null;
+    /* 4. the drawing: groups of the ink that's left (strokes a small gap apart count as one); the biggest, and any
+       group close by */
+    var rd = Math.max(3, Math.round(0.012 * big)), DG = chamfer(K2, w, h, false);
+    var lab = new Int32Array(N), Q = new Int32Array(N), comps = [], nc = 0;
+    for (i = 0; i < N; i++) {
+      if (lab[i] || DG[i] > rd * 3) continue;
+      nc++; var hd = 0, tl = 0, C = { n: 0, x0: w, y0: h, x1: 0, y1: 0, tr: 0, tc: 0 };
+      Q[tl++] = i; lab[i] = nc;
+      while (hd < tl) {
+        var p = Q[hd++], ux = p % w, uy = (p / w) | 0;
+        if (K2[p]) {
+          C.n++; if (ux < C.x0) C.x0 = ux; if (ux > C.x1) C.x1 = ux; if (uy < C.y0) C.y0 = uy; if (uy > C.y1) C.y1 = uy;
+          if (VR[p] <= T) C.tr++; if (HR[p] <= T) C.tc++;
+        }
+        if (ux > 0 && !lab[p - 1] && DG[p - 1] <= rd * 3) { lab[p - 1] = nc; Q[tl++] = p - 1; }
+        if (ux < w - 1 && !lab[p + 1] && DG[p + 1] <= rd * 3) { lab[p + 1] = nc; Q[tl++] = p + 1; }
+        if (uy > 0 && !lab[p - w] && DG[p - w] <= rd * 3) { lab[p - w] = nc; Q[tl++] = p - w; }
+        if (uy < h - 1 && !lab[p + w] && DG[p + w] <= rd * 3) { lab[p + w] = nc; Q[tl++] = p + w; }
+      }
+      comps[nc] = C;
+    }
+    var main = 0;
+    for (k = 1; k <= nc; k++) if (!main || comps[k].n > comps[main].n) main = k;
+    if (!main || comps[main].n < 120) return null;
+    /* the groups near it, in turn, as the drawing grows (an outline with gaps comes in pieces) */
+    var M0 = comps[main], keep = new Uint8Array(nc + 1), gx0 = M0.x0, gy0 = M0.y0, gx1 = M0.x1, gy1 = M0.y1, more = true, rounds = 0;
+    keep[main] = 1;
+    while (more && rounds++ < 5) {
+      more = false;
+      var ex = 0.15 * Math.max(gx1 - gx0, gy1 - gy0);
+      for (k = 1; k <= nc; k++) {
+        var C2 = comps[k];
+        if (keep[k] || C2.n < M0.n * 0.03 || C2.x1 < gx0 - ex || C2.x0 > gx1 + ex || C2.y1 < gy0 - ex || C2.y0 > gy1 + ex) continue;
+        var bw2 = C2.x1 - C2.x0 + 1, bh2 = C2.y1 - C2.y0 + 1;
+        if ((C2.tr >= C2.n * 0.85 && bw2 >= bh2 * 6) || (C2.tc >= C2.n * 0.85 && bh2 >= bw2 * 6)) continue;   /* a bit of ruled line */
+        keep[k] = 1; more = true;
+        gx0 = Math.min(gx0, C2.x0); gy0 = Math.min(gy0, C2.y0); gx1 = Math.max(gx1, C2.x1); gy1 = Math.max(gy1, C2.y1);
+      }
+    }
+    if (DBG) { DBG.lab = lab; DBG.comps = comps; DBG.main = main; DBG.keep = keep; }
+    var F = new Uint8Array(N), fx0 = w, fy0 = h, fx1 = 0, fy1 = 0;
+    for (i = 0; i < N; i++) if (K2[i] && keep[lab[i]]) {
+      F[i] = 1; x = i % w; y = (i / w) | 0;
+      if (x < fx0) fx0 = x; if (x > fx1) fx1 = x; if (y < fy0) fy0 = y; if (y > fy1) fy1 = y;
+    }
+    /* 5. one solid piece: close the gaps in the outline (grow, fill the inside, shrink back), trying small gaps first;
+       if even big gaps don't close it (an outline drawn very open), cut round its outside instead */
+    var pts = [], lowp = [], upp = [], how = "hull", fsz = Math.max(fx1 - fx0, fy1 - fy0);
+    for (y = fy0; y <= fy1; y++) {
+      var a0 = -1, a1 = -1;
+      for (x = fx0; x <= fx1; x++) if (F[y * w + x]) { if (a0 < 0) a0 = x; a1 = x; }
+      if (a0 >= 0) { pts.push([a0, y]); if (a1 !== a0) pts.push([a1, y]); }
+    }
+    pts.sort(function (p4, p5) { return p4[0] - p5[0] || p4[1] - p5[1]; });
+    var crs = function (o, a2, b3) { return (a2[0] - o[0]) * (b3[1] - o[1]) - (a2[1] - o[1]) * (b3[0] - o[0]); };
+    for (q = 0; q < pts.length; q++) { while (lowp.length >= 2 && crs(lowp[lowp.length - 2], lowp[lowp.length - 1], pts[q]) <= 0) lowp.pop(); lowp.push(pts[q]); }
+    for (q = pts.length - 1; q >= 0; q--) { while (upp.length >= 2 && crs(upp[upp.length - 2], upp[upp.length - 1], pts[q]) <= 0) upp.pop(); upp.push(pts[q]); }
+    var H = lowp.slice(0, -1).concat(upp.slice(0, -1)), harea = 0;
+    for (q = 0; q < H.length; q++) { var u1 = H[q], u2 = H[(q + 1) % H.length]; harea += u1[0] * u2[1] - u2[0] * u1[1]; }
+    harea = Math.abs(harea) / 2;
+    var DF = chamfer(F, w, h, false), SH = new Uint8Array(N), nS = 0, ratio = 0, G = new Uint8Array(N), out = new Uint8Array(N);
+    [0.05, 0.1, 0.15].some(function (fr) {
+      var rcl = Math.max(3, Math.round(fr * fsz)), hd2 = 0, tl2 = 0;
+      for (i = 0; i < N; i++) { G[i] = DF[i] <= rcl * 3 ? 1 : 0; out[i] = 0; }
+      var seed = function (p2) { if (!G[p2] && !out[p2]) { out[p2] = 1; Q[tl2++] = p2; } };
+      for (x = 0; x < w; x++) { seed(x); seed(N - w + x); }
+      for (y = 0; y < h; y++) { seed(y * w); seed(y * w + w - 1); }
+      while (hd2 < tl2) {
+        var p3 = Q[hd2++], vx = p3 % w, vy = (p3 / w) | 0;
+        if (vx > 0) seed(p3 - 1); if (vx < w - 1) seed(p3 + 1); if (vy > 0) seed(p3 - w); if (vy < h - 1) seed(p3 + w);
+      }
+      var DO = chamfer(out, w, h, false); nS = 0;
+      for (i = 0; i < N; i++) { SH[i] = (!out[i] && DO[i] > rcl * 3) || F[i] ? 1 : 0; nS += SH[i]; }
+      ratio = harea ? nS / harea : 1;
+      if (ratio >= 0.85) { how = "close" + Math.round(fr * 100); return true; }
+      return false;
+    });
+    if (how === "hull" && H.length >= 3) {
+      var hc = document.createElement("canvas"); hc.width = w; hc.height = h;
+      var hx = hc.getContext("2d", { willReadFrequently: true });
+      hx.beginPath(); H.forEach(function (p6, n6) { if (n6) hx.lineTo(p6[0] + 0.5, p6[1] + 0.5); else hx.moveTo(p6[0] + 0.5, p6[1] + 0.5); }); hx.closePath();
+      hx.fillStyle = "#000"; hx.strokeStyle = "#000"; hx.lineJoin = "round"; hx.lineWidth = Math.max(2, 0.03 * fsz); hx.fill(); hx.stroke();
+      var hd3 = hx.getImageData(0, 0, w, h).data; nS = 0;
+      for (i = 0; i < N; i++) { SH[i] = hd3[i * 4 + 3] > 127 || F[i] ? 1 : 0; nS += SH[i]; }
+    }
+    /* 6. the picture: the drawing as photographed, ruled lines painted over with the paper beside them, holes and
+       anything left of the paper's edge as paper */
+    var bx0 = w, by0 = h, bx1 = 0, by1 = 0;
+    for (i = 0; i < N; i++) if (SH[i]) { x = i % w; y = (i / w) | 0; if (x < bx0) bx0 = x; if (x > bx1) bx1 = x; if (y < by0) by0 = y; if (y > by1) by1 = y; }
+    if (bx1 <= bx0 || by1 <= by0) return null;
+    var pad = 3; bx0 = Math.max(0, bx0 - pad); by0 = Math.max(0, by0 - pad); bx1 = Math.min(w - 1, bx1 + pad); by1 = Math.min(h - 1, by1 + pad);
+    var ow = bx1 - bx0 + 1, oh = by1 - by0 + 1, oc = document.createElement("canvas"); oc.width = ow; oc.height = oh;
+    var ox = oc.getContext("2d"), od = ox.createImageData(ow, oh), o = od.data;
+    var isPaper = function (p7) { return A[p7] && !KF[p7] && !FR[p7] && !band(p7); };
+    var near = function (p8, dir) {
+      /* the colour of the nearest paper either side of a line (above/below a row line, left/right of a column line) */
+      var px2 = p8 % w, py2 = (p8 / w) | 0, n = 0, rr = 0, gg = 0, bb = 0;
+      for (var s2 = -1; s2 <= 1; s2 += 2) for (var t2 = 1; t2 <= T + 6; t2++) {
+        var qx2 = dir === 1 ? px2 : px2 + s2 * t2, qy2 = dir === 1 ? py2 + s2 * t2 : py2;
+        if (qx2 < 0 || qy2 < 0 || qx2 >= w || qy2 >= h) break;
+        var p9 = qy2 * w + qx2;
+        if (isPaper(p9)) { rr += d[p9 * 4]; gg += d[p9 * 4 + 1]; bb += d[p9 * 4 + 2]; n++; break; }
+      }
+      return n ? [rr / n, gg / n, bb / n] : [pr, pg, pb];
+    };
+    for (y = by0; y <= by1; y++) for (x = bx0; x <= bx1; x++) {
+      i = y * w + x; var di = ((y - by0) * ow + (x - bx0)) * 4;
+      if (!SH[i]) continue;
+      var col = null, dir = F[i] ? 0 : LM[i] || band(i);
+      if (dir) col = near(i, dir);
+      else if (A[i] && !FR[i]) col = [d[i * 4], d[i * 4 + 1], d[i * 4 + 2]];
+      else col = [pr, pg, pb];
+      o[di] = col[0]; o[di + 1] = col[1]; o[di + 2] = col[2]; o[di + 3] = 255;
+    }
+    ox.putImageData(od, 0, 0);
+    oc.__clean = { lines: nLines, groups: nc, how: how, fill: Math.round(ratio * 100) / 100, frame: frame, w: ow, h: oh, from: [w, h] };
+    return oc;
+  }
+  /* the face picture: white-balanced to the film's paper, and placed (scale + centre) so it covers the old face.
+     13 Nov 2026 (later): it starts from just the drawing (cleanFace above), so its size comes from the drawing, not
+     from everything else in the cut-out */
   function prepFace(img, D) {
     var iw = img.naturalWidth || img.width, ih = img.naturalHeight || img.height;
     if (!iw || !ih) return null;
-    var sc = Math.min(1, 640 / Math.max(iw, ih)), w = Math.max(1, Math.round(iw * sc)), h = Math.max(1, Math.round(ih * sc));
-    var c = document.createElement("canvas"); c.width = w; c.height = h;
-    var x = c.getContext("2d", { willReadFrequently: true }); x.drawImage(img, 0, 0, w, h);
+    var c = null; try { c = cleanFace(img); } catch (e) { c = null; }
+    if (!c) {
+      var sc = Math.min(1, 640 / Math.max(iw, ih));
+      c = document.createElement("canvas"); c.width = Math.max(1, Math.round(iw * sc)); c.height = Math.max(1, Math.round(ih * sc));
+      c.getContext("2d").drawImage(img, 0, 0, c.width, c.height);
+    }
+    var cinfo = c.__clean || null, w = c.width, h = c.height;
+    var x = c.getContext("2d", { willReadFrequently: true });
     var id = x.getImageData(0, 0, w, h), d = id.data, n = 0, sx = 0, sy = 0, i, L = [];
     for (var yy = 0; yy < h; yy++) for (var xx = 0; xx < w; xx++) {
       i = (yy * w + xx) * 4;
@@ -399,8 +756,10 @@
     gx.setTransform(q, 0, 0, q, PAD, PAD); gx.fillStyle = "#000"; gx.fill(D.path);
     var refd = gx.getImageData(0, 0, GW, GH).data, refi = [];
     for (i = 3; i < refd.length; i += 4) if (refd[i] > 127) refi.push((i - 3) >> 2);
-    var best = { k: 1.5, dx: 0, dy: 0, cov: -1 };
-    for (var k = 1; k <= 1.5001 && best.cov < 0.985; k += 0.05) {
+    /* 13 Nov 2026 (later): at most 30% bigger (was 50%), and each step bigger has to cover clearly more of the old
+       face, so a drawing shaped unlike the old face isn't blown up to cover it (the paper behind covers the rest) */
+    var KMAX = 1.3, best = { k: 1, dx: 0, dy: 0, cov: -1, sc: -9 };
+    for (var k = 1; k <= KMAX + 0.0001 && best.cov < 0.985; k += 0.05) {
       var s = s0 * k;
       gx.setTransform(1, 0, 0, 1, 0, 0); gx.clearRect(0, 0, GW, GH);
       gx.setTransform(q * s, 0, 0, q * s, PAD + q * (D.c[0] - s * cx), PAD + q * (D.c[1] - s * cy));
@@ -412,11 +771,12 @@
           var pi = refi[m], px = pi % GW - ddx, py = (pi / GW | 0) - ddy;
           if (px >= 0 && py >= 0 && px < GW && py < GH && cd[(py * GW + px) * 4 + 3] > 127) both++;
         }
-        var cov = both / Math.max(1, refi.length), pen = (Math.abs(ddx) + Math.abs(ddy)) * 0.0004;
-        if (cov - pen > best.cov) best = { k: k, dx: ddx / q, dy: ddy / q, cov: cov - pen };
+        var cov = both / Math.max(1, refi.length), pen = (Math.abs(ddx) + Math.abs(ddy)) * 0.0004, scr = cov - pen - 0.2 * (k - 1);
+        if (scr > best.sc) best = { k: k, dx: ddx / q, dy: ddy / q, cov: cov, sc: scr };
       }
     }
-    return { img: c, s: s0 * best.k, cx: cx - best.dx / (s0 * best.k), cy: cy - best.dy / (s0 * best.k), cov: best.cov, tint: null, tk: "" };
+    return { img: c, s: s0 * best.k, cx: cx - best.dx / (s0 * best.k), cy: cy - best.dy / (s0 * best.k), cov: best.cov, tint: null, tk: "",
+      dbg: { clean: cinfo, k: Math.round(best.k * 100) / 100 } };
   }
   /* the face lit like the film: multiplied by the frame's light (only ever darker; the films never get brighter
      than the frame the face was measured on, give or take a few per cent) */
@@ -700,19 +1060,22 @@
     var M = window.__mimTest;
     if (b && b.id === "funbtn" && M && typeof M.cam === "function" && M.key && M.key()) { try { M.cam(); } catch (e) {} }
   }
-  /* catch the Make it move buttons before their own handlers, only for drawings that have films:
-     the finish screen's (#funbtn) and the one on a drawing's photo in My drawings (.mdxmim, 12 Nov evening) */
+  /* catch the Make it move button on a drawing's photo in My drawings (.mdxmim, 12 Nov evening), only for drawings
+     that have films.
+     13 Nov 2026 (later): the finish screen's Make it move (#funbtn) isn't caught any more. It opens the blank camera
+     page ("Take a photo of yours") for every drawing, films or not, photo saved or not, as asked for. Once the photo is
+     in, a drawing whose films wear the child's face (T is for Tiger) goes on to its films (the camera page calls
+     withFace); every other drawing plays its Make it move story with the photo, as before. D is for Digger's and
+     a is for ambulance's films are still on the Make it move button of their photo in My drawings. */
   document.addEventListener("click", function (e) {
     var b = e.target && e.target.closest && e.target.closest("#funbtn,.mdxmim");
     if (!b) return;
-    var k = b.id === "funbtn" ? curKey() : b.getAttribute("data-key");
+    /* a fresh start: no earlier face, and Back on the camera page goes back to the finish screen */
+    if (b.id === "funbtn") { FACE = null; SRC = null; OWNK = null; return; }
+    var k = b.getAttribute("data-key");
     if (!k || !FILMS[k]) return;
     e.preventDefault(); e.stopPropagation(); e.stopImmediatePropagation();
     SRC = b;
-    /* 13 Nov 2026: Make it move on the finish screen always opens the films without a face, the same as Make it move
-       always opens on a blank page: an earlier photo isn't shown here (it stays in My drawings, whose own Make it move
-       button uses it). A photo just taken with the films' camera button is on the films until then. */
-    if (b.id === "funbtn") FACE = null;
     if (b.classList.contains("mdxmim") && FILMS[k].face) {
       var vw = b.closest(".mdview"), im = vw && vw.querySelector("img");
       if (im && im.src) setFace(k, im.src, "md");
@@ -731,6 +1094,8 @@
     /* used by the app's camera page: a drawing whose films can wear the child's own face */
     hasFace: function (k) { return !!(FILMS[k] && FILMS[k].face); },
     withFace: function (k, blob) { OWNK = null; SRC = null; setFace(k, blob, "cam"); open(k); },
-    _face: function () { return FACE; }, _rec: function () { return RECD; }
+    _face: function () { return FACE; }, _rec: function () { return RECD; },
+    /* for checking the clean-up of a photo (cleanFace) */
+    _clean: function (img) { var o = {}, c = null; try { c = cleanFace(img, o); } catch (e) { o.err = String(e && e.stack || e); } return { c: c, o: o }; }
   };
 })();
