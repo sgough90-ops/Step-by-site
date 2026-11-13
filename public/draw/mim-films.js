@@ -7,7 +7,11 @@
    12 Nov 2026 (later): every film ends on the Step by Draw end page (logo, step-by.com, bouncing stars), which is
    part of the film, so shared films carry it. The end page stays on screen with a replay button and a big green
    share button. Share asks the grown-ups times question first (the same gate as the shopping links), then opens
-   the phone's share sheet with the film (Instagram, Messages, Save Video). Computers download the film instead. */
+   the phone's share sheet with the film (Instagram, Messages, Save Video). Computers download the film instead.
+   13 Nov 2026 (afternoon): the tiger's films screen never shows the drawn face the films were made with (it showed as
+   "the old tiger"): its picture has a blank paper face with the camera until the child's own photo is on it, Make it
+   move on the finish screen always starts without a photo (earlier ones stay in My drawings), and the camera button
+   opens the phone's camera (and Photo Library while testing) in one tap. */
 (function () {
   "use strict";
   var FILMS = {
@@ -67,6 +71,11 @@
     "#mfpick .mfprev{position:relative}" +
     "#mfpick .mfprev canvas{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;display:block}" +
     "#mfpick .mfprev canvas.off,#mfpick .mfcam.off{display:none}" +
+    /* 13 Nov 2026: a film that can wear the child's face never shows its own poster (it has the drawn face the films
+       were made with); the picture is drawn into the canvas instead, with a blank paper face until there is a photo */
+    "#mfpick .mfprev img.off{visibility:hidden}" +
+    "#mfpick .mfcam.again{animation:mfno .5s}" +
+    "@keyframes mfno{0%,100%{translate:0}25%{translate:-8px}75%{translate:8px}}" +
     /* the film ends on the cream Step by Draw end page, so the screen around it turns cream too */
     "#mfplay.done,#mfplay.done video{background:#fff6e0}" +
     "#mfplay .mfx{position:absolute;left:max(14px,env(safe-area-inset-left));top:max(14px,env(safe-area-inset-top))}" +
@@ -102,7 +111,11 @@
       "</div>";
     document.body.appendChild(s);
     G("mfback").onclick = close;
-    G("mfprev").onclick = function () { play("silly"); };
+    /* the picture plays the Silly film; while it has the blank face and the camera on it, it takes the photo instead */
+    G("mfprev").onclick = function () {
+      var st = G("mfprev").getAttribute("data-st");
+      if (st === "cam") own(); else if (st !== "wait") play("silly");
+    };
     G("mfcam").onclick = own;
     [].forEach.call(s.querySelectorAll(".mff"), function (b) {
       b.onclick = function () { play(b.getAttribute("data-t")); };
@@ -137,8 +150,9 @@
     build(); KEY = k;
     var f = FILMS[k];
     G("mfposter").src = f.dir + "poster.jpg?v=" + f.v;
-    /* a face only belongs to its own drawing; one taken on the finish screen is kept for 15 minutes */
-    if (FACE && (FACE.key !== k || (FACE.src === "cam" && Date.now() - FACE.t > 15 * 60000))) FACE = null;
+    /* a face only belongs to its own drawing (and, 13 Nov 2026, Make it move on the finish screen always starts
+       without one: see the click catcher at the bottom) */
+    if (FACE && FACE.key !== k) FACE = null;
     var cam = G("mfcam"); if (cam) cam.classList.toggle("off", !!(SRC && SRC.classList && SRC.classList.contains("mdxmim")));
     G("mfpick").classList.remove("off");
     if (f.face) faceData(k);   /* fetched early, so a new photo is on the films straight away */
@@ -150,11 +164,13 @@
     KIND = t; hideEnd(); setShare(false);
     var w = G("mfplay"), v = w.querySelector("video");
     recDrop(); drawStop();
-    v.poster = f.dir + "poster.jpg?v=" + f.v;
+    var fo = faceOn(), cv = G("mfcv");
+    /* 13 Nov 2026: the film's own poster has the drawn face on it, so with the child's face the film starts on the
+       picker's picture (their face) until its first frame is drawn, instead of flashing the drawn face */
+    if (fo) v.removeAttribute("poster"); else v.poster = f.dir + "poster.jpg?v=" + f.v;
     v.src = f.dir + t + ".mp4?v=" + f.v;
-    var fo = faceOn();
-    G("mfcv").classList.toggle("off", !fo);
-    if (fo) { actx(true); drawStart(v); recArm(); }
+    cv.classList.toggle("off", !fo);
+    if (fo) { firstPic(cv); actx(true); drawStart(v); recArm(); }
     w.classList.remove("off");
     var b = document.querySelector('#mfpick .mff[data-t="' + t + '"]'); if (b) b.classList.add("seen");
     go(v);
@@ -282,12 +298,12 @@
      child's face (cut out of the paper by the app, sized to cover the old face, lit like the film), then the bits of
      the scene that are in front of the face, copied back from the film. Nothing leaves the phone.
      The film with the child's face records itself as it plays (canvas + the film's own sound), so Share sends that. */
-  var FACE = null, FACEDATA = {}, RECD = {}, FACEN = 0;
+  var FACE = null, FACEDATA = {}, FDR = {}, RECD = {}, FACEN = 0;
   function faceData(k) {
     var f = FILMS[k]; if (!f || !f.face) return Promise.resolve(null);
     if (!FACEDATA[k]) FACEDATA[k] = fetch(f.dir + "face.json?v=" + f.face).then(function (r) {
       if (!r.ok) throw new Error("HTTP " + r.status); return r.json();
-    }).then(function (d) { d.path = silPath(d); return d; }).catch(function () { delete FACEDATA[k]; return null; });
+    }).then(function (d) { d.path = silPath(d); FDR[k] = d; return d; }).catch(function () { delete FACEDATA[k]; return null; });
     return FACEDATA[k];
   }
   function silPath(d) {
@@ -310,14 +326,23 @@
     var id = ++FACEN;
     FACE = { key: k, t: Date.now(), src: how, id: id, F: null, D: null };
     var me = FACE;
+    /* 13 Nov 2026: a photo that can't be used gives the blank face back and a shake of the camera button, so it's
+       clear to try again (it used to fall back to the drawn face quietly) */
+    var nope = function () { if (FACE !== me) return; FACE = null; posterFace(); shakeCam(); };
     Promise.all([faceData(k), loadImage(src)]).then(function (r) {
-      if (FACE !== me || !r[0]) return;
+      if (FACE !== me) return;
+      if (!r[0]) { nope(); return; }
       var F = prepFace(r[1], r[0]);
-      if (!F) { FACE = null; return; }
+      if (!F) { nope(); return; }
       me.D = r[0]; me.F = F;
       posterFace();
       TYPES.forEach(function (t) { audioBuf(k, t[0]).catch(function () {}); });   /* ready for the recording */
-    }).catch(function () { if (FACE === me) FACE = null; });
+    }).catch(nope);
+  }
+  function shakeCam() {
+    var c = G("mfcam"); if (!c || c.classList.contains("off")) return;
+    c.classList.remove("again"); void c.offsetWidth; c.classList.add("again");
+    setTimeout(function () { c.classList.remove("again"); }, 600);
   }
   function faceOn() { return !!(FACE && FACE.key === KEY && FACE.D && FACE.F && FACE.D[KIND]); }
   /* the face picture: white-balanced to the film's paper, and placed (scale + centre) so it covers the old face */
@@ -457,18 +482,113 @@
     ox.globalCompositeOperation = "source-over";
     ctx.drawImage(SCR, 0, 0, bw, bh, bx, by, bw, bh);
   }
-  /* the picker's picture with the child's face on it */
+  /* the picker's picture with the child's face on it.
+     13 Nov 2026: until there is a face, the drawn face the films were made with isn't shown either (asked for on 13 Nov:
+     the old tiger should only be in My drawings). The picture gets a blank paper face, the same cut-out the child's face goes
+     on, with the camera on it; tapping it takes the photo, like the camera button. Films without face.json keep their
+     poster as it is. If face.json can't be fetched, the poster is shown as it is rather than nothing. */
+  var PVN = 0;
+  function prevState(st) {
+    var p = G("mfprev"); if (!p) return;
+    p.setAttribute("data-st", st);
+    p.setAttribute("aria-label", st === "cam" ? "Make your own drawing move" : "Silly film");
+  }
+  function camShown() { var c = G("mfcam"); return !!c && !c.classList.contains("off"); }
+  var PIM = {};
+  function posterImg(k) {
+    var f = FILMS[k];
+    if (PIM[k]) return Promise.resolve(PIM[k]);
+    return loadImage(f.dir + "poster.jpg?v=" + f.v).then(function (im) { PIM[k] = im; return im; });
+  }
   function posterFace() {
-    var cv = G("mfpcv"); if (!cv) return;
-    var on = !!(FACE && FACE.key === KEY && FACE.D && FACE.F && FACE.D.poster);
-    cv.classList.toggle("off", !on);
-    if (!on) return;
-    var f = FILMS[KEY], P = FACE.D.poster, me = FACE;
-    loadImage(f.dir + "poster.jpg?v=" + f.v).then(function (im) {
-      if (FACE !== me) return;
+    var cv = G("mfpcv"), pim = G("mfposter"), k = KEY, f = FILMS[k], my = ++PVN;
+    if (!cv || !pim || !f) return;
+    var plain = function () { cv.classList.add("off"); pim.classList.remove("off"); prevState("play"); };
+    if (!f.face) { plain(); return; }
+    var on = !!(FACE && FACE.key === k && FACE.D && FACE.F && FACE.D.poster);
+    var F = on ? FACE.F : null;
+    /* a photo is still being put on: the blank face, and the picture waits */
+    var st = on ? "play" : FACE && FACE.key === k ? "wait" : camShown() ? "cam" : "play";
+    prevState(st);
+    pim.classList.add("off");
+    var draw = function (D, im) {
+      var P = D && D.poster;
+      if (!P) { plain(); return; }
       cv.width = P.w; cv.height = P.h;
-      compose(cv.getContext("2d"), im, P.w, P.h, P.A.concat(P.g, [P.o ? 0 : -1]), FACE.D, P.o ? [P.o] : null, FACE.F);
-    }).catch(function () {});
+      var x = cv.getContext("2d");
+      compose(x, im, P.w, P.h, P.A.concat(P.g, [P.o ? 0 : -1]), D, P.o ? [P.o] : null, F || blankFace(D));
+      if (st === "cam") camBadge(x, D, P.A);
+      cv.classList.remove("off");
+    };
+    /* drawn straight away once fetched, so an earlier picture is never left on show */
+    if (FDR[k] && PIM[k]) { draw(FDR[k], PIM[k]); return; }
+    cv.classList.add("off");
+    Promise.all([faceData(k), posterImg(k)]).then(function (r) {
+      if (my !== PVN || KEY !== k) return;
+      draw(r[0], r[1]);
+    }).catch(function () { if (my === PVN) plain(); });
+  }
+  /* the blank paper face, drawn in the face picture's own space so it sits exactly where the face goes: the face's
+     outline smoothed (the tracked one is jagged), a little bigger so none of the old face peeks out, in the films' paper
+     colour, with a soft shadow and a dashed line where the edge of the drawing goes */
+  function smoothPath(D) {
+    if (D.smooth) return D.smooth;
+    var s = D.sil, n = s.length / 2, P = [], Q = [], i, j;
+    for (i = 0; i < n; i++) P.push([s[2 * i], s[2 * i + 1]]);
+    /* the outline every 4 px, then each point averaged with its neighbours 20 px either side */
+    for (i = 0; i < n; i++) {
+      var a = P[i], b = P[(i + 1) % n], m = Math.max(1, Math.round(Math.hypot(b[0] - a[0], b[1] - a[1]) / 4));
+      for (j = 0; j < m; j++) Q.push([a[0] + (b[0] - a[0]) * j / m, a[1] + (b[1] - a[1]) * j / m]);
+    }
+    var N = Q.length, M = 5, path = new Path2D();
+    for (i = 0; i < N; i++) {
+      var sx = 0, sy = 0;
+      for (j = -M; j <= M; j++) { var q = Q[(i + j + N) % N]; sx += q[0]; sy += q[1]; }
+      sx /= 2 * M + 1; sy /= 2 * M + 1;
+      if (i) path.lineTo(sx, sy); else path.moveTo(sx, sy);
+    }
+    path.closePath();
+    D.smooth = path; return path;
+  }
+  function blankFace(D) {
+    if (D.blank) return D.blank;
+    var c = document.createElement("canvas"); c.width = D.W; c.height = D.H;
+    var x = c.getContext("2d"), sp = smoothPath(D), pc = "rgb(" + D.paper.join(",") + ")";
+    var paper = function () { x.fillStyle = pc; x.strokeStyle = pc; x.lineWidth = 24; x.fill(sp); x.stroke(sp); };
+    x.lineJoin = "round"; x.lineCap = "round";
+    x.save(); x.shadowColor = "rgba(8,17,48,.32)"; x.shadowBlur = 16; x.shadowOffsetY = 7; paper(); x.restore();
+    paper();
+    x.setLineDash([20, 15]); x.lineWidth = 6; x.strokeStyle = "rgba(8,17,48,.35)"; x.stroke(sp);
+    D.blank = { img: c, s: 1, cx: D.c[0], cy: D.c[1], tint: null, tk: "" };
+    return D.blank;
+  }
+  /* the app's yellow camera button, upright, in the middle of the blank face */
+  var CAMBODY = null, CAMLENS = null;
+  function camBadge(x, D, A) {
+    if (!CAMBODY) {
+      CAMBODY = new Path2D("M10 22a5 5 0 0 1 5-5h7l4-6h12l4 6h7a5 5 0 0 1 5 5v24a5 5 0 0 1-5 5H15a5 5 0 0 1-5-5z");
+      CAMLENS = new Path2D(); CAMLENS.arc(32, 33, 10, 0, Math.PI * 2);
+    }
+    var cx = A[0] * D.c[0] + A[1] * D.c[1] + A[2], cy = A[3] * D.c[0] + A[4] * D.c[1] + A[5];
+    var sc = Math.sqrt(Math.abs(A[0] * A[4] - A[1] * A[3])), R = 0.27 * D.bb[2] * sc;
+    x.save();
+    x.setTransform(1, 0, 0, 1, 0, 0); x.globalCompositeOperation = "source-over";
+    x.fillStyle = "rgba(8,17,48,.25)"; x.beginPath(); x.arc(cx, cy + R * 0.09, R, 0, Math.PI * 2); x.fill();
+    x.fillStyle = "#ffc531"; x.strokeStyle = NAVY; x.lineWidth = R * 0.065;
+    x.beginPath(); x.arc(cx, cy, R, 0, Math.PI * 2); x.fill(); x.stroke();
+    var k = R * 1.2 / 64;
+    x.setTransform(k, 0, 0, k, cx - 32 * k, cy - 31 * k);
+    x.lineWidth = 3.4; x.lineJoin = "round";
+    x.fillStyle = "#fff"; x.fill(CAMBODY); x.stroke(CAMBODY);
+    x.fillStyle = "#d6ebff"; x.fill(CAMLENS); x.stroke(CAMLENS);
+    x.restore();
+  }
+  /* a film with the child's face starts on the picker's picture until its first frame is drawn */
+  function firstPic(cv) {
+    var p = G("mfpcv"), x = cv.getContext("2d");
+    x.setTransform(1, 0, 0, 1, 0, 0); x.globalCompositeOperation = "source-over";
+    x.fillStyle = "#000"; x.fillRect(0, 0, cv.width, cv.height);
+    if (p && !p.classList.contains("off") && p.width > 1) { try { x.drawImage(p, 0, 0, cv.width, cv.height); } catch (e) {} }
   }
   /* playing: every film frame is drawn with the face, in step with the video */
   var RVF = 0, RAFI = 0, LASTK = -1;
@@ -573,6 +693,11 @@
     OWNK = KEY;
     var b = SRC || G("funbtn");
     if (b && typeof b.onclick === "function") b.onclick.call(b, { stopPropagation: function () {}, preventDefault: function () {} });
+    /* 13 Nov 2026: from the finish screen's films, the camera button goes straight on to the phone's camera (and, while
+       testing, its Photo Library: see TEMP-PHOTO-LIBRARY in index.html), with the blank camera page behind it, so one tap
+       does it. Still inside the tap, so the phone allows it. Back on that page returns to the films, as before. */
+    var M = window.__mimTest;
+    if (b && b.id === "funbtn" && M && typeof M.cam === "function" && M.key && M.key()) { try { M.cam(); } catch (e) {} }
   }
   /* catch the Make it move buttons before their own handlers, only for drawings that have films:
      the finish screen's (#funbtn) and the one on a drawing's photo in My drawings (.mdxmim, 12 Nov evening) */
@@ -583,8 +708,10 @@
     if (!k || !FILMS[k]) return;
     e.preventDefault(); e.stopPropagation(); e.stopImmediatePropagation();
     SRC = b;
-    /* a face borrowed from My drawings doesn't follow you back to a finish screen */
-    if (b.id === "funbtn" && FACE && FACE.src === "md") FACE = null;
+    /* 13 Nov 2026: Make it move on the finish screen always opens the films without a face, the same as Make it move
+       always opens on a blank page: an earlier photo isn't shown here (it stays in My drawings, whose own Make it move
+       button uses it). A photo just taken with the films' camera button is on the films until then. */
+    if (b.id === "funbtn") FACE = null;
     if (b.classList.contains("mdxmim") && FILMS[k].face) {
       var vw = b.closest(".mdview"), im = vw && vw.querySelector("img");
       if (im && im.src) setFace(k, im.src, "md");

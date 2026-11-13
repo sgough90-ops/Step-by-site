@@ -5433,8 +5433,10 @@ function build(){if(G("mim"))return;var s=document.createElement("section");s.id
  s.innerHTML='<div class="shtop"><button class="round" id="mimback" aria-label="Back">'+IC.back+'</button><div class="shlogo" id="mimlogo"></div><div class="shsp"></div></div>'+
  '<div class="mimbody"><button class="mimcard app" id="mimcard" aria-label="Take a photo of your drawing"><img id="mimimg" alt=""><span class="mimcam"><i>'+IC.cam+'</i><span>Take a photo of yours</span></span></button>'+
  '<div class="mimmodes"><button class="mimm" data-m="silly" aria-label="Silly">'+IC.silly+'<span>Silly</span></button><button class="mimm" data-m="cool" aria-label="Cool">'+IC.cool+'<span>Cool</span></button></div></div>'+
- /* 13 Nov 2026: capture="environment" is back on, so the camera button opens the camera straight away */
- '<input id="mimfile" type="file" accept="image/*" capture="environment" hidden aria-hidden="true" tabindex="-1">';
+ /* TEMP-PHOTO-LIBRARY (back on 13 Nov 2026, testing only): "capture" is left off so a phone offers Photo Library as well as
+    the camera, for testing with photos already on the phone (as agreed on 12 Nov; capture had gone back on the morning of 13 Nov).
+    REMOVE BEFORE THE APP GOES LIVE ON THE APP STORE: put capture="environment" back on this input so the camera opens straight away. */
+ '<input id="mimfile" type="file" accept="image/*" hidden aria-hidden="true" tabindex="-1">';
  G("app").appendChild(s);
  G("mimback").onclick=closeMim;
  G("mimcard").onclick=function(){cam()};
@@ -7972,4 +7974,4 @@ html body #sstudio.wl #hpills>button:not(#showtile) svg,html body #sstudio.wl #h
 <script src="draw/sb-simple.js?v=1112a"></script>
 <script src="draw/sb-steps.js?v=1113b"></script>
 <!-- 12 Nov 2026 (evening): Make it move films. D is for Digger's and T is for Tiger's Make it move button (on the finish screen and on its photo in My drawings) opens Silly, Wonky and Starring role films, plus the camera for your own drawing. Each film ends on the Step by Draw end page with replay and a share button behind the grown-ups question (13 Nov) -->
-<script src="draw/mim-films.js?v=1113e"></script>
+<script src="draw/mim-films.js?v=1113f"></script>
