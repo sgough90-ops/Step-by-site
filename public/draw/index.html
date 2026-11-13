@@ -5457,7 +5457,10 @@ function title(){try{return V.p.t||V.p.title||KEY}catch(e){return KEY}}
 function usePhoto(f){var S=window.__showTest,c=G("mimcard");if(!S||!S.cutout)return;c.classList.add("busy");var u=URL.createObjectURL(f),im=new Image();
  im.onload=function(){URL.revokeObjectURL(u);setTimeout(function(){var cv=null;try{cv=(f&&f.__scan&&S.cutoutScan)?S.cutoutScan(im):S.cutout(im)}catch(e){cv=null}
   if(!cv){c.classList.remove("busy");c.classList.add("again");setTimeout(function(){c.classList.remove("again")},1600);return}
-  cv.toBlob(function(bl){c.classList.remove("busy");if(!bl)return;dropOwn();OWN=bl;OWNURL=URL.createObjectURL(bl);paint();keepMake(bl);go("cool")},"image/png")},30)};
+  cv.toBlob(function(bl){c.classList.remove("busy");if(!bl)return;dropOwn();OWN=bl;OWNURL=URL.createObjectURL(bl);paint();keepMake(bl);
+   /* 13 Nov 2026: a drawing whose films can wear the child's own face (T is for Tiger): back to its films, now with this face */
+   var MF=window.__mimFilms;if(MF&&MF.hasFace&&MF.hasFace(KEY)){closeMim();MF.withFace(KEY,bl);return}
+   go("cool")},"image/png")},30)};
  im.onerror=function(){URL.revokeObjectURL(u);c.classList.remove("busy")};im.src=u}
 function keepMake(bl){var M=window.__showTest&&window.__showTest.makes,k=KEY;if(!M)return;try{M.put({id:"m"+Date.now(),t:Date.now(),key:k,title:title(),prod:"draw",kind:"img",blob:bl}).then(function(){try{window.__showTest.mkButtons()}catch(e){}})}catch(e){}}
 function loadMake(){var M=window.__showTest&&window.__showTest.makes,k=KEY;if(!M||OWN)return;try{M.all().then(function(a){var x=a.filter(function(o){return o.key===k&&o.kind==="img"}).sort(function(p,q){return q.t-p.t})[0];if(x&&k===KEY&&!OWN){OWN=x.blob;OWNURL=URL.createObjectURL(x.blob);paint()}})}catch(e){}}
@@ -7969,4 +7972,4 @@ html body #sstudio.wl #hpills>button:not(#showtile) svg,html body #sstudio.wl #h
 <script src="draw/sb-simple.js?v=1112a"></script>
 <script src="draw/sb-steps.js?v=1113b"></script>
 <!-- 12 Nov 2026 (evening): Make it move films. D is for Digger's and T is for Tiger's Make it move button (on the finish screen and on its photo in My drawings) opens Silly, Wonky and Starring role films, plus the camera for your own drawing. Each film ends on the Step by Draw end page with replay and a share button behind the grown-ups question (13 Nov) -->
-<script src="draw/mim-films.js?v=1113c"></script>
+<script src="draw/mim-films.js?v=1113e"></script>

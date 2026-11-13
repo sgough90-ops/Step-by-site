@@ -1,0 +1,16 @@
+import cv2, numpy as np
+from scipy import ndimage as ndi
+med=np.load('B_med.npy');dev=np.load('B_dev.npy')
+dev=np.nan_to_num(dev,nan=999)
+m=(dev<14).astype(np.uint8)
+m=cv2.morphologyEx(m,cv2.MORPH_CLOSE,cv2.getStructuringElement(cv2.MORPH_ELLIPSE,(9,9)))
+lab,n=ndi.label(m);sz=ndi.sum(m,lab,range(1,n+1));k=1+int(np.argmax(sz))
+m=(lab==k).astype(np.uint8)
+m=ndi.binary_fill_holes(m).astype(np.uint8)
+m=cv2.morphologyEx(m,cv2.MORPH_OPEN,cv2.getStructuringElement(cv2.MORPH_ELLIPSE,(5,5)))
+print('area',m.sum())
+np.save('C_mask.npy',m)
+vis=np.nan_to_num(med).astype(np.uint8).copy()
+cnts,_=cv2.findContours(m,cv2.RETR_EXTERNAL,cv2.CHAIN_APPROX_NONE)
+cv2.drawContours(vis,cnts,-1,(255,0,255),1)
+cv2.imwrite('C_mask_vis.png',cv2.resize(vis,None,fx=1.6,fy=1.6))

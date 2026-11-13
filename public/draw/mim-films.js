@@ -18,7 +18,9 @@
        Starring role = the dawn roar that wakes the jungle. Founder's voices (incl. his tiger sounds); Claude's
        stand-in tunes on sampled instruments (TimGM6mb, GPL-2) until licensed music is chosen.
        v3 replaces the felt-tiger films (v2). */
-    dx_tiger_t: { dir: "mim-films/dx_tiger_t/", v: "3", name: "tiger" },
+    /* 13 Nov 2026 (later): face.json lets the child's own photographed face replace the drawn one in all three films
+       (see "the child's own face" below); silly.m4a etc. are the films' sound for the shareable recording */
+    dx_tiger_t: { dir: "mim-films/dx_tiger_t/", v: "3", name: "tiger", face: "1" },
     /* 13 Nov 2026: a is for ambulance, drawn as a child would colour it, on the founder's street. Silly slot = Icy rush
        (a call on a snowy night, it slips on the ice), Wonky slot = Rainy day (sad, soggy, through puddles),
        Starring role = the teddy rescue. Founder's voices; Claude's stand-in tunes (TimGM6mb, GPL-2) */
@@ -59,6 +61,12 @@
     "#mfpick .mfcam svg{width:42px;height:42px}" +
     "#mfplay{position:fixed;inset:0;z-index:1000;background:#000;display:flex;align-items:center;justify-content:center}" +
     "#mfplay video{width:100%;height:100%;object-fit:contain;background:#000}" +
+    /* the child's own face: the film is drawn into this canvas, which sits exactly over the video */
+    "#mfplay canvas.mfcv{position:absolute;inset:0;width:100%;height:100%;object-fit:contain;pointer-events:none}" +
+    "#mfplay canvas.mfcv.off{display:none}" +
+    "#mfpick .mfprev{position:relative}" +
+    "#mfpick .mfprev canvas{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;display:block}" +
+    "#mfpick .mfprev canvas.off,#mfpick .mfcam.off{display:none}" +
     /* the film ends on the cream Step by Draw end page, so the screen around it turns cream too */
     "#mfplay.done,#mfplay.done video{background:#fff6e0}" +
     "#mfplay .mfx{position:absolute;left:max(14px,env(safe-area-inset-left));top:max(14px,env(safe-area-inset-top))}" +
@@ -88,7 +96,7 @@
     s.innerHTML =
       '<div class="mftop"><button type="button" class="round" id="mfback" aria-label="Back">' + ICON.back + "</button></div>" +
       '<div class="mfbody">' +
-      '<button type="button" class="mfprev" id="mfprev" aria-label="Silly film"><img id="mfposter" alt=""></button>' +
+      '<button type="button" class="mfprev" id="mfprev" aria-label="Silly film"><img id="mfposter" alt=""><canvas id="mfpcv" class="off" width="540" height="960"></canvas></button>' +
       '<div class="mfrow">' + faces + "</div>" +
       '<button type="button" class="mfcam" id="mfcam" aria-label="Make your own drawing move">' + ICON.cam + "</button>" +
       "</div>";
@@ -101,7 +109,7 @@
     });
     var w = document.createElement("div");
     w.id = "mfplay"; w.className = "off";
-    w.innerHTML = '<video playsinline webkit-playsinline preload="auto"></video>' +
+    w.innerHTML = '<video playsinline webkit-playsinline preload="auto"></video><canvas class="mfcv off" id="mfcv" width="720" height="1280"></canvas>' +
       '<button type="button" class="round mfx" aria-label="Close">' + ICON.close + "</button>" +
       '<div class="mfend off" id="mfend">' +
       '<button type="button" class="shc" id="mfagain" aria-label="Watch again">' + ICON.replay + "</button>" +
@@ -109,7 +117,12 @@
       "</div>";
     document.body.appendChild(w);
     w.querySelector(".mfx").onclick = stop;
-    w.querySelector("video").addEventListener("ended", endUI);
+    var vv = w.querySelector("video");
+    vv.addEventListener("ended", endUI);
+    vv.addEventListener("ended", function () { recEnd(); });
+    vv.addEventListener("playing", function () { recPlaying(vv); });
+    vv.addEventListener("waiting", function () { recWaiting(); });
+    vv.addEventListener("loadeddata", function () { if (faceOn()) drawNow(vv); });
     G("mfagain").onclick = replay;
     G("mfshare").onclick = shareTap;
     var g = document.createElement("section");
@@ -124,22 +137,31 @@
     build(); KEY = k;
     var f = FILMS[k];
     G("mfposter").src = f.dir + "poster.jpg?v=" + f.v;
+    /* a face only belongs to its own drawing; one taken on the finish screen is kept for 15 minutes */
+    if (FACE && (FACE.key !== k || (FACE.src === "cam" && Date.now() - FACE.t > 15 * 60000))) FACE = null;
+    var cam = G("mfcam"); if (cam) cam.classList.toggle("off", !!(SRC && SRC.classList && SRC.classList.contains("mdxmim")));
     G("mfpick").classList.remove("off");
+    if (f.face) faceData(k);   /* fetched early, so a new photo is on the films straight away */
+    posterFace();
   }
   function close() { stop(); var s = G("mfpick"); if (s) s.classList.add("off"); }
   function play(t) {
     var f = FILMS[KEY]; if (!f) return;
     KIND = t; hideEnd(); setShare(false);
     var w = G("mfplay"), v = w.querySelector("video");
+    recDrop(); drawStop();
     v.poster = f.dir + "poster.jpg?v=" + f.v;
     v.src = f.dir + t + ".mp4?v=" + f.v;
+    var fo = faceOn();
+    G("mfcv").classList.toggle("off", !fo);
+    if (fo) { actx(true); drawStart(v); recArm(); }
     w.classList.remove("off");
     var b = document.querySelector('#mfpick .mff[data-t="' + t + '"]'); if (b) b.classList.add("seen");
     go(v);
   }
   function go(v) { try { var p = v.play(); if (p && p.catch) p.catch(function () { v.controls = true; }); } catch (e) { v.controls = true; } }
   function stop() {
-    gateClose(); hideEnd();
+    gateClose(); hideEnd(); recDrop(); drawStop();
     var w = G("mfplay"); if (!w) return;
     var v = w.querySelector("video");
     try { v.pause(); } catch (e) {}
@@ -158,7 +180,11 @@
     var w = G("mfplay"); if (w) w.classList.remove("done");
     var e = G("mfend"); if (e) e.classList.add("off");
   }
-  function replay() { var v = G("mfplay").querySelector("video"); hideEnd(); try { v.currentTime = 0; } catch (e) {} go(v); }
+  function replay() {
+    var v = G("mfplay").querySelector("video"); hideEnd();
+    if (faceOn()) { actx(true); drawStart(v); recArm(); }
+    try { v.currentTime = 0; } catch (e) {} go(v);
+  }
   function setShare(done) {
     var b = G("mfshare"); if (!b) return;
     b.className = done ? "shc big done" : "shc big keep";
@@ -181,9 +207,14 @@
     }).catch(function (e) { delete FILEP[id]; throw e; });
     return FILEP[id];
   }
+  var SHAREF = null;
   function shareTap() {
     if (!KEY || !KIND) return;
-    getFile(KEY, KIND).catch(function () {});  /* download it while the grown-up answers */
+    var rid = faceOn() ? FACE.id + "|" + KIND : null;
+    SHAREF = rid ? (RECD[rid] || null) : null;
+    /* the film with the child's face is still being saved: wait for it */
+    if (!SHAREF && rid && PEND[rid]) PEND[rid].then(function (x) { if (x) SHAREF = x; else getFile(KEY, KIND).catch(function () {}); });
+    else if (!SHAREF) getFile(KEY, KIND).catch(function () {});  /* download it while the grown-up answers */
     gateOpen();
   }
   var GA = 0, GB = 0, ENT = "";
@@ -213,7 +244,7 @@
     setTimeout(function () { var g = G("mfgate"); if (g && !g.classList.contains("off")) gateOpen(); }, 380);
   }
   function passed() {
-    var f = FILE[fid(KEY, KIND)];
+    var f = SHAREF || FILE[fid(KEY, KIND)];
     if (f) { gateClose(); send(f); return; }
     ready();
   }
@@ -222,8 +253,9 @@
     G("mfgin").innerHTML = '<button type="button" class="shc big keep wait" id="mfgo" aria-label="Share my film" disabled>' + ICON.share + "</button>";
     G("mfgate").classList.remove("off");
     var k = KEY, t = KIND, b = G("mfgo");
-    b.onclick = function () { var f = FILE[fid(k, t)]; if (f) { gateClose(); send(f); } };
-    getFile(k, t).then(function () { var x = G("mfgo"); if (x) { x.disabled = false; x.classList.remove("wait"); } },
+    b.onclick = function () { var f = SHAREF || FILE[fid(k, t)]; if (f) { gateClose(); send(f); } };
+    var rid = faceOn() ? FACE.id + "|" + t : null;
+    (SHAREF ? Promise.resolve(SHAREF) : rid && PEND[rid] ? PEND[rid].then(function (x) { if (x) { SHAREF = x; return x; } return getFile(k, t); }) : getFile(k, t)).then(function () { var x = G("mfgo"); if (x) { x.disabled = false; x.classList.remove("wait"); } },
       function () { setTimeout(function () { var x = G("mfgo"); if (x && !G("mfgate").classList.contains("off")) ready(); }, 1500); });
   }
   function send(f) {
@@ -241,11 +273,304 @@
     ok();
   }
 
+  /* ---- the child's own face (13 Nov 2026) ----
+     For a drawing with face.json (T is for Tiger for now), a photo of the child's own drawing replaces the drawn face
+     in all three films. face.json was worked out from the films themselves: for every frame, where the drawn face is
+     (an affine map from the face's own picture to the frame), how the light falls on it, and which bits of the scene
+     are in front of it (the flower, the butterfly, the rock, dizzy stars) as small masks.
+     Each frame: the film frame, then a paper-coloured cut-out over the old face (so none of it peeks out), then the
+     child's face (cut out of the paper by the app, sized to cover the old face, lit like the film), then the bits of
+     the scene that are in front of the face, copied back from the film. Nothing leaves the phone.
+     The film with the child's face records itself as it plays (canvas + the film's own sound), so Share sends that. */
+  var FACE = null, FACEDATA = {}, RECD = {}, FACEN = 0;
+  function faceData(k) {
+    var f = FILMS[k]; if (!f || !f.face) return Promise.resolve(null);
+    if (!FACEDATA[k]) FACEDATA[k] = fetch(f.dir + "face.json?v=" + f.face).then(function (r) {
+      if (!r.ok) throw new Error("HTTP " + r.status); return r.json();
+    }).then(function (d) { d.path = silPath(d); return d; }).catch(function () { delete FACEDATA[k]; return null; });
+    return FACEDATA[k];
+  }
+  function silPath(d) {
+    var p = new Path2D(), s = d.sil;
+    for (var i = 0; i < s.length; i += 2) { if (i) p.lineTo(s[i], s[i + 1]); else p.moveTo(s[i], s[i + 1]); }
+    p.closePath(); return p;
+  }
+  function loadImage(src) {
+    return new Promise(function (res, rej) {
+      var u = null;
+      if (typeof src !== "string") { u = URL.createObjectURL(src); }
+      var im = new Image();
+      im.onload = function () { if (u) URL.revokeObjectURL(u); res(im); };
+      im.onerror = function (e) { if (u) URL.revokeObjectURL(u); rej(e); };
+      im.src = u || src;
+    });
+  }
+  /* src: the cut-out photo (a Blob from the camera page, or the photo's address in My drawings) */
+  function setFace(k, src, how) {
+    var id = ++FACEN;
+    FACE = { key: k, t: Date.now(), src: how, id: id, F: null, D: null };
+    var me = FACE;
+    Promise.all([faceData(k), loadImage(src)]).then(function (r) {
+      if (FACE !== me || !r[0]) return;
+      var F = prepFace(r[1], r[0]);
+      if (!F) { FACE = null; return; }
+      me.D = r[0]; me.F = F;
+      posterFace();
+      TYPES.forEach(function (t) { audioBuf(k, t[0]).catch(function () {}); });   /* ready for the recording */
+    }).catch(function () { if (FACE === me) FACE = null; });
+  }
+  function faceOn() { return !!(FACE && FACE.key === KEY && FACE.D && FACE.F && FACE.D[KIND]); }
+  /* the face picture: white-balanced to the film's paper, and placed (scale + centre) so it covers the old face */
+  function prepFace(img, D) {
+    var iw = img.naturalWidth || img.width, ih = img.naturalHeight || img.height;
+    if (!iw || !ih) return null;
+    var sc = Math.min(1, 640 / Math.max(iw, ih)), w = Math.max(1, Math.round(iw * sc)), h = Math.max(1, Math.round(ih * sc));
+    var c = document.createElement("canvas"); c.width = w; c.height = h;
+    var x = c.getContext("2d", { willReadFrequently: true }); x.drawImage(img, 0, 0, w, h);
+    var id = x.getImageData(0, 0, w, h), d = id.data, n = 0, sx = 0, sy = 0, i, L = [];
+    for (var yy = 0; yy < h; yy++) for (var xx = 0; xx < w; xx++) {
+      i = (yy * w + xx) * 4;
+      if (d[i + 3] > 127) { n++; sx += xx; sy += yy; L.push(0.299 * d[i] + 0.587 * d[i + 1] + 0.114 * d[i + 2]); }
+    }
+    if (n < 200) return null;
+    /* the paper inside the drawing = its brightest tenth; make that match the film's paper colour */
+    L.sort(function (a, b) { return a - b; });
+    var thr = L[Math.floor(L.length * 0.9)], pr = 0, pg = 0, pb = 0, pn = 0;
+    for (i = 0; i < d.length; i += 4) {
+      if (d[i + 3] > 127 && 0.299 * d[i] + 0.587 * d[i + 1] + 0.114 * d[i + 2] >= thr) { pr += d[i]; pg += d[i + 1]; pb += d[i + 2]; pn++; }
+    }
+    if (pn) {
+      pr /= pn; pg /= pn; pb /= pn;
+      var P = D.paper, neutral = Math.max(pr, pg, pb) - Math.min(pr, pg, pb) < 40;
+      var cl = function (v) { return Math.max(0.85, Math.min(1.7, v)); };
+      var lum = cl((0.299 * P[0] + 0.587 * P[1] + 0.114 * P[2]) / Math.max(1, 0.299 * pr + 0.587 * pg + 0.114 * pb));
+      var gr = neutral ? cl(P[0] / Math.max(1, pr)) : lum, gg = neutral ? cl(P[1] / Math.max(1, pg)) : lum, gb = neutral ? cl(P[2] / Math.max(1, pb)) : lum;
+      if (Math.abs(gr - 1) > 0.02 || Math.abs(gg - 1) > 0.02 || Math.abs(gb - 1) > 0.02) {
+        for (i = 0; i < d.length; i += 4) { d[i] = Math.min(255, d[i] * gr); d[i + 1] = Math.min(255, d[i + 1] * gg); d[i + 2] = Math.min(255, d[i + 2] * gb); }
+        x.putImageData(id, 0, 0);
+      }
+    }
+    /* a thin paper edge all round, as if it was cut out with scissors; it also helps hide the old face's edges */
+    var P2 = D.paper, r = Math.max(3, Math.round(0.022 * Math.max(w, h))), pw = w + 2 * r + 2, ph = h + 2 * r + 2;
+    var sil = document.createElement("canvas"); sil.width = w; sil.height = h;
+    var sx2 = sil.getContext("2d"); sx2.drawImage(c, 0, 0); sx2.globalCompositeOperation = "source-in";
+    sx2.fillStyle = "rgb(" + P2[0] + "," + P2[1] + "," + P2[2] + ")"; sx2.fillRect(0, 0, w, h);
+    var c2 = document.createElement("canvas"); c2.width = pw; c2.height = ph;
+    var x2 = c2.getContext("2d", { willReadFrequently: true });
+    for (var ring = 0.5; ring <= 1.001; ring += 0.5) for (var an = 0; an < 24; an++) {
+      x2.drawImage(sil, r + 1 + Math.cos(an * Math.PI / 12) * r * ring, r + 1 + Math.sin(an * Math.PI / 12) * r * ring);
+    }
+    x2.drawImage(c, r + 1, r + 1);
+    c = c2; w = pw; h = ph;
+    var d2 = x2.getImageData(0, 0, w, h).data; n = 0; sx = 0; sy = 0;
+    for (yy = 0; yy < h; yy++) for (xx = 0; xx < w; xx++) if (d2[(yy * w + xx) * 4 + 3] > 127) { n++; sx += xx; sy += yy; }
+    var cx = sx / n, cy = sy / n, s0 = Math.sqrt(D.area / n);
+    /* size and place it so it covers the old face: the smallest size (up to 50% bigger) that, nudged a little,
+       covers at least 98.5% of it; checked on a small grid */
+    var q = 0.25, RW = Math.ceil(D.W * q), RH = Math.ceil(D.H * q), PAD = 6, GW = RW + 2 * PAD, GH = RH + 2 * PAD;
+    var g = document.createElement("canvas"); g.width = GW; g.height = GH;
+    var gx = g.getContext("2d", { willReadFrequently: true });
+    gx.setTransform(q, 0, 0, q, PAD, PAD); gx.fillStyle = "#000"; gx.fill(D.path);
+    var refd = gx.getImageData(0, 0, GW, GH).data, refi = [];
+    for (i = 3; i < refd.length; i += 4) if (refd[i] > 127) refi.push((i - 3) >> 2);
+    var best = { k: 1.5, dx: 0, dy: 0, cov: -1 };
+    for (var k = 1; k <= 1.5001 && best.cov < 0.985; k += 0.05) {
+      var s = s0 * k;
+      gx.setTransform(1, 0, 0, 1, 0, 0); gx.clearRect(0, 0, GW, GH);
+      gx.setTransform(q * s, 0, 0, q * s, PAD + q * (D.c[0] - s * cx), PAD + q * (D.c[1] - s * cy));
+      gx.drawImage(c, 0, 0);
+      var cd = gx.getImageData(0, 0, GW, GH).data;
+      for (var ddy = -4; ddy <= 4; ddy++) for (var ddx = -4; ddx <= 4; ddx++) {
+        var both = 0;
+        for (var m = 0; m < refi.length; m++) {
+          var pi = refi[m], px = pi % GW - ddx, py = (pi / GW | 0) - ddy;
+          if (px >= 0 && py >= 0 && px < GW && py < GH && cd[(py * GW + px) * 4 + 3] > 127) both++;
+        }
+        var cov = both / Math.max(1, refi.length), pen = (Math.abs(ddx) + Math.abs(ddy)) * 0.0004;
+        if (cov - pen > best.cov) best = { k: k, dx: ddx / q, dy: ddy / q, cov: cov - pen };
+      }
+    }
+    return { img: c, s: s0 * best.k, cx: cx - best.dx / (s0 * best.k), cy: cy - best.dy / (s0 * best.k), cov: best.cov, tint: null, tk: "" };
+  }
+  /* the face lit like the film: multiplied by the frame's light (only ever darker; the films never get brighter
+     than the frame the face was measured on, give or take a few per cent) */
+  function tinted(F, r, g, b) {
+    r = Math.min(1, r); g = Math.min(1, g); b = Math.min(1, b);
+    if (r > 0.985 && g > 0.985 && b > 0.985) return F.img;
+    var k = Math.round(r * 50) + "," + Math.round(g * 50) + "," + Math.round(b * 50);
+    if (F.tk === k && F.tint) return F.tint;
+    var c = F.tint || document.createElement("canvas");
+    c.width = F.img.width; c.height = F.img.height;
+    var x = c.getContext("2d");
+    x.globalCompositeOperation = "source-over"; x.clearRect(0, 0, c.width, c.height); x.drawImage(F.img, 0, 0);
+    x.globalCompositeOperation = "multiply";
+    x.fillStyle = "rgb(" + Math.round(r * 255) + "," + Math.round(g * 255) + "," + Math.round(b * 255) + ")";
+    x.fillRect(0, 0, c.width, c.height);
+    x.globalCompositeOperation = "destination-in"; x.drawImage(F.img, 0, 0);
+    x.globalCompositeOperation = "source-over";
+    F.tint = c; F.tk = k; return c;
+  }
+  /* a small mask (half the face picture's size), run-length coded: 0s and 1s alternating, starting with 0s */
+  function occMask(o) {
+    if (o.__c) return o.__c;
+    var w = o.b[2], h = o.b[3], c = document.createElement("canvas"); c.width = w; c.height = h;
+    var x = c.getContext("2d"), id = x.createImageData(w, h), d = id.data, p = 0, on = 0, r = o.r;
+    for (var i = 0; i < r.length; i++) {
+      var n = r[i];
+      if (on) for (var j = 0; j < n; j++) d[(p + j) * 4 + 3] = 255;
+      p += n; on = 1 - on;
+    }
+    x.putImageData(id, 0, 0); o.__c = c; return c;
+  }
+  var SCR = null;
+  /* one frame: e = [a, b, c, d, e, f, red, green, blue light, mask index] from face.json */
+  function compose(ctx, src, sw, sh, e, D, occs, F) {
+    ctx.setTransform(1, 0, 0, 1, 0, 0);
+    ctx.globalCompositeOperation = "source-over";
+    ctx.drawImage(src, 0, 0, sw, sh);
+    if (!e || !F || !D) return;
+    var a = e[0], b = e[1], c = e[2], d = e[3], ee = e[4], f = e[5];
+    ctx.setTransform(a, d, b, ee, c, f);
+    var r = Math.min(1, e[6]), g = Math.min(1, e[7]), bl = Math.min(1, e[8]);
+    ctx.fillStyle = "rgb(" + Math.round(D.paper[0] * r) + "," + Math.round(D.paper[1] * g) + "," + Math.round(D.paper[2] * bl) + ")";
+    ctx.fill(D.path);
+    ctx.save();
+    ctx.transform(F.s, 0, 0, F.s, D.c[0] - F.s * F.cx, D.c[1] - F.s * F.cy);
+    ctx.drawImage(tinted(F, e[6], e[7], e[8]), 0, 0);
+    ctx.restore();
+    var o = e[9] >= 0 && occs ? occs[e[9]] : null;
+    if (!o) return;
+    var bx = o.b[0] * 2, by = o.b[1] * 2, bw = o.b[2] * 2, bh = o.b[3] * 2, det = a * ee - b * d;
+    if (!det) return;
+    if (!SCR) SCR = document.createElement("canvas");
+    if (SCR.width < bw) SCR.width = bw;
+    if (SCR.height < bh) SCR.height = bh;
+    var ox = SCR.getContext("2d");
+    ox.setTransform(1, 0, 0, 1, 0, 0); ox.globalCompositeOperation = "source-over"; ox.clearRect(0, 0, bw, bh);
+    /* the film frame mapped back into the face picture's own space, just this box */
+    var i00 = ee / det, i01 = -b / det, i02 = (b * f - ee * c) / det, i10 = -d / det, i11 = a / det, i12 = (d * c - a * f) / det;
+    ox.setTransform(i00, i10, i01, i11, i02 - bx, i12 - by);
+    ox.drawImage(src, 0, 0, sw, sh);
+    ox.setTransform(1, 0, 0, 1, 0, 0);
+    ox.globalCompositeOperation = "destination-in";
+    ox.drawImage(occMask(o), 0, 0, bw, bh);
+    ox.globalCompositeOperation = "source-over";
+    ctx.drawImage(SCR, 0, 0, bw, bh, bx, by, bw, bh);
+  }
+  /* the picker's picture with the child's face on it */
+  function posterFace() {
+    var cv = G("mfpcv"); if (!cv) return;
+    var on = !!(FACE && FACE.key === KEY && FACE.D && FACE.F && FACE.D.poster);
+    cv.classList.toggle("off", !on);
+    if (!on) return;
+    var f = FILMS[KEY], P = FACE.D.poster, me = FACE;
+    loadImage(f.dir + "poster.jpg?v=" + f.v).then(function (im) {
+      if (FACE !== me) return;
+      cv.width = P.w; cv.height = P.h;
+      compose(cv.getContext("2d"), im, P.w, P.h, P.A.concat(P.g, [P.o ? 0 : -1]), FACE.D, P.o ? [P.o] : null, FACE.F);
+    }).catch(function () {});
+  }
+  /* playing: every film frame is drawn with the face, in step with the video */
+  var RVF = 0, RAFI = 0, LASTK = -1;
+  function drawNow(v) {
+    if (!faceOn()) return;
+    var cv = G("mfcv"), D = FACE.D, tr = D[KIND];
+    if (v.videoWidth && (cv.width !== v.videoWidth || cv.height !== v.videoHeight)) { cv.width = v.videoWidth; cv.height = v.videoHeight; }
+    var t = v.__mt != null ? v.__mt : v.currentTime, k = Math.max(0, Math.round(t * (D.fps || 30)));
+    var e = tr.f[k] || null;
+    compose(cv.getContext("2d"), v, cv.width, cv.height, e, D, tr.o, FACE.F);
+    LASTK = k;
+  }
+  function drawStart(v) {
+    drawStop();
+    if (v.requestVideoFrameCallback) {
+      var cb = function (now, meta) { v.__mt = meta && meta.mediaTime != null ? meta.mediaTime : null; drawNow(v); RVF = v.requestVideoFrameCallback(cb); };
+      RVF = v.requestVideoFrameCallback(cb);
+      v.__rvf = true;
+    } else {
+      var loop = function () { v.__mt = null; if (!v.paused || LASTK < 0) drawNow(v); RAFI = requestAnimationFrame(loop); };
+      RAFI = requestAnimationFrame(loop);
+    }
+  }
+  function drawStop() {
+    var w = G("mfplay"), v = w && w.querySelector("video");
+    if (RVF && v && v.cancelVideoFrameCallback) { try { v.cancelVideoFrameCallback(RVF); } catch (e) {} }
+    if (RAFI) cancelAnimationFrame(RAFI);
+    RVF = 0; RAFI = 0; LASTK = -1;
+    if (v) v.__mt = null;
+  }
+  /* ---- recording the film with the face, so it can be shared ---- */
+  var AC = null, AUD = {}, AUDB = {}, REC = null, ARM = false, PEND = {};
+  function actx(wake) {
+    if (!AC) { var C = window.AudioContext || window.webkitAudioContext; if (C) { try { AC = new C(); } catch (e) { AC = null; } } }
+    if (AC && wake && AC.state === "suspended") { try { AC.resume(); } catch (e) {} }
+    return AC;
+  }
+  function audioBuf(k, t) {
+    var f = FILMS[k], id = k + "/" + t + "/" + (f && f.v);
+    if (!f) return Promise.reject(new Error("no film"));
+    if (!AUD[id]) AUD[id] = fetch(f.dir + t + ".m4a?v=" + f.v).then(function (r) {
+      if (!r.ok) throw new Error("HTTP " + r.status); return r.arrayBuffer();
+    }).then(function (ab) {
+      var a = actx(false); if (!a) throw new Error("no audio");
+      return new Promise(function (res, rej) { var p = a.decodeAudioData(ab, res, rej); if (p && p.then) p.then(res, rej); });
+    }).then(function (buf) { AUDB[id] = buf; return buf; });
+    AUD[id].catch(function () { delete AUD[id]; });
+    return AUD[id];
+  }
+  function recArm() { recDrop(); ARM = true; }
+  function recPlaying(v) {
+    if (REC && REC.paused) { try { if (AC) AC.resume(); REC.mr.resume(); } catch (e) {} REC.paused = false; return; }
+    if (!ARM || !faceOn()) return;
+    ARM = false;
+    var id = FACE.id + "|" + KIND, f = FILMS[KEY];
+    if (RECD[id] || !window.MediaRecorder) return;
+    var cv = G("mfcv"); if (!cv.captureStream) return;
+    var buf = AUDB[KEY + "/" + KIND + "/" + f.v], a = actx(true); if (!a) return;
+    /* the sound for the recording isn't ready yet (only if a film is tapped the moment the photo is in):
+       hold the film for a moment, then start again with it */
+    if (!buf) {
+      var held = true, kk = KEY, kd = KIND;
+      try { v.pause(); } catch (e) {}
+      var goOn = function () { if (!held) return; held = false; if (KEY === kk && KIND === kd && !G("mfplay").classList.contains("off")) { ARM = !!AUDB[kk + "/" + kd + "/" + f.v]; go(v); } };
+      audioBuf(kk, kd).then(goOn, goOn); setTimeout(goOn, 3000);
+      return;
+    }
+    var st, dest, bs, ty = "", mr;
+    try { st = cv.captureStream(30); dest = a.createMediaStreamDestination(); bs = a.createBufferSource(); bs.buffer = buf; bs.connect(dest); }
+    catch (e) { return; }
+    dest.stream.getAudioTracks().forEach(function (tr) { st.addTrack(tr); });
+    /* H.264 + AAC in MP4 first: what phones' share sheets, Instagram and Save Video take best */
+    var types = ["video/mp4;codecs=avc1.42E01E,mp4a.40.2", "video/mp4;codecs=avc1,mp4a", "video/mp4;codecs=avc1", "video/mp4", "video/webm;codecs=vp9,opus", "video/webm;codecs=vp8,opus", "video/webm"];
+    for (var i = 0; i < types.length; i++) { try { if (MediaRecorder.isTypeSupported(types[i])) { ty = types[i]; break; } } catch (e) {} }
+    try { mr = ty ? new MediaRecorder(st, { mimeType: ty, videoBitsPerSecond: 5000000 }) : new MediaRecorder(st); } catch (e) { return; }
+    var R = { mr: mr, ch: [], st: st, bs: bs, id: id, keep: false, paused: false, name: fileName(KEY, KIND), done: null };
+    PEND[id] = new Promise(function (res) { R.done = res; });
+    mr.ondataavailable = function (e) { if (e.data && e.data.size) R.ch.push(e.data); };
+    mr.onstop = function () {
+      try { R.bs.stop(); } catch (e) {}
+      R.st.getTracks().forEach(function (tr) { try { tr.stop(); } catch (e) {} });
+      if (!R.keep || !R.ch.length) { delete PEND[R.id]; R.done(null); return; }
+      var mt = (mr.mimeType || ty || "video/webm").split(";")[0], blob = new Blob(R.ch, { type: mt });
+      var name = R.name.replace(/\.mp4$/, /mp4/.test(mt) ? ".mp4" : ".webm"), x;
+      try { x = new File([blob], name, { type: mt }); } catch (e) { x = blob; x.name = name; }
+      RECD[R.id] = x; delete PEND[R.id]; R.done(x);
+    };
+    try { mr.start(250); bs.start(0, Math.max(0, v.currentTime)); } catch (e) { return; }
+    REC = R;
+  }
+  /* a hiccup in the download: pause the recording and its sound together, so they stay in step */
+  function recWaiting() { if (REC && !REC.paused) { try { REC.mr.pause(); if (AC) AC.suspend(); } catch (e) {} REC.paused = true; } }
+  function recEnd() { var R = REC; REC = null; ARM = false; if (!R) return; R.keep = true; try { if (AC && AC.state === "suspended") AC.resume(); R.mr.stop(); } catch (e) {} }
+  function recDrop() { var R = REC; REC = null; ARM = false; if (!R) return; R.keep = false; try { R.mr.stop(); } catch (e) {} }
+
   /* the camera button: the existing Make it move with a photo of the child's own drawing, from the button that
      opened the films (the finish screen's, or the one on a photo in My drawings) */
   var SRC = null;
+  var OWNK = null;
   function own() {
     close();
+    OWNK = KEY;
     var b = SRC || G("funbtn");
     if (b && typeof b.onclick === "function") b.onclick.call(b, { stopPropagation: function () {}, preventDefault: function () {} });
   }
@@ -257,7 +582,27 @@
     var k = b.id === "funbtn" ? curKey() : b.getAttribute("data-key");
     if (!k || !FILMS[k]) return;
     e.preventDefault(); e.stopPropagation(); e.stopImmediatePropagation();
-    SRC = b; open(k);
+    SRC = b;
+    /* a face borrowed from My drawings doesn't follow you back to a finish screen */
+    if (b.id === "funbtn" && FACE && FACE.src === "md") FACE = null;
+    if (b.classList.contains("mdxmim") && FILMS[k].face) {
+      var vw = b.closest(".mdview"), im = vw && vw.querySelector("img");
+      if (im && im.src) setFace(k, im.src, "md");
+    }
+    open(k);
   }, true);
-  window.__mimFilms = { films: FILMS, open: open, close: close, play: play };
+  /* Back on the blank camera page (opened from the films' camera button) returns to the films */
+  document.addEventListener("click", function (e) {
+    var b = e.target && e.target.closest && e.target.closest("#mimback");
+    if (!b || !OWNK) return;
+    var k = OWNK; OWNK = null;
+    setTimeout(function () { open(k); }, 0);
+  }, true);
+  window.__mimFilms = {
+    films: FILMS, open: open, close: close, play: play,
+    /* used by the app's camera page: a drawing whose films can wear the child's own face */
+    hasFace: function (k) { return !!(FILMS[k] && FILMS[k].face); },
+    withFace: function (k, blob) { OWNK = null; SRC = null; setFace(k, blob, "cam"); open(k); },
+    _face: function () { return FACE; }, _rec: function () { return RECD; }
+  };
 })();

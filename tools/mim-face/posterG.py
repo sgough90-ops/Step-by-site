@@ -1,0 +1,30 @@
+import cv2, numpy as np, json, sys
+sys.argv=['x']
+exec(open('exportE.py').read().split("out={}")[0])   # reuse helpers (frame_data, pack_occ, med, mask...)
+P=cv2.imread('/home/claude/step-by-site/public/mim-films/dx_tiger_t/poster.jpg')
+P2=cv2.resize(P,(720,1280),interpolation=cv2.INTER_CUBIC)
+medu=med.astype(np.uint8)
+mask_er8=(cv2.erode(mask,np.ones((5,5),np.uint8))*255).astype(np.uint8)
+sift=cv2.SIFT_create(nfeatures=5000)
+kt,dt=sift.detectAndCompute(cv2.cvtColor(medu,cv2.COLOR_BGR2GRAY),mask_er8)
+g=cv2.cvtColor(P2,cv2.COLOR_BGR2GRAY)
+kf,df=sift.detectAndCompute(g,None)
+bf=cv2.BFMatcher(cv2.NORM_L2)
+m=bf.knnMatch(dt,df,k=2);good=[a for a,b in m if a.distance<0.75*b.distance]
+src=np.float32([kt[a.queryIdx].pt for a in good]);dst=np.float32([kf[a.trainIdx].pt for a in good])
+A0,inl=cv2.estimateAffine2D(src,dst,method=cv2.RANSAC,ransacReprojThreshold=3)
+print('poster inliers',inl.sum())
+refg=cv2.cvtColor(medu,cv2.COLOR_BGR2GRAY).astype(np.float32)
+cc,A=cv2.findTransformECCWithMask(refg,g.astype(np.float32),mask_er8,np.full(g.shape,255,np.uint8),A0.astype(np.float32),cv2.MOTION_AFFINE,(cv2.TERM_CRITERIA_EPS|cv2.TERM_CRITERIA_COUNT,80,1e-6),5)
+print('ecc cc',cc)
+gn,occ=frame_data(P2,A)
+p=pack_occ(occ)
+S=np.diag([0.75,0.75,1.0])
+Ap=(S@np.vstack([A,[0,0,1]]))[:2]   # face ref -> poster px
+a=Ap.ravel().tolist()
+res={'A':[round(a[0],5),round(a[1],5),round(a[2],2),round(a[3],5),round(a[4],5),round(a[5],2)],'g':[round(float(gn[2]),3),round(float(gn[1]),3),round(float(gn[0]),3)],'o':p,'w':540,'h':960}
+json.dump(res,open('poster_track.json','w'))
+print(res['A'],res['g'],'occ' ,occ.sum())
+v=P2.copy();E=cv2.warpAffine(cv2.Canny(cv2.cvtColor(medu,cv2.COLOR_BGR2GRAY),80,160),A,(720,1280),flags=cv2.INTER_NEAREST);v[E>0]=(255,0,255)
+O=cv2.warpAffine(occ.astype(np.uint8)*255,A,(720,1280),flags=cv2.INTER_NEAREST);v[O>0]=(255,255,0)
+cv2.imwrite('poster_vis.jpg',cv2.resize(v,(360,640)))
