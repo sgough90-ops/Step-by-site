@@ -8,7 +8,7 @@
 var G=function(i){return document.getElementById(i)};
 var st=document.createElement('style');st.id='sbx1113steps';st.textContent=[
  'body.sbdraw #vw #vbs{display:none!important}',
- 'body.sbdraw #vw #vpv{display:block!important;top:12px!important;right:12px!important;left:auto!important;width:clamp(84px,24vw,150px)!important;height:clamp(84px,24vw,150px)!important;background:#fff!important;border-radius:16px!important;box-shadow:0 0 0 2px #081130,0 3px 0 2px #081130!important;z-index:3}',
+ 'body.sbdraw #vw #vpv{display:block!important;top:12px!important;right:12px!important;left:auto!important;width:clamp(84px,24vw,150px)!important;height:clamp(84px,24vw,150px)!important;background:#fff!important;border-radius:16px!important;border:1.5px solid #081130!important;box-shadow:0 2px 6px rgba(8,17,48,.15)!important;z-index:3}',
  '#vttl{display:none}',
  'body.sbdraw #vw #vttl{display:block;margin:2px 16px 6px;text-align:center;font-weight:800;font-size:clamp(1.25rem,5.6vw,1.9rem);line-height:1.15;color:#081130;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}'
 ].join('\n');
