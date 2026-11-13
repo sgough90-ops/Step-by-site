@@ -14,7 +14,11 @@
     dx_digger_d: { dir: "mim-films/dx_digger_d/", v: "2", name: "digger" },   /* v2: ends on the Step by Draw end page */
     /* 12 Nov 2026 (evening): the felt tiger from a 4-year-old's T is for Tiger, with the founder's voices and
        Claude's own comedy tunes played on sampled instruments (TimGM6mb sound set, GPL-2) */
-    dx_tiger_t: { dir: "mim-films/dx_tiger_t/", v: "2", name: "tiger" }   /* v2: ends on the app's Step by Draw end page */
+    dx_tiger_t: { dir: "mim-films/dx_tiger_t/", v: "2", name: "tiger" }   /* v2: ends on the app's Step by Draw end page */,
+    /* 13 Nov 2026: a is for ambulance, drawn as a child would colour it, on the founder's street. Silly slot = Icy rush
+       (a call on a snowy night, it slips on the ice), Wonky slot = Rainy day (sad, soggy, through puddles),
+       Starring role = the teddy rescue. Founder's voices; Claude's stand-in tunes (TimGM6mb, GPL-2) */
+    dx_ambulance_a: { dir: "mim-films/dx_ambulance_a/", v: "1", name: "ambulance" }
   };
   var TYPES = [["silly", "Silly film"], ["wonky", "Wonky film"], ["star", "Starring role film"]];
   var NAVY = "#081130";
