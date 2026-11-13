@@ -1,5 +1,5 @@
 /* 12 Nov 2026: Make it move films.
-   A drawing that has ready-made felt-toy films (D is for Digger and T is for Tiger for now) gets a film picker when its
+   A drawing that has ready-made films (D is for Digger, T is for Tiger, a is for ambulance for now) gets a film picker when its
    Make it move button is tapped: Silly, Wonky and Starring role, plus the camera button for the existing
    Make it move with a photo of your own drawing. Icons only, no words on screen.
    Drawings without films keep the Make it move button exactly as before.
@@ -12,9 +12,13 @@
   "use strict";
   var FILMS = {
     dx_digger_d: { dir: "mim-films/dx_digger_d/", v: "2", name: "digger" },   /* v2: ends on the Step by Draw end page */
-    /* 12 Nov 2026 (evening): the felt tiger from a 4-year-old's T is for Tiger, with the founder's voices and
-       Claude's own comedy tunes played on sampled instruments (TimGM6mb sound set, GPL-2) */
-    dx_tiger_t: { dir: "mim-films/dx_tiger_t/", v: "2", name: "tiger" }   /* v2: ends on the app's Step by Draw end page */,
+    /* 13 Nov 2026: T is for Tiger, remade: a real tigress body (ChatGPT photos, cut out of green) wearing the
+       4-year-old's drawn face, with drawn props (butterfly, flower, rock, sun). Silly = sneezes a flower bald and
+       hiccups into the sky; Wonky = the lame chase (pounces an inch, tiny "rawr", the butterfly roars back);
+       Starring role = the dawn roar that wakes the jungle. Founder's voices (incl. his tiger sounds); Claude's
+       stand-in tunes on sampled instruments (TimGM6mb, GPL-2) until licensed music is chosen.
+       v3 replaces the felt-tiger films (v2). */
+    dx_tiger_t: { dir: "mim-films/dx_tiger_t/", v: "3", name: "tiger" },
     /* 13 Nov 2026: a is for ambulance, drawn as a child would colour it, on the founder's street. Silly slot = Icy rush
        (a call on a snowy night, it slips on the ice), Wonky slot = Rainy day (sad, soggy, through puddles),
        Starring role = the teddy rescue. Founder's voices; Claude's stand-in tunes (TimGM6mb, GPL-2) */
