@@ -5433,9 +5433,8 @@ function build(){if(G("mim"))return;var s=document.createElement("section");s.id
  s.innerHTML='<div class="shtop"><button class="round" id="mimback" aria-label="Back">'+IC.back+'</button><div class="shlogo" id="mimlogo"></div><div class="shsp"></div></div>'+
  '<div class="mimbody"><button class="mimcard app" id="mimcard" aria-label="Take a photo of your drawing"><img id="mimimg" alt=""><span class="mimcam"><i>'+IC.cam+'</i><span>Take a photo of yours</span></span></button>'+
  '<div class="mimmodes"><button class="mimm" data-m="silly" aria-label="Silly">'+IC.silly+'<span>Silly</span></button><button class="mimm" data-m="cool" aria-label="Cool">'+IC.cool+'<span>Cool</span></button></div></div>'+
- /* TEMP-PHOTO-LIBRARY (12 Nov 2026, testing only): "capture" is left off so a phone offers Photo Library as well as the camera.
-    REMOVE BEFORE THE APP GOES LIVE: put capture="environment" back on this input so the camera opens straight away. */
- '<input id="mimfile" type="file" accept="image/*" hidden aria-hidden="true" tabindex="-1">';
+ /* 13 Nov 2026: capture="environment" is back on, so the camera button opens the camera straight away */
+ '<input id="mimfile" type="file" accept="image/*" capture="environment" hidden aria-hidden="true" tabindex="-1">';
  G("app").appendChild(s);
  G("mimback").onclick=closeMim;
  G("mimcard").onclick=function(){cam()};
@@ -5447,9 +5446,10 @@ function paint(){var c=G("mimcard"),im=G("mimimg");if(!c)return;var own=!!OWN;c.
 function show(){[].forEach.call(document.querySelectorAll(".conf"),function(e){e.remove()});var d=G("dn");if(d)d.classList.add("hide");G("mim").classList.remove("hide")}
 function latestMake(k){var M=window.__showTest&&window.__showTest.makes;if(!M)return Promise.resolve(null);try{return M.all().then(function(a){return a.filter(function(o){return o.key===k&&o.kind==="img"&&o.blob}).sort(function(p,q){return q.t-p.t})[0]||null}).catch(function(){return null})}catch(e){return Promise.resolve(null)}}
 /* 7 Nov 2026: one tap plays the Exciting story straight away (the photo is taken first if there is none yet) */
-function openMim(){refresh();if(!KEY)return;build();if(OWN){paint();go("cool");return}var k=KEY;latestMake(k).then(function(x){if(k!==KEY)return;if(x&&!OWN){OWN=x.blob;OWNURL=URL.createObjectURL(x.blob)}if(OWN){paint();go("cool")}else cam()})}
+/* 13 Nov 2026: Make it move always opens on a blank page with the camera button (an earlier photo is no longer shown or replayed; it stays in My drawings) */
+function openMim(){refresh();if(!KEY)return;build();dropOwn();paint();show()}
 function isPhone(){var u=navigator.userAgent||"";if(/CrOS/.test(u))return false;return /iPhone|iPad|iPod|Android/.test(u)||(/Macintosh/.test(u)&&navigator.maxTouchPoints>1)}
-function cam(){var C=window.SBCam;if(!C||isPhone()){build();paint();show();G("mimfile").click();return}C.open({onPhoto:function(bl){build();paint();show();usePhoto(bl)}})}
+function cam(){var C=window.SBCam;if(!C||isPhone()){build();dropOwn();paint();show();G("mimfile").click();return}C.open({onPhoto:function(bl){build();paint();show();usePhoto(bl)}})}
 function closeMim(){var m=G("mim");if(m)m.classList.add("hide");var d=G("dn");if(d)d.classList.remove("hide")}
 
 /* photo in: cut out of the paper by the Step by Show code and kept in "My makes", tagged with this project */
