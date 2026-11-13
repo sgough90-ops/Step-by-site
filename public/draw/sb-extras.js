@@ -249,7 +249,7 @@ function closeView(){[].forEach.call(document.querySelectorAll('#mydraw .mdview'
 var VIEWSTAR=false;
 function view(o,key){closeView();var v=document.createElement('div');v.className='mdview mdv1';
  var all=key?(BY[key]||[]):[],on=key&&chosen(key,all).id===o.id,mv=!!(key&&canMove()),many=all.length>1;
- v.innerHTML='<img src="'+url(o)+'" alt=""><div class="mdvb">'+(many?'<button class="round mdxall" type="button" aria-label="All '+all.length+' drawings">'+IC.pics+'<span class="mdxn" aria-hidden="true">'+all.length+'</span></button>':'')+(key&&VIEWSTAR?'<button class="mdxstar'+(on?' on':'')+'" aria-label="Show this one for the letter" aria-pressed="'+(on?'true':'false')+'">'+IC.star+'</button>':'')+(mv?'<button class="mdxmim" type="button" aria-label="Make it move">'+IC.mim+'</button>':'')+'<button class="round" aria-label="Close">'+IC.x+'</button></div>';
+ v.innerHTML='<img src="'+url(o)+'" alt=""><div class="mdvb">'+(many?'<button class="round mdxall" type="button" aria-label="All '+all.length+' drawings">'+IC.pics+'<span class="mdxn" aria-hidden="true">'+all.length+'</span></button>':'')+(key&&VIEWSTAR?'<button class="mdxstar'+(on?' on':'')+'" aria-label="Show this one for the letter" aria-pressed="'+(on?'true':'false')+'">'+IC.star+'</button>':'')+(mv?'<button class="mdxmim" type="button" data-key="'+esc(key)+'" aria-label="Make it move">'+IC.mim+'</button>':'')+'<button class="round" aria-label="Close">'+IC.x+'</button></div>';
  v.onclick=function(){v.remove()};
  var a=v.querySelector('.mdxall');if(a)a.onclick=function(e){e.stopPropagation();openAll(key)};
  var s=v.querySelector('.mdxstar');if(s)s.onclick=function(e){e.stopPropagation();setStar(key,o.id);v.remove();draw()};
