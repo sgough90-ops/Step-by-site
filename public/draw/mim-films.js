@@ -15,7 +15,7 @@
 (function () {
   "use strict";
   var FILMS = {
-    dx_digger_d: { dir: "mim-films/dx_digger_d/", v: "2", name: "digger" },   /* v2: ends on the Step by Draw end page */
+    dx_digger_d: { dir: "mim-films/dx_digger_d/", v: "3", name: "digger" },   /* v2: ends on the Step by Draw end page */
     /* 13 Nov 2026: T is for Tiger, remade: a real tigress body (ChatGPT photos, cut out of green) wearing the
        4-year-old's drawn face, with drawn props (butterfly, flower, rock, sun). Silly = sneezes a flower bald and
        hiccups into the sky; Wonky = the lame chase (pounces an inch, tiny "rawr", the butterfly roars back);
@@ -24,11 +24,11 @@
        v3 replaces the felt-tiger films (v2). */
     /* 13 Nov 2026 (later): face.json lets the child's own photographed face replace the drawn one in all three films
        (see "the child's own face" below); silly.m4a etc. are the films' sound for the shareable recording */
-    dx_tiger_t: { dir: "mim-films/dx_tiger_t/", v: "3", name: "tiger", face: "1" },
+    dx_tiger_t: { dir: "mim-films/dx_tiger_t/", v: "4", name: "tiger", face: "1" },
     /* 13 Nov 2026: a is for ambulance, drawn as a child would colour it, on the founder's street. Silly slot = Icy rush
        (a call on a snowy night, it slips on the ice), Wonky slot = Rainy day (sad, soggy, through puddles),
        Starring role = the teddy rescue. Founder's voices; Claude's stand-in tunes (TimGM6mb, GPL-2) */
-    dx_ambulance_a: { dir: "mim-films/dx_ambulance_a/", v: "1", name: "ambulance" }
+    dx_ambulance_a: { dir: "mim-films/dx_ambulance_a/", v: "2", name: "ambulance" }
   };
   var TYPES = [["silly", "Silly film"], ["wonky", "Wonky film"], ["star", "Starring role film"]];
   var NAVY = "#081130";
@@ -76,8 +76,9 @@
     "#mfpick .mfprev img.off{visibility:hidden}" +
     "#mfpick .mfcam.again{animation:mfno .5s}" +
     "@keyframes mfno{0%,100%{translate:0}25%{translate:-8px}75%{translate:8px}}" +
-    /* the film ends on the cream Step by Draw end page, so the screen around it turns cream too */
-    "#mfplay.done,#mfplay.done video{background:#fff6e0}" +
+    /* the film ends on the Step by Draw end page (13 Nov 2026: sky-blue coloured pencil, "Free \u00b7 No ads \u00b7 No sign-up" at the top,
+       the founder's "Wahey!" and a soft whoosh), so the screen around it turns that blue too */
+    "#mfplay.done,#mfplay.done video{background:#bbddf8}" +
     "#mfplay .mfx{position:absolute;left:max(14px,env(safe-area-inset-left));top:max(14px,env(safe-area-inset-top))}" +
     "#mfplay .mfend{position:absolute;left:0;right:0;bottom:0;display:flex;align-items:center;justify-content:center;gap:30px;" +
     "padding:0 max(16px,env(safe-area-inset-right)) max(26px,calc(env(safe-area-inset-bottom) + 12px)) max(16px,env(safe-area-inset-left))}" +
