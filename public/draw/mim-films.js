@@ -19,7 +19,7 @@
 (function () {
   "use strict";
   var FILMS = {
-    dx_digger_d: { dir: "mim-films/dx_digger_d/", v: "3", name: "digger" },   /* v2: ends on the Step by Draw end page */
+    dx_digger_d: { dir: "mim-films/dx_digger_d/", v: "4", name: "digger" },   /* v2: ends on the Step by Draw end page */
     /* 13 Nov 2026: T is for Tiger, remade: a real tigress body (ChatGPT photos, cut out of green) wearing the
        4-year-old's drawn face, with drawn props (butterfly, flower, rock, sun). Silly = sneezes a flower bald and
        hiccups into the sky; Wonky = the lame chase (pounces an inch, tiny "rawr", the butterfly roars back);
@@ -28,11 +28,11 @@
        v3 replaces the felt-tiger films (v2). */
     /* 13 Nov 2026 (later): face.json lets the child's own photographed face replace the drawn one in all three films
        (see "the child's own face" below); silly.m4a etc. are the films' sound for the shareable recording */
-    dx_tiger_t: { dir: "mim-films/dx_tiger_t/", v: "4", name: "tiger", face: "1" },
+    dx_tiger_t: { dir: "mim-films/dx_tiger_t/", v: "5", name: "tiger", face: "1" },
     /* 13 Nov 2026: a is for ambulance, drawn as a child would colour it, on the founder's street. Silly slot = Icy rush
        (a call on a snowy night, it slips on the ice), Wonky slot = Rainy day (sad, soggy, through puddles),
        Starring role = the teddy rescue. Founder's voices; Claude's stand-in tunes (TimGM6mb, GPL-2) */
-    dx_ambulance_a: { dir: "mim-films/dx_ambulance_a/", v: "2", name: "ambulance" }
+    dx_ambulance_a: { dir: "mim-films/dx_ambulance_a/", v: "3", name: "ambulance" }
   };
   var TYPES = [["silly", "Silly film"], ["wonky", "Wonky film"], ["star", "Starring role film"]];
   var NAVY = "#081130";
@@ -80,6 +80,8 @@
     "#mfpick .mfprev img.off{visibility:hidden}" +
     "#mfpick .mfcam.again{animation:mfno .5s}" +
     "@keyframes mfno{0%,100%{translate:0}25%{translate:-8px}75%{translate:8px}}" +
+    /* 14 Nov 2026: the end page's sound is now just a fast pencil scribble as it comes on (the "Wahey!" and whoosh are off)
+       on all nine films; film versions bumped */
     /* the film ends on the Step by Draw end page (13 Nov 2026: sky-blue coloured pencil, "Free \u00b7 No ads \u00b7 No sign-up" at the top,
        the founder's "Wahey!" and a soft whoosh), so the screen around it turns that blue too */
     "#mfplay.done,#mfplay.done video{background:#bbddf8}" +
