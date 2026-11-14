@@ -12,4 +12,4 @@ Since 12 Nov 2026 the site is just Step by Draw:
 - Old Step By (`public/old/`) and Step by Block (`public/block/`) moved to the Steps Forward games site. Their old addresses on step-by.com now go to the Draw home.
 
 ## tools/
-Scripts that are not published (only `public/` is). `tools/mim-face/` made the tiger films' face.json (see its README).
+Scripts that are not published (only `public/` is). `tools/mim-face/` made the tiger films' face.json (see its README). `tools/draw-letters/` builds, checks and adds the Step by Draw letter drawings (see its README).
