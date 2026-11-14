@@ -5462,6 +5462,8 @@ function usePhoto(f){var S=window.__showTest,c=G("mimcard");if(!S||!S.cutout)ret
   cv.toBlob(function(bl){c.classList.remove("busy");if(!bl)return;dropOwn();OWN=bl;OWNURL=URL.createObjectURL(bl);paint();keepMake(bl);
    /* 13 Nov 2026: a drawing whose films can wear the child's own face (T is for Tiger): back to its films, now with this face */
    var MF=window.__mimFilms;if(MF&&MF.hasFace&&MF.hasFace(KEY)){closeMim();MF.withFace(KEY,bl);return}
+   /* 14 Nov 2026: any other drawing with ready-made films (digger, ambulance, beetle): after the photo, on to its films too, so they are on the end of the instructions as well as in My drawings */
+   if(MF&&MF.films&&MF.films[KEY]&&MF.open){closeMim();MF.open(KEY);return}
    go("cool")},"image/png")},30)};
  im.onerror=function(){URL.revokeObjectURL(u);c.classList.remove("busy")};im.src=u}
 function keepMake(bl){var M=window.__showTest&&window.__showTest.makes,k=KEY;if(!M)return;try{M.put({id:"m"+Date.now(),t:Date.now(),key:k,title:title(),prod:"draw",kind:"img",blob:bl}).then(function(){try{window.__showTest.mkButtons()}catch(e){}})}catch(e){}}
