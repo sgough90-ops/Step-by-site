@@ -32,7 +32,12 @@
     /* 13 Nov 2026: a is for ambulance, drawn as a child would colour it, on the founder's street. Silly slot = Icy rush
        (a call on a snowy night, it slips on the ice), Wonky slot = Rainy day (sad, soggy, through puddles),
        Starring role = the teddy rescue. Founder's voices; Claude's stand-in tunes (TimGM6mb, GPL-2) */
-    dx_ambulance_a: { dir: "mim-films/dx_ambulance_a/", v: "3", name: "ambulance" }
+    dx_ambulance_a: { dir: "mim-films/dx_ambulance_a/", v: "3", name: "ambulance" },
+    /* 14 Nov 2026: B is for Beetle, drawn in the child's pencil on the forest floor. Silly slot = Rolling home (rolls a
+       berry round a pebble, the wind blows it away, he ends standing on it), Wonky slot = Boulder push (pushes a pebble,
+       slips in the rain, the sun comes out), Starring role = Climb and fly (climbs a grass stem, wobbles in the wind,
+       flies off at sunset). Founder's voices (Tiny), vidIQ tunes made for these films, the blue end page */
+    dx_bug_b: { dir: "mim-films/dx_bug_b/", v: "1", name: "beetle" }
   };
   var TYPES = [["silly", "Silly film"], ["wonky", "Wonky film"], ["star", "Starring role film"]];
   var NAVY = "#081130";
