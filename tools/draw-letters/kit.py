@@ -222,6 +222,89 @@ def cut_at(segs, i, t):
     return segs[:i] + [a], [b] + segs[i + 1:]
 
 
+def xf(segs, f):
+    """The same pieces with every point moved by f(x, y) -> (x, y)."""
+    out = []
+    for s in segs:
+        m = Seg.__new__(Seg); m.p = [P(*f(x, y)) for x, y in s.p]; out.append(m)
+    return out
+
+
+def rot_pt(p, deg, cx=0.0, cy=0.0):
+    c, s_ = math.cos(math.radians(deg)), math.sin(math.radians(deg))
+    return (cx + (p[0] - cx) * c - (p[1] - cy) * s_, cy + (p[0] - cx) * s_ + (p[1] - cy) * c)
+
+
+def rot(segs, deg, cx=0.0, cy=0.0):
+    """Turned by deg degrees about (cx, cy); a plus number turns clockwise on screen."""
+    return xf(segs, lambda x, y: rot_pt((x, y), deg, cx, cy))
+
+
+def shift(segs, dx, dy):
+    return xf(segs, lambda x, y: (x + dx, y + dy))
+
+
+def sub(seg, t0, t1):
+    """The part of one piece between t0 and t1."""
+    b = seg
+    if t0 > 0: _, b = seg.split(t0)
+    if t1 < 1: b, _ = b.split((t1 - t0) / (1 - t0))
+    return b
+
+
+def on(cx, cy, rx, ry, a):
+    """The point at angle a (degrees; 0 = right, 90 = down) on a circle or oval."""
+    return P(cx + rx * math.cos(math.radians(a)), cy + ry * math.sin(math.radians(a)))
+
+
+def ang_of(cx, cy, rx, ry, p):
+    """The angle (0 to 360) of a point on a circle or oval."""
+    return math.degrees(math.atan2((p[1] - cy) / ry, (p[0] - cx) / rx)) % 360
+
+
+def line_oval(a, b, cx, cy, rx, ry):
+    """Where the straight line through a and b meets an oval: a list of (t, point), t = 0 at a and 1 at b."""
+    ax, ay = (a[0] - cx) / rx, (a[1] - cy) / ry; dx, dy = (b[0] - a[0]) / rx, (b[1] - a[1]) / ry
+    A = dx * dx + dy * dy; B = 2 * (ax * dx + ay * dy); C = ax * ax + ay * ay - 1
+    disc = B * B - 4 * A * C
+    assert disc >= 0, 'the line misses the oval'
+    out = []
+    for sg in (-1, 1):
+        t = (-B + sg * math.sqrt(disc)) / (2 * A)
+        out.append((t, P(a[0] + (b[0] - a[0]) * t, a[1] + (b[1] - a[1]) * t)))
+    return out
+
+
+def arc_to(cx, cy, rx, ry, p0, p1, clockwise=True):
+    """The arc of an oval from point p0 to point p1 (both on it), going clockwise on screen or the other way."""
+    a0 = ang_of(cx, cy, rx, ry, p0); a1 = ang_of(cx, cy, rx, ry, p1)
+    if clockwise:
+        while a1 <= a0 + 1e-9: a1 += 360
+    else:
+        while a1 >= a0 - 1e-9: a1 -= 360
+    return arc(cx, cy, rx, ry, a0, a1, start=P(*p0), end=P(*p1))
+
+
+def cloud(circles, start, end, away_from):
+    """A bumpy outline along a row of overlapping circles [(cx, cy, r), ...], from the point start (on the first)
+    to the point end (on the last), keeping to the side away from the point away_from."""
+    def meet(c1, c2):
+        (x1, y1, r1), (x2, y2, r2) = c1, c2
+        d = math.hypot(x2 - x1, y2 - y1); a = (r1 * r1 - r2 * r2 + d * d) / (2 * d); h = math.sqrt(max(0.0, r1 * r1 - a * a))
+        ux, uy = (x2 - x1) / d, (y2 - y1) / d; px, py = x1 + a * ux, y1 + a * uy
+        q1 = (px - h * uy, py + h * ux); q2 = (px + h * uy, py - h * ux)
+        return P(*(q1 if math.dist(q1, away_from) > math.dist(q2, away_from) else q2))
+    pts = [P(*start)] + [meet(circles[i], circles[i + 1]) for i in range(len(circles) - 1)] + [P(*end)]
+    segs = []
+    for i, (cx, cy, r) in enumerate(circles):
+        cw = arc_to(cx, cy, r, r, pts[i], pts[i + 1], True); ccw = arc_to(cx, cy, r, r, pts[i], pts[i + 1], False)
+        def far(sg):
+            m = sg[len(sg) // 2].a if len(sg) % 2 == 0 else sg[len(sg) // 2].at(0.5)
+            return math.dist(m, away_from)
+        segs += cw if far(cw) > far(ccw) else ccw
+    return segs
+
+
 def close(segs):
     """The chain plus a straight line back to its start (for colour outlines of open lines)."""
     return list(segs) + ([Seg(segs[-1].b, segs[0].a)] if segs[-1].b != segs[0].a else [])
@@ -243,11 +326,11 @@ MATS = {
     'pink': ('pencil', 'Pink pencil', '1', '#f783ac'),
     'brown': ('pencil', 'Brown pencil', '1', '#a9713b'),
     'lbrown': ('pencil', 'Light brown pencil', '1', '#d9a066'),
-    'lgreen': ('pencil', 'Light green pencil', '1', '#a9e34b'),
+    'purple': ('pencil', 'Purple pencil', '1', '#9775fa'),
 }
 FILL = {'red': '#ff6b6b', 'yellow': '#ffd43b', 'blue': '#4dabf7', 'lblue': '#a5d8ff', 'green': '#8ad35a',
         'grey': '#c9ced6', 'black': '#4b5058', 'orange': '#ffa94d', 'pink': '#ffa8c8', 'brown': '#c08a5c',
-        'lbrown': '#f2c078', 'lgreen': '#d8f08a'}
+        'lbrown': '#f2c078', 'purple': '#b197fc'}
 
 
 def drawing(key, title, level, minutes, theme, tags, description, steps, pencils):
