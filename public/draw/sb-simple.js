@@ -18,8 +18,10 @@ function bg(url){return 'background-image:url('+url+')!important;background-size
 var CREAM=['#ach','#mydraw','#mdcrop','#fav','#cont','#holo','#grown'].map(function(i){return 'html:root body #app>'+i}).join(',');
 var YEL=['#proj','#vw','#dn','#mt'].map(function(i){return 'html:root body.pcy #app>'+i}).join(',');
 var st=document.createElement('style');st.id='sbx1112simple';st.textContent=[
- 'html:root body{'+bg('img/pencil-cream.webp')+'}',
- CREAM+'{'+bg('img/pencil-cream.webp')+'}',
+ /* 15 Nov 2026: one look everywhere. The home and the other cream pages now use the same Draw yellow and
+    yellow pencil marks as the set pages (the pencil marks barely showed on cream). */
+ 'html:root body{background-color:#fee8af!important;'+bg('img/pencil-yellow.webp')+'}',
+ CREAM+'{background-color:#fee8af!important;'+bg('img/pencil-yellow.webp')+'}',
  YEL+'{'+bg('img/pencil-yellow.webp')+'}',
  'html:root body .scr.shs.pcb{'+bg('img/pencil-blue.webp')+'}',
 /* ================================================================ 3. no Favourites */
@@ -31,7 +33,7 @@ document.body.appendChild(st);
 
 /* the yellow tile only goes on when the set, steps and finish pages are Draw yellow, so any other colour stays as it is */
 function syncY(){try{var pj=G('proj');document.body.classList.toggle('pcy',!!pj&&getComputedStyle(pj).backgroundColor==='rgb(254, 232, 175)')}catch(e){}}
-syncY();
+try{var tc=document.querySelector('meta[name="theme-color"]')||document.head.appendChild(Object.assign(document.createElement('meta'),{name:'theme-color'}));tc.setAttribute('content','#fee8af')}catch(e){} syncY();
 try{var pj0=G('proj');if(pj0&&window.MutationObserver)new MutationObserver(syncY).observe(pj0,{attributes:true,attributeFilter:['style','class']})}catch(e){}
 if(has('showOnly')){var _so=window.showOnly;window.showOnly=function(){var r=_so.apply(this,arguments);syncY();return r}}
 /* the show maker's pages are made as they open; only its light blue ones get the blue tile (the dark play screen stays dark) */
