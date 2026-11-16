@@ -30,7 +30,7 @@ var FONT='-apple-system,BlinkMacSystemFont,"Arial Rounded MT Bold",Arial,sans-se
 
 /* ---------------------------------------------------------------- sets */
 var ORDER=['AZ','az','09'];
-var SLOTS={AZ:'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split(''),az:'abcdefghijklmnopqrstuvwxyz'.split(''),'09':'0123456789'.split('')};
+var SLOTS={AZ:'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split(''),az:'abcdefghijklmnopqrstuvwxyz'.split(''),'09':'123456789'.split('')};
 function sets(){return window.SBSETS||[]}
 function colIn(cat,set){var r=null;cat.cols.forEach(function(c){if(c.set===set)r=c});return r}
 function colById(id){var r=null;sets().forEach(function(cat){cat.cols.forEach(function(c){if(c.id===id)r={c:c,cat:cat}})});return r}
@@ -240,6 +240,8 @@ function head(h,cls){var b=document.querySelector('#mydraw .achtop b');if(!b)ret
 function spacer(h){var s=document.querySelector('#mydraw .achtop .sp');if(s)s.innerHTML=h||''}
 function fit(g){if(!g)return;var n=g.children.length;if(!n)return;var r=g.getBoundingClientRect(),W=r.width,H=r.height,gap=10,best=0,bc=1;if(W<50||H<50)return;
  for(var c=1;c<=8;c++){var rw=Math.ceil(n/c),s=Math.min((W-(c-1)*gap)/c,(H-(rw-1)*gap)/rw);if(s>best+.5){best=s;bc=c}}
+ /* 16 Nov 2026: a full grid looks tidier (the nine numbers as 3 by 3), as long as its tiles are not much smaller */
+ if(n%bc){var fb=0,fc=0;for(c=2;c<=8;c++){if(n%c)continue;rw=n/c;s=Math.min((W-(c-1)*gap)/c,(H-(rw-1)*gap)/rw);if(s>fb){fb=s;fc=c}}if(fc&&fb>=best*.75){best=fb;bc=fc}}
  best=Math.floor(Math.min(best,n<3?300:220));var rr=Math.ceil(n/bc);
  g.style.gridTemplateColumns='repeat('+bc+','+best+'px)';g.style.gridTemplateRows='repeat('+rr+','+best+'px)';g.style.setProperty('--s',best+'px')}
 function refit(){var g=document.querySelector('#mdin .mdxgrid');if(g)fit(g)}
@@ -353,7 +355,7 @@ if(!hookPut()){var hp=0,ht=setInterval(function(){if(hookPut()||++hp>40)clearInt
 /* a finished set as one picture */
 function loadImg(src){return new Promise(function(res){var im=new Image();im.onload=function(){res(im)};im.onerror=function(){res(null)};im.src=src})}
 function rr(g,x,y,w,h,r){g.beginPath();g.moveTo(x+r,y);g.arcTo(x+w,y,x+w,y+h,r);g.arcTo(x+w,y+h,x,y+h,r);g.arcTo(x,y+h,x,y,r);g.arcTo(x,y,x+w,y,r);g.closePath()}
-function posterCanvas(c){var slots=SLOTS[c.set],hs=c.has||{},cols=c.set==='09'?5:6,rn=Math.ceil(slots.length/cols),W=1800,pad=70,gap=26,cell=Math.floor((W-pad*2-gap*(cols-1))/cols),top=320,H=top+rn*cell+(rn-1)*gap+pad;
+function posterCanvas(c){var slots=SLOTS[c.set],hs=c.has||{},cols=c.set==='09'?3:6,rn=Math.ceil(slots.length/cols),W=1800,pad=70,gap=26,cell=Math.floor((W-pad*2-gap*(cols-1))/cols),top=320,H=top+rn*cell+(rn-1)*gap+pad;
  var bu=URL.createObjectURL(new Blob([BADGE[c.set].replace('<svg ','<svg xmlns="http://www.w3.org/2000/svg" width="840" height="360" ')],{type:'image/svg+xml'}));
  var jobs=[loadImg('img/'+c.cv+'.webp'),loadImg(bu)].concat(slots.map(function(s){var L=hs[s]&&BY[hs[s]];return L&&L.length?loadImg(url(chosen(hs[s],L))):Promise.resolve(null)}));
  return Promise.all(jobs).then(function(im){URL.revokeObjectURL(bu);var cv=document.createElement('canvas');cv.width=W;cv.height=H;var g=cv.getContext('2d');

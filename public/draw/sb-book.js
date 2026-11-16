@@ -43,7 +43,7 @@ var KINDS={
   pickOwn:'Tap one drawing for a print of its own, or up to 6 for a family print.',
   spec:'A4 print, 21 \u00d7 29.7 cm',next:'See the print',making:'Making the print'}};
 var KIND=KINDS.book,PCOLS=COLS.concat([{c:CREAM,n:'Cream'}]);
-var ORDER=['AZ','az','09'],SLOTS={AZ:'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split(''),az:'abcdefghijklmnopqrstuvwxyz'.split(''),'09':'0123456789'.split('')};
+var ORDER=['AZ','az','09'],SLOTS={AZ:'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split(''),az:'abcdefghijklmnopqrstuvwxyz'.split(''),'09':'123456789'.split('')};
 
 /* ================================================================ the child's photos (the same stores as My drawings) */
 function getAll(name,os){return new Promise(function(res){try{var r=indexedDB.open(name,1);r.onupgradeneeded=function(){r.result.createObjectStore(os,{keyPath:'id'})};r.onsuccess=function(){try{var q=r.result.transaction(os).objectStore(os).getAll();q.onsuccess=function(){res(q.result||[])};q.onerror=function(){res([])}}catch(e){res([])}};r.onerror=function(){res([])}}catch(e){res([])}})}
@@ -52,7 +52,7 @@ function isPhoto(m){return !!(m&&m.prod==='draw'&&m.kind==='img'&&m.blob)}
 function sets(){return window.SBSETS||[]}
 function titleMap(){var t={};try{projects('draw').forEach(function(p){if(p&&p.key)t[p.key]=p.t||''})}catch(e){}return t}
 /* every set as a book (home screen order), then three more (16 Nov, later): Pick my own (any drawings, none picked to
-   start), All my drawings (everything picked to start) and All the numbers (every 0 to 9 set together, so 27 to 30
+   start), All my drawings (everything picked to start) and All the numbers (every 1 to 9 set together, so up to 27
    drawings: one numbers set alone is too few for a printed hardcover) */
 function loadBooks(){return Promise.all([getAll('stepby-makes','m'),getAll('stepby-drawings','d')]).then(function(r){
  var inSet={};sets().forEach(function(cat){cat.cols.forEach(function(c){var h=c.has||{};Object.keys(h).forEach(function(s){inSet[h[s]]=1})})});
@@ -71,7 +71,7 @@ function loadBooks(){return Promise.all([getAll('stepby-makes','m'),getAll('step
  var nums=[];books.forEach(function(b){if(b.set==='09')b.items.forEach(function(it){nums.push(it)})});
  books.push({id:'own',n:'Pick my own',title:'Drawings',set:'',cv:'',pd:NAVY,kind:'own',items:every,wide:'own',off:true});
  books.push({id:'all',n:'All my drawings',title:'Drawings',set:'',cv:'',pd:NAVY,kind:'all',items:every,wide:'all'});
- books.push({id:'numbers',n:'All the numbers',title:'Numbers',set:'09',cv:'',pd:'#8B5CF6',kind:'numbers',items:nums,wide:'nums',sub:'Every 0 to 9 set together'});
+ books.push({id:'numbers',n:'All the numbers',title:'Numbers',set:'09',cv:'',pd:'#8B5CF6',kind:'numbers',items:nums,wide:'nums',sub:'Every 1 to 9 set together'});
  return books})}
 function memory(){try{return JSON.parse(localStorage.getItem('sbbook')||'{}')||{}}catch(e){return{}}}
 function remember(f){var m=memory();f(m);try{localStorage.setItem('sbbook',JSON.stringify(m))}catch(e){}}
@@ -533,7 +533,7 @@ var PRODUCTS=[
  {id:'print',n:'Drawing print',s:'A4, to fit a standard frame. One drawing, or the whole family on one page.',p:'\u00a314.99',ic:'print',btn:'Make a print'}];
 /* Step by Draw books on Amazon (16 Nov 2026): one book for each A to Z set, and the numbers book. When a book is on sale,
    put its Amazon address in url and its button appears; until then it shows Coming soon. */
-var AMAZON=[{id:'animals-AZ',url:''},{id:'animals-az',url:''},{id:'vehicles-AZ',url:''},{id:'vehicles-az',url:''},{id:'house-AZ',url:''},{id:'house-az',url:''},{id:'numbers',n:'Numbers 0 to 9',url:''}];
+var AMAZON=[{id:'animals-AZ',url:''},{id:'animals-az',url:''},{id:'vehicles-AZ',url:''},{id:'vehicles-az',url:''},{id:'house-AZ',url:''},{id:'house-az',url:''},{id:'numbers',n:'Numbers 1 to 9',url:''}];
 var PIC={
  poster:'<svg viewBox="0 0 64 64" aria-hidden="true"><rect x="12" y="6" width="40" height="52" rx="3" fill="#fff" stroke="#081130" stroke-width="3.2"/><path d="M24 4.5h16" stroke="#FFC531" stroke-width="5" stroke-linecap="round"/>'+
   [[18,14,'#E5392B'],[28,14,'#2F7BF5'],[38,14,'#3FA535'],[18,24,'#FFC531'],[28,24,'#8B5CF6'],[38,24,'#E5392B'],[18,34,'#2F7BF5'],[28,34,'#3FA535'],[38,34,'#FFC531'],[23,44,'#E5392B'],[33,44,'#2F7BF5']].map(function(q){return'<rect x="'+q[0]+'" y="'+q[1]+'" width="8" height="8" rx="1.6" fill="'+q[2]+'"/>'}).join('')+'</svg>',

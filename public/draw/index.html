@@ -7766,7 +7766,7 @@ html body #sstudio #hpills>button{height:58px!important}
 
 <style id="sbsets">
 /* 10 Nov 2026: the 200-drawing library on the home screen. 5 theme icons + All, one shelf of 12 whole sets.
-   Each set tile has a badge: ABC (capital letters), abc (small letters) or 123 (numbers 0 to 9). */
+   Each set tile has a badge: ABC (capital letters), abc (small letters) or 123 (numbers 1 to 9). */
 #sscat{grid-template-columns:repeat(6,minmax(0,1fr))!important;gap:8px!important}
 .ssct{border-radius:18px!important}
 .ssc .sbbd{position:absolute;left:50%;bottom:10px;transform:translateX(-50%);width:62%;max-width:96px;pointer-events:none;filter:drop-shadow(0 3px 0 rgba(8,17,48,.18))}
@@ -7810,21 +7810,21 @@ var IC={
 /* the set badges: the letters or numbers themselves, no words */
 function badge(a,b,c,ca,cb,cc){return'<svg viewBox="0 0 84 36" aria-hidden="true"><rect x="2" y="2" width="80" height="32" rx="16" fill="#fff" stroke="#081130" stroke-width="3"/><text x="42" y="26.5" text-anchor="middle" font-family="-apple-system,BlinkMacSystemFont,\'Arial Rounded MT Bold\',sans-serif" font-weight="900" font-size="22" letter-spacing="1"><tspan fill="'+ca+'">'+a+'</tspan><tspan fill="'+cb+'">'+b+'</tspan><tspan fill="'+cc+'">'+c+'</tspan></text></svg>'}
 var BADGE={AZ:badge('A','B','C','#E5392B','#2F7BF5','#3FA535'),az:badge('a','b','c','#E5392B','#2F7BF5','#3FA535'),'09':badge('1','2','3','#8B5CF6','#EC4899','#14B8A6')};
-var SLOTS={AZ:'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split(''),az:'abcdefghijklmnopqrstuvwxyz'.split(''),'09':'0123456789'.split('')};
+var SLOTS={AZ:'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split(''),az:'abcdefghijklmnopqrstuvwxyz'.split(''),'09':'123456789'.split('')};
 /* themes and sets (cover pictures are stand-ins until the real covers are made) */
 var CATS=[
  {n:'Animals',t:'#cbefeb',d:'#0e8478',cols:[
   {id:'animals-AZ',n:'Animals A to Z',cv:'cov_r_lion',set:'AZ',has:{X:'dx_xrayfish_x',W:'dx_woodpecker_w',V:'dx_vampirebat_v',Q:'dx_quail_q',M:'dx_moth_m',T:'dx_tiger_t',O:'dx_owl_o',R:'dx_reindeer_r',K:'dx_koala_k',I:'dx_insect_i',G:'dx_goldfish_g',F:'dx_flamingo_f',A:'dx_ant_a',B:'dx_bug_b',C:'dx_caterpillar_c',L:'dx_llama_l',P:'dx_parrot_p',S:'dx_seahorse_s',J:'dx_jellyfish_j',H:'dx_heron_h',D:'dx_dove_d'}},
   {id:'animals-az',n:'Animals a to z',cv:'cov_r_monkey',set:'az',has:{w:'dx_wolf_w',t:'dx_toucan_t',s:'dx_swan_s',r:'dx_rooster_r',o:'dx_octopus_o',p:'dx_penguin_p',c:'dx_cat_c',k:'dx_kingfisher_k',i:'dx_iguana_i',j:'dx_jackrussell_j',l:'dx_ladybird_l',e:'dx_emu_e',d:'dx_duck_d',g:'dx_giraffe_g',f:'dx_firefly_f'}},
-  {id:'animals-09',n:'Animals 0 to 9',cv:'cov_r_elephant',set:'09'}]},
+  {id:'animals-09',n:'Animals 1 to 9',cv:'cov_r_elephant',set:'09'}]},
  {n:'Vehicles',t:'#d6ebfb',d:'#2a74b8',cols:[
   {id:'vehicles-AZ',n:'Vehicles A to Z',cv:'cov_r_fire',set:'AZ',has:{S:'dx_submarine_s',Z:'dx_zeppelin_z',U:'dx_ufo_u',P:'dx_pirateship_p',Q:'dx_quadbike_q',M:'dx_monstertruck_m',R:'dx_rocket_r',T:'dx_train_t',G:'dx_gokart_g',L:'dx_lorry_l',J:'dx_jumbojet_j',H:'dx_balloon_h',B:'dx_boat_b',A:'dx_aeroplane_a',D:'dx_digger_d',F:'dn_fireengine',C:'dx_caravan_c'}},
   {id:'vehicles-az',n:'Vehicles a to z',cv:'cov_r_plane',set:'az',has:{w:'dx_wagon_w',q:'dx_quarrytruck_q',t:'dx_tank_t',l:'dx_limo_l',i:'dx_icecreamvan_i',j:'dx_jetboat_j',h:'dx_helicopter_h',d:'dx_dumper_d',f:'dx_fighterjet_f',b:'dx_bus_b',a:'dx_ambulance_a',k:'dx_kayak_k',c:'dx_mixer_c'}},
-  {id:'vehicles-09',n:'Vehicles 0 to 9',cv:'cov_r_fire',set:'09'}]},
+  {id:'vehicles-09',n:'Vehicles 1 to 9',cv:'cov_r_fire',set:'09'}]},
  {n:'Around the house',t:'#ffe2c4',d:'#c46a1a',cols:[
   {id:'house-AZ',n:'Around the house A to Z',cv:'cov_r_teddy',set:'AZ',has:{B:'dx_brother_b',D:'dx_dad_d',M:'dx_mum_m',W:'dx_wellies_w',T:'dx_tap_t',X:'dx_xylophone_x',S:'dx_scarf_s',U:'dx_utensils_u',V:'dx_violin_v',R:'dx_rockinghorse_r',O:'dx_oven_o',J:'dx_jug_j',F:'dx_fireplace_f',L:'dx_lunchbox_l',I:'dx_icecream_i',H:'dx_house_h',G:'dx_gnome_g',C:'dx_croissant_c',A:'dx_apron_a',K:'dx_key_k',E:'dx_plug_e'}},
   {id:'house-az',n:'Around the house a to z',cv:'cov_r_house',set:'az',has:{s:'dx_sister_s',g:'dx_grandad_g',n:'dx_nan_n',t:'dx_toiletroll_t',v:'dx_vegetables_v',w:'dx_wig_w',r:'dx_readinglamp_r',p:'dx_pear_p',m:'dx_mittens_m',j:'dx_jamjar_j',l:'dx_lamp_l',k:'dx_knitting_k',h:'dx_highchair_h',f:'dx_flower_f',c:'dx_cup_c',b:'dx_batball_b',a:'dx_applejuice_a',e:'dx_earphones_e',d:'dx_drums_d'}},
-  {id:'house-09',n:'Around the house 0 to 9',cv:'cov_r_teddy',set:'09'}]}
+  {id:'house-09',n:'Around the house 1 to 9',cv:'cov_r_teddy',set:'09'}]}
 ];
 window.SBSETS=CATS;
 function G(i){return document.getElementById(i)}
@@ -7840,6 +7840,8 @@ function fit(){var g=G('pgrid');if(!g||!COL)return;var n=g.children.length;if(!n
  var r=g.getBoundingClientRect(),W=r.width,H=r.height,gap=10,best=0,bc=4;
  if(W<50||H<50)return;
  for(var c=2;c<=8;c++){var rows=Math.ceil(n/c),s=Math.min((W-(c-1)*gap)/c,(H-(rows-1)*gap)/rows);if(s>best+.5){best=s;bc=c}}
+ /* 16 Nov 2026: a full grid looks tidier (the nine numbers as 3 by 3), as long as its tiles are not much smaller */
+ if(n%bc){var fb=0,fc=0;for(c=2;c<=8;c++){if(n%c)continue;rows=n/c;s=Math.min((W-(c-1)*gap)/c,(H-(rows-1)*gap)/rows);if(s>fb){fb=s;fc=c}}if(fc&&fb>=best*.75){best=fb;bc=fc}}
  best=Math.floor(Math.min(best,200));var rw=Math.ceil(n/bc);
  g.style.gridTemplateColumns='repeat('+bc+','+best+'px)';g.style.gridTemplateRows='repeat('+rw+','+best+'px)';g.style.setProperty('--s',best+'px')}
 /* square picture of the finished drawing, drawn by the app itself (the list's own pictures are wide, so drawings looked small) */
@@ -7972,11 +7974,11 @@ html body #sstudio.wl #hpills>button:not(#showtile) svg,html body #sstudio.wl #h
 <script>(function(){var A={dr_sun:1,dr_fish:1,dr_house:1,dr_icecream:1,dr_turtle:1,dr_ship:1,dr_lighthouse:1,dx_astronaut:1,dx_bee:1,dx_castle:1,dx_elephant:1,dx_fox:1,dx_frog:1,dx_ladybird:1,dx_lion:1,dx_panda:1,dx_parrot:1,dx_robot:1,dx_unicorn:1,dm_cyclops:1,dm_stalky:1,dm_blob:1,dm_fuzzy:1,dm_spotter:1,dm_curly:1,dm_dino:1,dm_octo:1,dm_hydra:1,dn_balloon:1,dn_cake:1,dn_puppy:1,dn_ufo:1,dn_trex:1,dn_moonbase:1,dr_l_seahorse:1,dr_l_ship:1,dr_l_ladybird:1};if(window.REALS&&REALS.draw){for(var i=REALS.draw.length-1;i>=0;i--)if(A[REALS.draw[i].key])REALS.draw.splice(i,1)}})();</script>
 
 <!-- 12 Nov 2026: the waiting list (no What you need, hearts, swipe between sets, My drawings game, print sheets, home pictures) -->
-<script src="draw/sb-extras.js?v=1113a"></script>
+<script src="draw/sb-extras.js?v=1117a"></script>
 <!-- 12 Nov 2026 (afternoon): pencil-coloured backgrounds, no play screen (a drawing opens straight into its steps), no Favourites -->
 <script src="draw/sb-simple.js?v=1112a"></script>
 <script src="draw/sb-steps.js?v=1113b"></script>
 <!-- 12 Nov 2026 (evening): Make it move films. D is for Digger's and T is for Tiger's Make it move button (on the finish screen and on its photo in My drawings) opens Silly, Wonky and Starring role films, plus the camera for your own drawing. Each film ends on the Step by Draw end page with replay and a share button behind the grown-ups question (13 Nov) -->
 <script src="draw/mim-films.js?v=1114b"></script>
 <!-- 16 Nov 2026: Make a book on the Grown-ups page: a hardcover book of the child's own drawings (front cover with their name, a drawing on every page, back cover), made into a print-ready PDF for Peecho (21 x 21 cm hardcover) -->
-<script src="draw/sb-book.js?v=1116e"></script>
+<script src="draw/sb-book.js?v=1117a"></script>
