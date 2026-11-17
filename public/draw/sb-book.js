@@ -649,7 +649,7 @@ function shBackPill(){return'<div class="cback"><button class="cpill" type="butt
 function shWire(root,act){[].forEach.call(root.querySelectorAll('[data-a]'),function(el){el.onclick=function(){if(el.disabled)return;act(el.getAttribute('data-a'))}})}
 function shTop(){var gi=G('grin');if(gi)gi.scrollTop=0}
 function shMain(){var d=G('sbcat');if(!d)return;SHVIEW='main';
- d.innerHTML='<section>'+shHead('Print and keep','Free sheets, our books, and keepsakes made from their drawings.',SHOP.length+' things')+'<div class="cgr">'+SHOP.map(function(x){
+ d.innerHTML='<section>'+shHead('Print and keep','','')+'<div class="cgr">'+SHOP.map(function(x){
   return shCard({a:x.id,pic:'<img src="img/'+x.img+'.webp" alt="" loading="lazy" decoding="async">',bd:x.bd,bdc:x.dk?'dk':'',line:x.line,n:x.n,pr:x.pr,sz:x.sz,mt:x.mt,bt:x.bt})}).join('')+'</div></section>';
  shWire(d,function(a){if(a==='sheets')shSheets();else if(a==='books')shBooks();else open(a)})}
 /* the free print sheets: first the sets, then the drawings in one set */
