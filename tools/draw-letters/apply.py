@@ -15,7 +15,15 @@ before = len(s.encode())
 
 
 def set_head(setid):
-    m = re.findall(r"\{id:'%s',n:'[^']*',cv:'[^']*',set:'[^']*',has:\{" % re.escape(setid), s)
+    global s
+    pat = r"\{id:'%s',n:'[^']*',cv:'[^']*',set:'[^']*',has:\{" % re.escape(setid)
+    m = re.findall(pat, s)
+    if not m:   # a set with no drawings yet (17 Nov 2026: the number sets) gets an empty list first
+        bare = re.findall(r"\{id:'%s',n:'[^']*',cv:'[^']*',set:'[^']*'\}" % re.escape(setid), s)
+        assert len(bare) == 1, (setid, bare)
+        s = s.replace(bare[0], bare[0][:-1] + ',has:{}}')
+        print('  (gave', setid, 'its first list of drawings)')
+        m = re.findall(pat, s)
     assert len(m) == 1, (setid, m)
     return m[0]
 
