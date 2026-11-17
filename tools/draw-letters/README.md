@@ -7,6 +7,8 @@ Not published (only `public/` is). These scripts write a letter drawing as code,
 - `check.py out/<name>.json`: the line and colour checks (9 checks; every one must pass).
 - `sheet.py out/<name>.json out/<name>-steps.png` draws the numbered step sheet; add `--pair` for lines beside the finished picture.
 - `apply.py ../../public/draw/index.html name1 name2 ...`: adds built drawings to the app page (data and card, level, Make it move kind, set slot). Stops if a key or slot is already taken.
+- `famkit.py`: extra helpers for the family drawings (16 Nov 2026): a peach pencil, circle and arm helpers, and a curve offset for wide ribbons.
+- `reapply.py ../../public/draw/index.html name1 ...`: puts a rebuilt drawing back into the app page in place of the old one (same key).
 - `apptest.py ../../public <port> out/app/<prefix> key1 key2 ...`: opens the app in headless Chrome (phone and Chromebook size) and goes through every step of each drawing.
 
 To add a new drawing:
