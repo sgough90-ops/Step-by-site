@@ -440,7 +440,7 @@ function addPrintSection(gi){var d=document.createElement('div');d.className='gr
  d.innerHTML='<b>Print a drawing</b><p>Free sheets for home or school: the steps along the top and a box to draw in. They fit A4 and US Letter paper.</p><div class="sbprg" id="sbprg"></div>';
  gi.insertBefore(d,gi.firstChild);prSets();addPosters(gi)}
 function watchGrown(){var gi=G('grin');if(!gi)return false;if(gi.__sbx)return true;gi.__sbx=1;
- new MutationObserver(function(){if(!gi.querySelector('.grc'))return;if(!gi.querySelector('.sbprc'))addPrintSection(gi)}).observe(gi,{childList:true});return true}
+ new MutationObserver(function(){if(window.SBCAT)return;if(!gi.querySelector('.grc'))return;if(!gi.querySelector('.sbprc'))addPrintSection(gi)}).observe(gi,{childList:true});return true}
 if(!watchGrown()){var wg=0,wt=setInterval(function(){if(watchGrown()||++wg>60)clearInterval(wt)},250)}
 
 /* the camera: a photo of a print sheet is cut down to the drawing box */
@@ -561,5 +561,7 @@ if(!buildHome()){var bh0=0,bht=setInterval(function(){if(buildHome()||++bh0>80)c
  /* the card pictures were made before this loaded: make them again with the pencil look */
  try{if(typeof thumbURL==='function')projects('draw').forEach(function(p){if(p&&p.type==='draw'&&p.key&&DX.has(p.key)&&!DX.get(p.key).rx){var u=thumbURL(p);if(u)p.svg='<img src="'+u+'" alt="">'}})}catch(e){}})();
 
-window.__sbx={open:open,state:function(){return ST},celebrate:celebrate,posterCanvas:posterCanvas,sheet:drawingSheet,openSheet:openSheet,findBox:findBox,cropBox:cropBox,goSet:goSet,mdGo:mdGo};
+window.__sbx={open:open,state:function(){return ST},celebrate:celebrate,posterCanvas:posterCanvas,sheet:drawingSheet,openSheet:openSheet,findBox:findBox,cropBox:cropBox,goSet:goSet,mdGo:mdGo,
+ /* 17 Nov 2026: for the shop on the Grown-ups page (sb-book.js) */
+ printable:printable,colour:colourURL,load:load,progress:function(c){var n=made(c),q=need(c);return{n:n,t:q.t,l:level(c,n)}}};
 })();

@@ -392,23 +392,6 @@ function styles(){if(G('sbbookcss'))return;var st=document.createElement('style'
 '#sbbook .bkspec{text-align:center;font-weight:700;font-size:.9rem;opacity:.72;margin:0}',
 '#sbbook .bkbusy{position:absolute;inset:0;z-index:4;background:rgba(255,246,224,.95);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;font-weight:900;font-size:1.05rem;text-align:center;padding:20px}',
 '#sbbook .bkbar{width:72%;max-width:320px;height:18px;border-radius:999px;background:#fff;box-shadow:inset 0 0 0 2px #081130;overflow:hidden}#sbbook .bkbar i{display:block;height:100%;width:0;background:#3FA535;transition:width .25s}',
-/* the Grown-ups page: the shop card (first), the free print sheets' FREE label, and the drawing kit card */
-'.grc.sbbkc>p{margin-bottom:4px}',
-'.grc .bkprod{display:flex;gap:12px;align-items:flex-start;padding:14px 0 12px;border-top:2px solid #f3ecd9}.grc .bkprod:first-of-type{border-top:0}',
-'.grc .bkpi{flex:none;width:58px;height:58px;display:flex;align-items:center;justify-content:center}.grc .bkpi svg{width:58px;height:58px;display:block}',
-'.grc .bkpt{flex:1;min-width:0}.grc .bkpt b{font-size:1.02rem;margin-bottom:2px}.grc .bkpt p{font-size:.88rem}',
-'.grc .bkpr{display:flex;align-items:center;gap:10px;margin-top:9px;flex-wrap:wrap}.grc .bkpp{font-weight:900;font-size:1rem;color:#081130}.grc .bkpp small{font-weight:700;opacity:.65;font-size:.78rem}',
-'.grc .bkpb{height:42px;padding:0 18px;border-radius:999px;border:0;background:#FFC531;box-shadow:0 4px 0 #c79410;color:#081130;font:900 .98rem/1 '+UIFONT+';cursor:pointer;margin-left:auto}.grc .bkpb:active{transform:translateY(3px);box-shadow:0 1px 0 #c79410}',
-'.grc .bksoon{margin-left:auto;height:30px;padding:0 12px;border-radius:999px;background:#eef0f4;color:#5d6270;font-weight:800;font-size:.8rem;display:inline-flex;align-items:center}',
-'.grc .bkfree{display:inline-block;vertical-align:2px;margin-left:8px;padding:3px 9px;border-radius:999px;background:#3FA535;color:#fff;font-size:.72rem;font-weight:900;letter-spacing:.04em}',
-'.grc.sbamz .bkbks{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px 10px;margin-top:12px}',
-'.grc .bkbk{display:flex;flex-direction:column;align-items:center;gap:6px;min-width:0;text-align:center}.grc .bkbk b{font-size:.8rem;line-height:1.2;margin:2px 0 0;min-height:2.4em;display:flex;align-items:center;justify-content:center}',
-'.grc .bkbkc{position:relative;display:block;width:100%;aspect-ratio:3/4;border-radius:5px 12px 12px 5px;background:#fff6e0;box-shadow:inset 7px 0 0 var(--pd),0 4px 0 rgba(8,17,48,.16)}',
-'.grc .bkbkc img{position:absolute;left:16px;top:10px;width:calc(100% - 24px);height:calc(100% - 38px);object-fit:contain}',
-'.grc .bkbkc .sbbd{position:absolute;left:calc(50% + 3px);bottom:7px;transform:translateX(-50%);width:58%}.grc .bkbkc .sbbd svg{display:block;width:100%;height:auto}',
-'.grc .bkbk .bksoon,.grc .bkbk .bkamz{margin:0;height:30px;font-size:.76rem;padding:0 10px}',
-'.grc .bkamz{flex:none;height:38px;padding:0 14px;border-radius:999px;border:2px solid #081130;background:#fff;color:#081130;font:800 .88rem/1 '+UIFONT+';display:inline-flex;align-items:center;gap:4px;text-decoration:none}.grc .bkamz svg{width:14px;height:14px}',
-'.grc .bkdis{margin-top:10px!important;font-size:.76rem!important;opacity:.6!important}'
 ].join('\n');document.head.appendChild(st)}
 
 var B=null,STEP=0,PDF=null,VIEW={i:0,cache:{},pages:[]};
@@ -522,52 +505,113 @@ function savePdf(){if(!PDF)return;var f=null;try{f=new File([PDF.blob],PDF.name,
  if(f&&touchDevice()&&navigator.canShare&&navigator.share){try{if(navigator.canShare({files:[f]})){navigator.share({files:[f],title:PDF.title}).catch(function(){});return}}catch(e){}}
  var u=URL.createObjectURL(PDF.blob),a=document.createElement('a');a.href=u;a.download=PDF.name;a.rel='noopener';document.body.appendChild(a);a.click();setTimeout(function(){a.remove();URL.revokeObjectURL(u)},60000)}
 
-/* ================================================================ the Grown-ups page (16 Nov 2026, later)
-   Top to bottom: the shop (three things made from the child's own drawings, one size each), the free print sheets
-   (the reason to come behind the gate), the finished-set posters, the drawing kit (Amazon links) and About.
+/* ================================================================ the Grown-ups page: a shop (17 Nov 2026)
+   Laid out like a high-street shop's listing page: one grid of identical photo cards on white, in the app's own navy,
+   yellow and rounded headings. Five things and nothing else, in this order (as asked): the free print sheets, the
+   Step by Draw books on Amazon, then the three things made from the child's own drawings: the book, the poster and the
+   print. No About card, and no finished-set posters.
    Prices are what parents pay, delivered in the UK (Peecho cost: book \u00a315.21, poster \u00a314.94, print \u00a39.93).
-   Each one opens its maker (book, poster or print), which makes the PDF; ordering through Peecho comes later. */
-var PRODUCTS=[
- {id:'book',n:'A to Z book',s:'Hardcover, 21 \u00d7 21 cm. One drawing on every page and their name on the cover.',p:'\u00a324.99',ic:'book',btn:'Make a book'},
- {id:'poster',n:'Alphabet poster',s:'50 \u00d7 70 cm, classroom size. A whole set of their drawings on one big poster.',p:'\u00a324.99',ic:'poster',btn:'Make a poster'},
- {id:'print',n:'Drawing print',s:'A4, to fit a standard frame. One drawing, or the whole family on one page.',p:'\u00a314.99',ic:'print',btn:'Make a print'}];
-/* Step by Draw books on Amazon (16 Nov 2026): one book for each A to Z set, and the numbers book. When a book is on sale,
-   put its Amazon address in url and its button appears; until then it shows Coming soon. */
+   The book, poster and print open their makers, which make the PDF; ordering through Peecho comes later.
+   The print sheets and the books each open a page of their own inside the shop; Back (the pill or the top button)
+   comes back to the shop. The pictures are img/shop-*.webp (made 17 Nov 2026 from the app's own drawings). */
+window.SBCAT=1;      // sb-extras.js leaves out its own print cards when the shop is here
+var SHOP=[
+ {id:'sheets',img:'shop-sheets',bd:'Free',line:'Print at home',n:'Print sheets',pr:'Free',sz:'A4 or US Letter',mt:'A sheet for every drawing: the steps along the top and a box to draw in.',bt:'Choose a sheet'},
+ {id:'books',img:'shop-books',bd:'Coming soon',dk:1,line:'On Amazon',n:'Step by Draw books',pr:'Coming soon',sz:'7 books',mt:'Our step-by-step drawing books, one for every set.',bt:'See the books'},
+ {id:'book',img:'shop-book',bd:'New',line:'From their drawings',n:'A to Z book',pr:'\u00a324.99',sz:'21 \u00d7 21 cm hardcover',mt:'One drawing on every page and their name on the cover. Delivered.',bt:'Make a book'},
+ {id:'poster',img:'shop-poster',line:'From their drawings',n:'Alphabet poster',pr:'\u00a324.99',sz:'50 \u00d7 70 cm',mt:'A whole set of their drawings on one big poster. Delivered.',bt:'Make a poster'},
+ {id:'print',img:'shop-print',line:'From their drawings',n:'Drawing print',pr:'\u00a314.99',sz:'A4',mt:'One drawing, or the whole family on one page. Delivered.',bt:'Make a print'}];
+/* Step by Draw books on Amazon: one for each A to Z set, and the numbers book. When a book is on sale, put its Amazon
+   address in url: its card then shows On Amazon and a View on Amazon button. Until then it shows Coming soon. */
 var AMAZON=[{id:'animals-AZ',url:''},{id:'animals-az',url:''},{id:'vehicles-AZ',url:''},{id:'vehicles-az',url:''},{id:'house-AZ',url:''},{id:'house-az',url:''},{id:'numbers',n:'Numbers 1 to 9',url:''}];
-var PIC={
- poster:'<svg viewBox="0 0 64 64" aria-hidden="true"><rect x="12" y="6" width="40" height="52" rx="3" fill="#fff" stroke="#081130" stroke-width="3.2"/><path d="M24 4.5h16" stroke="#FFC531" stroke-width="5" stroke-linecap="round"/>'+
-  [[18,14,'#E5392B'],[28,14,'#2F7BF5'],[38,14,'#3FA535'],[18,24,'#FFC531'],[28,24,'#8B5CF6'],[38,24,'#E5392B'],[18,34,'#2F7BF5'],[28,34,'#3FA535'],[38,34,'#FFC531'],[23,44,'#E5392B'],[33,44,'#2F7BF5']].map(function(q){return'<rect x="'+q[0]+'" y="'+q[1]+'" width="8" height="8" rx="1.6" fill="'+q[2]+'"/>'}).join('')+'</svg>',
- print:'<svg viewBox="0 0 64 64" aria-hidden="true"><rect x="13" y="5" width="38" height="54" rx="3" fill="#fff" stroke="#081130" stroke-width="3.2"/><rect x="19" y="12" width="26" height="28" rx="2.5" fill="#d6ebff" stroke="#081130" stroke-width="2.4"/><circle cx="38" cy="19" r="3" fill="#FFC531"/><path d="M21 37l8-9 6 6 4-4 5 7" fill="none" stroke="#3FA535" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round"/><path d="M22 47h20M26 52h12" stroke="#081130" stroke-width="2.6" stroke-linecap="round"/></svg>',
- pencils:'<svg viewBox="0 0 48 48" aria-hidden="true"><g stroke="#081130" stroke-width="2.4" stroke-linejoin="round"><path d="M10 40l6-28 4 0-2 28z" fill="#E5392B"/><path d="M20 40l2-30h4l2 30z" fill="#FFC531"/><path d="M30 40l-2-28h4l6 28z" fill="#2F7BF5"/></g><path d="M8 40h32" stroke="#081130" stroke-width="2.6" stroke-linecap="round"/></svg>',
- pens:'<svg viewBox="0 0 48 48" aria-hidden="true"><g stroke="#081130" stroke-width="2.4" stroke-linejoin="round"><rect x="9" y="12" width="8" height="28" rx="3" fill="#3FA535"/><rect x="20" y="8" width="8" height="32" rx="3" fill="#E5392B"/><rect x="31" y="12" width="8" height="28" rx="3" fill="#8B5CF6"/></g><path d="M13 12V7M24 8V3M35 12V7" stroke="#081130" stroke-width="2.6" stroke-linecap="round"/></svg>',
- crayon:'<svg viewBox="0 0 48 48" aria-hidden="true"><g transform="rotate(-35 24 24)" stroke="#081130" stroke-width="2.4" stroke-linejoin="round"><path d="M15 16h20v16H15z" fill="#FFC531"/><path d="M15 16l-7 8 7 8z" fill="#FFC531"/><path d="M21 16v16M29 16v16" stroke="#E5392B" stroke-width="3"/></g></svg>',
- paper:'<svg viewBox="0 0 48 48" aria-hidden="true"><rect x="14" y="6" width="24" height="32" rx="2" fill="#fff" stroke="#081130" stroke-width="2.4" transform="rotate(8 26 22)"/><rect x="10" y="10" width="24" height="32" rx="2" fill="#fff" stroke="#081130" stroke-width="2.4"/><path d="M15 20c3-4 6 4 9 0s5 3 6 1" fill="none" stroke="#2F7BF5" stroke-width="2.4" stroke-linecap="round"/></svg>',
- pencil:'<svg viewBox="0 0 48 48" aria-hidden="true"><g transform="rotate(-40 24 24)" stroke="#081130" stroke-width="2.4" stroke-linejoin="round"><rect x="12" y="19" width="22" height="10" fill="#FFC531"/><path d="M34 19l8 5-8 5z" fill="#f3d9b1"/><rect x="5" y="19" width="7" height="10" rx="2" fill="#EC4899"/></g></svg>'};
-var ARROW='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7 17L17 7M9 7h8v8"/></svg>';
-function setOf(id){var r=null;sets().forEach(function(cat){cat.cols.forEach(function(c){if(c.id===id)r={c:c,cat:cat}})});return r}
-function addShop(gi){styles();var d=document.createElement('div');d.className='grc sbbkc';
- d.innerHTML='<b>Make something to keep</b><p>Printed from your child\u2019s own drawings and posted to your door.</p>'+PRODUCTS.map(function(x){
-  return'<div class="bkprod" data-p="'+x.id+'"><span class="bkpi">'+(x.ic==='book'?IC.book:PIC[x.ic])+'</span><div class="bkpt"><b>'+esc(x.n)+'</b><p>'+esc(x.s)+'</p><div class="bkpr"><span class="bkpp">'+x.p+' <small>delivered</small></span>'+
-   (x.soon?'<span class="bksoon">Coming soon</span>':'<button class="bkpb" type="button" data-p="'+x.id+'">'+esc(x.btn)+'</button>')+'</div></div></div>'}).join('');
- gi.insertBefore(d,gi.firstChild);[].forEach.call(d.querySelectorAll('.bkpb'),function(b){b.onclick=function(){open(b.getAttribute('data-p'))}})}
-function addBooks(gi,before){styles();var d=document.createElement('div');d.className='grc sbamz';
- var nine=null;sets().forEach(function(cat){cat.cols.forEach(function(c){if(c.set==='09'&&!nine)nine={c:c,cat:cat}})});
- d.innerHTML='<b>Step by Draw books</b><p>Our step-by-step drawing books, one for every set. On Amazon.</p><div class="bkbks">'+AMAZON.map(function(x){
-   var o=x.id==='numbers'?nine:setOf(x.id),c=o&&o.c,cat=o&&o.cat,n=x.n||(c&&c.n)||'',st=x.id==='numbers'?'09':(c&&c.set)||'AZ';if(!n)return'';
-   return'<div class="bkbk"><span class="bkbkc" style="--pd:'+((cat&&cat.d)||'#8B5CF6')+'">'+(c&&c.cv?'<img src="img/'+esc(c.cv)+'.webp" alt="">':'')+'<span class="sbbd">'+badge(st)+'</span></span><b>'+esc(n)+'</b>'+
-    (x.url?'<a class="bkamz" href="'+esc(x.url)+'" target="_blank" rel="noopener">Amazon'+ARROW+'</a>':'<span class="bksoon">Coming soon</span>')+'</div>'}).join('')+'</div>';
- if(before)gi.insertBefore(d,before);else gi.appendChild(d)}
-/* the print sheets are free: say so in their title */
-function freeLabel(gi){var b=gi.querySelector('.sbprc:not(.sbpost)>b');if(b&&!b.querySelector('.bkfree')){b.innerHTML='Print sheets<span class="bkfree">FREE</span>';
- var p=b.nextElementSibling;if(p&&p.tagName==='P')p.textContent='A sheet for every drawing: the steps along the top and a box to draw in. For home or school, on A4 or US Letter paper.'}}
-function about(gi){var r=null;[].forEach.call(gi.children,function(c){if(c.className==='grc')r=c});return r}
-function watch(){var gi=G('grin');if(!gi)return false;if(gi.__sbbk)return true;gi.__sbbk=1;
- function check(){if(!gi.querySelector('.grc')||gi.querySelector('.gate'))return;
-  var c=gi.querySelector('.sbbkc');if(!c)addShop(gi);else if(gi.firstChild!==c)gi.insertBefore(c,gi.firstChild);
-  freeLabel(gi);
-  var k=gi.querySelector('.sbamz'),a=about(gi);if(!k)addBooks(gi,a);else if(a&&k.nextSibling!==a)gi.insertBefore(k,a)}
+var SHORDER=['AZ','az','09'],SHVIEW='main',SHSET=null,SHTH={};
+var SHBACK='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 5l-7 7 7 7"/></svg>';
+var SHOUT='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7 17L17 7M9 7h8v8"/></svg>';
+function shCSS(){if(G('sbshopcss'))return;var st=document.createElement('style');st.id='sbshopcss';var R='ui-rounded,"SF Pro Rounded","Arial Rounded MT Bold","Trebuchet MS",system-ui,sans-serif',S='system-ui,-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif';st.textContent=[
+'#grown.sbshop #grin{max-width:1120px;padding-top:2px}',
+'#sbcat{--ink:#081130;--mut:#5f6679;--line:#ebe8e1;--soft:#f5f3ee;--acc:#FFC531;--good:#1c7c37;--goods:#e2f3e6;color:var(--ink);font:500 15px/1.4 '+S+';background:#fff;border-radius:20px;box-shadow:0 5px 0 rgba(8,17,48,.12);padding:16px 16px 26px;margin:0 0 26px}',
+'@media (min-width:600px){#sbcat{padding:22px 24px 32px}}@media (min-width:900px){#sbcat{padding:26px 30px 36px}}',
+'#sbcat h2,#sbcat h3{font-family:'+R+';margin:0}',
+'#sbcat .chd{display:flex;align-items:flex-end;gap:12px;border-bottom:1px solid var(--line);padding:6px 0 11px;margin:0 0 18px}',
+'#sbcat .chd h2{font-size:21px;font-weight:800;line-height:1.15}#sbcat .chd p{margin:4px 0 0;font-size:13px;color:var(--mut)}',
+'#sbcat .ccn{margin-left:auto;flex:none;font-size:13px;color:var(--mut);white-space:nowrap;padding-bottom:1px}',
+'#sbcat .cgr{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:26px 14px}',
+'@media (min-width:600px){#sbcat .cgr{grid-template-columns:repeat(3,minmax(0,1fr));gap:28px 18px}}',
+'@media (min-width:900px){#sbcat .cgr{grid-template-columns:repeat(4,minmax(0,1fr));gap:30px 22px}}',
+'#sbcat .cc{display:flex;flex-direction:column;align-items:flex-start;gap:4px;min-width:0}',
+'#sbcat .cph{position:relative;display:block;width:100%;aspect-ratio:1/1;background:var(--soft);border-radius:8px;overflow:hidden;cursor:pointer;margin-bottom:6px}',
+'#sbcat .cph>img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;display:block;transition:transform .3s ease}',
+'#sbcat .cc:hover .cph>img,#sbcat .cph:active>img,#sbcat .cc:hover .cph>.cbk,#sbcat .cph:active>.cbk{transform:scale(1.04)}',
+'#sbcat .cph>img.cov{inset:9% 11% 24%;width:78%;height:67%;object-fit:contain;mix-blend-mode:multiply}',
+'#sbcat .cph>img.thm{inset:6%;width:88%;height:88%;object-fit:contain;mix-blend-mode:multiply}',
+'#sbcat .cph .csb{position:absolute;left:50%;bottom:7%;transform:translateX(-50%);width:46%}#sbcat .cph .csb svg,#sbcat .cbk .sbbd svg{display:block;width:100%;height:auto}',
+'#sbcat .cbg{position:absolute;top:9px;left:9px;z-index:1;background:var(--acc);color:var(--ink);font:800 10.5px/1 '+S+';letter-spacing:.07em;text-transform:uppercase;padding:5px 7px;border-radius:5px}',
+'#sbcat .cbg.dk{background:var(--ink);color:#fff}#sbcat .cbg.lt{font:800 15px/1 '+R+';letter-spacing:0;text-transform:none;padding:6px 9px;background:var(--ink);color:#fff}',
+'#sbcat .cdn{position:absolute;top:9px;right:9px;z-index:1;background:var(--goods);color:var(--good);font:800 11px/1 '+S+';padding:5px 7px;border-radius:5px}',
+'#sbcat .cln{font-size:10.5px;font-weight:700;letter-spacing:.09em;text-transform:uppercase;color:var(--mut)}',
+'#sbcat .cnm{font-size:16px;font-weight:700;line-height:1.25}',
+'#sbcat .cpr{display:flex;flex-wrap:wrap;align-items:baseline;gap:1px 8px}#sbcat .cpr b{font-size:17px;font-weight:800}#sbcat .cpr span{font-size:13px;font-weight:600;color:var(--mut)}',
+'#sbcat .cmt{font-size:12.5px;line-height:1.35;color:var(--mut)}',
+'#sbcat .cft{margin-top:auto;padding-top:8px}',
+'#sbcat .cbt{display:inline-flex;align-items:center;gap:6px;border:1.5px solid var(--ink);background:#fff;color:var(--ink);border-radius:999px;padding:9px 15px;font:700 13.5px/1 '+S+';cursor:pointer;text-decoration:none;-webkit-appearance:none;appearance:none}',
+'#sbcat .cbt:hover,#sbcat .cbt:active{background:var(--ink);color:#fff}#sbcat .cbt[disabled]{border-color:var(--line);color:var(--mut);background:#fff;cursor:default}#sbcat .cbt svg{width:14px;height:14px}',
+'#sbcat .cback{position:sticky;top:0;z-index:2;background:#fff;margin:-6px -16px 0;padding:6px 16px 12px;border-radius:20px 20px 0 0}',
+'@media (min-width:600px){#sbcat .cback{margin:-8px -24px 0;padding:8px 24px 12px}}@media (min-width:900px){#sbcat .cback{margin:-8px -30px 0;padding:8px 30px 12px}}',
+'#sbcat .cpill{border:0;background:var(--soft);color:var(--ink);border-radius:999px;padding:9px 15px 9px 10px;font:700 13.5px/1 '+S+';display:inline-flex;align-items:center;gap:3px;cursor:pointer}#sbcat .cpill svg{width:17px;height:17px}',
+'#sbcat .cbk{position:absolute;left:21%;top:12%;width:58%;height:76%;border-radius:4px 10px 10px 4px;background:#fffaf0;box-shadow:inset 8px 0 0 var(--d),inset 10px 0 0 rgba(255,255,255,.55),0 10px 16px rgba(8,17,48,.14),0 2px 3px rgba(8,17,48,.12);overflow:hidden;transition:transform .3s ease}',
+'#sbcat .cbk img{position:absolute;left:15%;top:7%;width:78%;height:62%;object-fit:contain;mix-blend-mode:multiply}#sbcat .cbk .sbbd{position:absolute;left:calc(50% + 4px);bottom:8%;transform:translateX(-50%);width:62%}',
+'#sbcat .cempty{grid-column:1/-1;font-size:14px;color:var(--mut);padding:8px 0}',
+'#sbcat button:focus-visible,#sbcat a:focus-visible{outline:3px solid #2F7BF5;outline-offset:3px}',
+'@media (prefers-reduced-motion:reduce){#sbcat .cph>img,#sbcat .cbk{transition:none}#sbcat .cc:hover .cph>img,#sbcat .cph:active>img,#sbcat .cc:hover .cph>.cbk,#sbcat .cph:active>.cbk{transform:none}}'
+].join('\n');document.head.appendChild(st)}
+function shSets(){return window.SBSETS||[]}
+function shCol(id){var r=null;shSets().forEach(function(cat){cat.cols.forEach(function(c){if(c.id===id)r={c:c,cat:cat}})});return r}
+function shNine(){var r=null;shSets().forEach(function(cat){cat.cols.forEach(function(c){if(c.set==='09'&&!r)r={c:c,cat:cat}})});return r}
+function shPrintable(c){var x=window.__sbx;try{return x&&x.printable?x.printable(c):[]}catch(e){return[]}}
+/* one card: picture (with a corner label), the small grey line, the name, the price line, a detail line and a pill button */
+function shCard(o){return'<article class="cc"><div class="cph" data-a="'+o.a+'" aria-hidden="true">'+o.pic+(o.bd?'<span class="cbg'+(o.bdc?' '+o.bdc:'')+'">'+esc(o.bd)+'</span>':'')+(o.done?'<span class="cdn">Finished \u2713</span>':'')+'</div>'+
+ (o.line?'<div class="cln">'+esc(o.line)+'</div>':'')+'<h3 class="cnm">'+esc(o.n)+'</h3><div class="cpr"><b>'+esc(o.pr)+'</b>'+(o.sz?'<span>'+esc(o.sz)+'</span>':'')+'</div>'+(o.mt?'<div class="cmt">'+esc(o.mt)+'</div>':'')+
+ '<div class="cft">'+(o.href?'<a class="cbt" href="'+esc(o.href)+'" target="_blank" rel="noopener">'+esc(o.bt)+SHOUT+'</a>':'<button class="cbt" type="button" data-a="'+o.a+'"'+(o.off?' disabled':'')+'>'+esc(o.bt)+'</button>')+'</div></article>'}
+function shHead(h,p,n){return'<div class="chd"><div><h2>'+esc(h)+'</h2>'+(p?'<p>'+esc(p)+'</p>':'')+'</div>'+(n?'<span class="ccn">'+esc(n)+'</span>':'')+'</div>'}
+function shBackPill(){return'<div class="cback"><button class="cpill" type="button" data-a="back">'+SHBACK+'Back</button></div>'}
+function shWire(root,act){[].forEach.call(root.querySelectorAll('[data-a]'),function(el){el.onclick=function(){if(el.disabled)return;act(el.getAttribute('data-a'))}})}
+function shTop(){var gi=G('grin');if(gi)gi.scrollTop=0}
+function shMain(){var d=G('sbcat');if(!d)return;SHVIEW='main';
+ d.innerHTML='<section>'+shHead('Print and keep','Free sheets, our books, and keepsakes made from their drawings.',SHOP.length+' things')+'<div class="cgr">'+SHOP.map(function(x){
+  return shCard({a:x.id,pic:'<img src="img/'+x.img+'.webp" alt="" loading="lazy" decoding="async">',bd:x.bd,bdc:x.dk?'dk':'',line:x.line,n:x.n,pr:x.pr,sz:x.sz,mt:x.mt,bt:x.bt})}).join('')+'</div></section>';
+ shWire(d,function(a){if(a==='sheets')shSheets();else if(a==='books')shBooks();else open(a)})}
+/* the free print sheets: first the sets, then the drawings in one set */
+function shSheets(){var d=G('sbcat');if(!d)return;SHVIEW='sheets';SHSET=null;var cats=shSets(),L=[];
+ SHORDER.forEach(function(set){cats.forEach(function(cat){cat.cols.forEach(function(c){if(c.set!==set)return;var n=shPrintable(c).length;if(n)L.push({c:c,cat:cat,n:n})})})});
+ function draw(pg){d.innerHTML=shBackPill()+'<section>'+shHead('Print sheets','Free, for home or school. Pick a set, then a drawing.',L.length+' sets')+'<div class="cgr">'+(L.length?L.map(function(o,i){var p=pg&&pg(o.c);
+   return shCard({a:'s'+i,pic:'<img class="cov" src="img/'+esc(o.c.cv)+'.webp" alt="" loading="lazy" decoding="async"><span class="csb">'+badge(o.c.set)+'</span>',bd:'Free',line:'Free sheets',n:o.c.n,pr:'Free',sz:o.n+' sheet'+(o.n===1?'':'s'),
+    mt:p&&p.n?(p.l===3?'Every drawing in this set is done.':'Drawn so far: '+p.n+' of '+p.t+'.'):'',done:p&&p.l===3,bt:'Open'})}).join(''):'<p class="cempty">No sheets to print yet.</p>')+'</div></section>';
+  shWire(d,function(a){if(a==='back')shMain();else{var o=L[+a.slice(1)];if(o)shSet(o.c)}})}
+ draw(null);shTop();
+ var x=window.__sbx;if(x&&x.load&&x.progress)x.load().then(function(){if(SHVIEW==='sheets'&&G('sbcat'))draw(function(c){try{return x.progress(c)}catch(e){return null}})},function(){})}
+function shThumb(p,img){if(SHTH[p.key]){img.src=SHTH[p.key];return}var x=window.__sbx;if(!x||!x.colour)return;
+ setTimeout(function(){if(!img.isConnected)return;var u='';try{u=x.colour(p,420)}catch(e){}if(u){SHTH[p.key]=u;img.src=u}},0)}
+function shSet(c){var d=G('sbcat');if(!d||!c)return;SHVIEW='set';SHSET=c;var L=shPrintable(c);
+ d.innerHTML=shBackPill()+'<section>'+shHead(c.n,'Tap a drawing to print its sheet: the steps along the top and a box to draw in.',L.length+' sheet'+(L.length===1?'':'s'))+'<div class="cgr">'+L.map(function(o,i){
+  return shCard({a:'p'+i,pic:'<img class="thm" alt="" data-i="'+i+'">',bd:o.s,bdc:'lt',line:'Free sheet',n:o.p.t||o.s,pr:'Free',sz:'A4 or US Letter',bt:'Print'})}).join('')+'</div></section>';
+ [].forEach.call(d.querySelectorAll('img.thm'),function(im){var o=L[+im.getAttribute('data-i')];if(o)shThumb(o.p,im)});
+ shWire(d,function(a){if(a==='back'){shSheets();return}var o=L[+a.slice(1)],x=window.__sbx;if(o&&x&&x.sheet)x.sheet(o.p).then(x.openSheet)});shTop()}
+/* the Step by Draw books on Amazon */
+function shBooks(){var d=G('sbcat');if(!d)return;SHVIEW='books';var nine=shNine();
+ d.innerHTML=shBackPill()+'<section>'+shHead('Step by Draw books','Our step-by-step drawing books, one for every set. On Amazon.',AMAZON.length+' books')+'<div class="cgr">'+AMAZON.map(function(x,i){
+   var o=x.id==='numbers'?nine:shCol(x.id),c=o&&o.c,cat=o&&o.cat,n=x.n||(c&&c.n)||'',st=x.id==='numbers'?'09':(c&&c.set)||'AZ';if(!n)return'';
+   return shCard({a:'b'+i,pic:'<span class="cbk" style="--d:'+((cat&&cat.d)||'#8B5CF6')+'">'+(c&&c.cv?'<img src="img/'+esc(c.cv)+'.webp" alt="" loading="lazy" decoding="async">':'')+'<span class="sbbd">'+badge(st)+'</span></span>',
+    bd:x.url?'':'Coming soon',bdc:'dk',line:'On Amazon',n:n,pr:x.url?'On Amazon':'Coming soon',sz:'',mt:'Step-by-step drawing book',href:x.url||'',bt:x.url?'View on Amazon':'Coming soon',off:!x.url})}).join('')+'</div></section>';
+ shWire(d,function(a){if(a==='back')shMain();else{var x=AMAZON[+a.slice(1)];if(x&&x.url)window.open(x.url,'_blank','noopener')}});shTop()}
+function shBack(){if(SHVIEW==='set')shSheets();else shMain();shTop()}
+/* the top Back button goes back inside the shop first; on the shop itself it goes home as before */
+document.addEventListener('click',function(e){var t=e.target;if(!t||!t.closest||!t.closest('#grback'))return;if(!G('sbcat')||SHVIEW==='main'||G('sbbook')||G('sbprwrap'))return;e.stopPropagation();e.preventDefault();shBack()},true);
+function shWatch(){var gi=G('grin');if(!gi)return false;if(gi.__sbsh)return true;gi.__sbsh=1;
+ function check(){var gr=G('grown');if(gi.querySelector('.gate')){if(gr)gr.classList.remove('sbshop');return}
+  if(G('sbcat')||!gi.querySelector('.grc'))return;
+  shCSS();if(gr)gr.classList.add('sbshop');gi.innerHTML='';var d=document.createElement('div');d.id='sbcat';gi.appendChild(d);shMain();shTop()}
  new MutationObserver(check).observe(gi,{childList:true});check();return true}
-if(!watch()){var wn=0,wt=setInterval(function(){if(watch()||++wn>80)clearInterval(wt)},250)}
+if(!shWatch()){var wn=0,wt=setInterval(function(){if(shWatch()||++wn>80)clearInterval(wt)},250)}
 document.addEventListener('keydown',function(e){if(e.key==='Escape'&&G('sbbook')){var pk=document.querySelector('#sbbook .bkpick');if(pk)pk.remove();else goBack()}});
 
 window.__sbbook={open:open,close:close,books:loadBooks,newBook:newBook,pages:pagesOf,render:render,makePdf:makePdf,pdfBlob:pdfBlob,findCrop:findCrop,
