@@ -381,25 +381,23 @@ function lineSteps(key){var P=DX.get(key),out=[],prev=[];P.steps.forEach(functio
 function svgOpen(){return'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 186 255" preserveAspectRatio="xMidYMid meet"><rect width="186" height="255" fill="#fff"/>'}
 function nested(svg,x,y,w,h){return svg.replace('<svg ','<svg x="'+x+'" y="'+y+'" width="'+w+'" height="'+h+'" ')}
 var TXT='font-family="Arial Rounded MT Bold,Arial,Helvetica,sans-serif" font-weight="900"';
-/* one sheet per drawing: steps along the top, a box to draw in; the four black squares let the camera find the box */
-function drawingSheet(p){return logo().then(function(L){var steps=lineSteps(p.key),N=steps.length,info=colOfKey(p.key),o=[svgOpen()],lw=0;
+/* one sheet per drawing (17 Nov 2026): every step of the drawing fills the page, and the last box is the finished,
+   coloured picture. No box to draw in any more: children draw on their own paper. However many steps a drawing has,
+   they all fit on one page: the columns and rows are worked out to make the boxes as big as they can be, so a short
+   drawing gets big boxes and a long one gets smaller ones. (Sheets printed before this had a box with four black
+   squares for the camera to find; findBox still looks for them.) */
+function sheetGrid(n,W,H,gap){var best=null;for(var c=1;c<=6;c++){var r=Math.ceil(n/c),s=Math.min((W-(c-1)*gap)/c,(H-(r-1)*gap)/r);if(!best||s>best.s+.01)best={c:c,r:r,s:s}}return best}
+function drawingSheet(p){return logo().then(function(L){var steps=lineSteps(p.key),info=colOfKey(p.key),o=[svgOpen()],lw=0;
  if(L){var lh=15;lw=lh*L.w/L.h;o.push('<image href="'+L.u+'" x="0" y="0" width="'+lw.toFixed(2)+'" height="'+lh+'"/>')}
  if(info)o.push(nested(BADGE[info.c.set],(lw+4).toFixed(2),3,22,9.4));
  o.push('<text x="0" y="29" '+TXT+' font-size="7.4" fill="#081130">'+esc(p.t)+'</text>');
- o.push('<rect x="150" y="0" width="36" height="36" rx="4" fill="#fff" stroke="#d5d9df" stroke-width=".4"/><image href="'+colourURL(p,300)+'" x="151.5" y="1.5" width="33" height="33"/>');
- var gap=3,cols=N<=6?Math.max(1,N):Math.ceil(N/2),rn=N<=6?1:2,cell=Math.min((186-(cols-1)*gap)/cols,34),gy=41;
- steps.forEach(function(s,i){var r=Math.floor(i/cols),k=i%cols,inRow=Math.min(cols,N-r*cols),gx=(186-(inRow*cell+(inRow-1)*gap))/2,x=gx+k*(cell+gap),y=gy+r*(cell+gap);
-  o.push('<rect x="'+x.toFixed(2)+'" y="'+y.toFixed(2)+'" width="'+cell.toFixed(2)+'" height="'+cell.toFixed(2)+'" rx="3" fill="#fff" stroke="#cfd4da" stroke-width=".4"/>');
-  o.push('<svg x="'+(x+1).toFixed(2)+'" y="'+(y+1).toFixed(2)+'" width="'+(cell-2).toFixed(2)+'" height="'+(cell-2).toFixed(2)+'" viewBox="-4 -4 108 108">'+paths(s.old,'#b9bec6',.8)+paths(s.add,'#111',1)+'</svg>');
-  o.push('<circle cx="'+(x+3.8).toFixed(2)+'" cy="'+(y+3.8).toFixed(2)+'" r="2.9" fill="#081130"/><text x="'+(x+3.8).toFixed(2)+'" y="'+(y+5.1).toFixed(2)+'" text-anchor="middle" '+TXT+' font-size="3.6" fill="#fff">'+(i+1)+'</text>')});
- var by=gy+rn*cell+(rn-1)*gap+9,bx=3,bw=180,bh=244-by,m=6,g2=2;
- /* the box: four lines that stop short of the corner squares, so each square stands alone */
- o.push('<g stroke="#444" stroke-width=".8" stroke-linecap="butt">'+
-  '<line x1="'+(bx+m/2+g2)+'" y1="'+by.toFixed(2)+'" x2="'+(bx+bw-m/2-g2)+'" y2="'+by.toFixed(2)+'"/>'+
-  '<line x1="'+(bx+m/2+g2)+'" y1="'+(by+bh).toFixed(2)+'" x2="'+(bx+bw-m/2-g2)+'" y2="'+(by+bh).toFixed(2)+'"/>'+
-  '<line x1="'+bx+'" y1="'+(by+m/2+g2).toFixed(2)+'" x2="'+bx+'" y2="'+(by+bh-m/2-g2).toFixed(2)+'"/>'+
-  '<line x1="'+(bx+bw)+'" y1="'+(by+m/2+g2).toFixed(2)+'" x2="'+(bx+bw)+'" y2="'+(by+bh-m/2-g2).toFixed(2)+'"/></g>');
- [[bx,by],[bx+bw,by],[bx,by+bh],[bx+bw,by+bh]].forEach(function(q){o.push('<rect x="'+(q[0]-m/2).toFixed(2)+'" y="'+(q[1]-m/2).toFixed(2)+'" width="'+m+'" height="'+m+'" fill="#000"/>')});
+ var M=steps.length+1,gap=4,TOP=35,BOT=246,f=sheetGrid(M,186,BOT-TOP,gap),s=f.s,gh=f.r*s+(f.r-1)*gap,gy=TOP+(BOT-TOP-gh)/2,
+  nr=Math.max(2.9,Math.min(5,s*.085)),fs=nr*1.25,pad=Math.max(1,s*.03);
+ for(var i=0;i<M;i++){var r=Math.floor(i/f.c),k=i%f.c,inRow=Math.min(f.c,M-r*f.c),gx=(186-(inRow*s+(inRow-1)*gap))/2,x=gx+k*(s+gap),y=gy+r*(s+gap),w=s-2*pad;
+  o.push('<rect x="'+x.toFixed(2)+'" y="'+y.toFixed(2)+'" width="'+s.toFixed(2)+'" height="'+s.toFixed(2)+'" rx="3" fill="#fff" stroke="#cfd4da" stroke-width=".4"/>');
+  if(i<steps.length)o.push('<svg x="'+(x+pad).toFixed(2)+'" y="'+(y+pad).toFixed(2)+'" width="'+w.toFixed(2)+'" height="'+w.toFixed(2)+'" viewBox="-4 -4 108 108">'+paths(steps[i].old,'#b9bec6',.8)+paths(steps[i].add,'#111',1)+'</svg>');
+  else o.push('<image href="'+colourURL(p,Math.min(900,Math.max(300,Math.round(s*12))),'image/jpeg')+'" x="'+(x+pad).toFixed(2)+'" y="'+(y+pad).toFixed(2)+'" width="'+w.toFixed(2)+'" height="'+w.toFixed(2)+'"/>');
+  o.push('<circle cx="'+(x+nr+1).toFixed(2)+'" cy="'+(y+nr+1).toFixed(2)+'" r="'+nr.toFixed(2)+'" fill="#081130"/><text x="'+(x+nr+1).toFixed(2)+'" y="'+(y+nr+1+fs*.36).toFixed(2)+'" text-anchor="middle" '+TXT+' font-size="'+fs.toFixed(2)+'" fill="#fff">'+(i+1)+'</text>')}
  o.push('<text x="93" y="252.5" text-anchor="middle" '+TXT+' font-size="4.2" fill="#6b7079">step-by.com</text></svg>');
  return o.join('')})}
 function posterSheet(u,c){return logo().then(function(L){var o=[svgOpen()],lw=0;

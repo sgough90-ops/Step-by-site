@@ -78,7 +78,7 @@ function remember(f){var m=memory();f(m);try{localStorage.setItem('sbbook',JSON.
 function cleanName(s){s=String(s||'').replace(/\s+/g,' ').replace(/^\s+/,'').slice(0,16);return s?s.charAt(0).toUpperCase()+s.slice(1):''}
 function poss(n){n=n.replace(/\s+$/,'');return n+'\u2019s'}
 function cleanTitle(s){return String(s||'').replace(/\s+/g,' ').replace(/^\s+/,'').slice(0,28)}
-function newBook(b){var m=memory(),n=0,ck=KIND.id+':'+b.id,t=KIND.id==='print'?'Family':(b.title||b.n);
+function newBook(b){var m=memory(),n=0,ck=KIND.id+':'+b.id,t=KIND.id==='print'?'My Family':(b.title||b.n);
  return{id:b.id,title:t,deftitle:t,label:b.n,wide:b.wide||'',set:b.set,cv:b.cv,pd:b.pd,kind:b.kind,name:cleanName(m.name||''),
   col:(m.col&&(m.col[ck]||(KIND.id==='book'&&m.col[b.id])))||(KIND.id==='print'?CREAM:KIND.id==='poster'?'#FFC531':DEFCOL[b.kind]||COLS[0].c),cover:null,
   items:b.items.map(function(it){var on=!b.off&&n<KIND.max;if(on)n++;return{slot:it.slot,key:it.key,title:it.title,photos:it.photos,pick:it.pick,on:on}})}}
@@ -255,20 +255,92 @@ function poster(g,k,B,pic){var W=500,H=700,on=onItems(B),n=Math.max(1,on.length)
 function printPage(g,k,B,pic){var W=210,H=297,on=onItems(B),tc=textOn(B);
  if(on.length<=1){var it=on[0]||null;
   return pic(it?cur(it):null).then(function(p){var cap=it?it.title:'',z=cardSize(p,170,190,5),top=30;
-   bgFill(g,k,B,W,H,'s',[[18,top-8,192,top+z.h+8],[18,top+z.h+8,192,top+z.h+34],[28,258,182,282]],1);
+   bgFill(g,k,B,W,H,'s',[[18,top-8,192,top+z.h+8],[18,top+z.h+8,192,top+z.h+34],[100,262,206,294]],1);
    card(g,k,p,105,top+z.h/2,170,190,{pad:5});
    if(it&&it.slot)sticker(g,k,it.slot,Math.max(28,105-z.w/2+3),Math.max(28,top+3),ABC[0]);
    if(cap)pill(g,cap,105*k,(top+z.h+21)*k,11*k,182*k);
-   g.font=font(7*k);g.textAlign='center';g.textBaseline='alphabetic';g.fillStyle=tc;g.fillText(drawnBy(B),105*k,272*k)})}
- /* the cards may be up to 1.3 times as tall as wide, so 5 or 6 drawings still fill the page */
- var gap=6,GX=15,GY=80,GW=180,GH=172,f=fitGrid(on.length,GW,GH,gap,120),ch=Math.min(f.s*1.3,(GH-(f.r-1)*gap)/f.r),
-  tw=f.c*f.s+(f.c-1)*gap,th=f.r*ch+(f.r-1)*gap,ox=GX+(GW-tw)/2,oy=GY+(GH-th)/2;
- bgFill(g,k,B,W,H,'f',[[16,12,194,74],[ox,oy,ox+tw,oy+th],[28,262,182,284]],1);
- outlined(g,B.name?poss(B.name):'My',105*k,42*k,30*k,170*k,'#fff');
- pill(g,B.title,105*k,60*k,10*k,170*k);
- var chain=Promise.resolve();
- on.forEach(function(it,i){chain=chain.then(function(){var q=cell(f,i,on.length,ox,tw,oy,gap);return pic(cur(it),f.s).then(function(p){wordTile(g,k,p,q.x,oy+Math.floor(i/f.c)*(ch+gap),f.s,'',wordOf(it.title),ch)})})});
- return chain.then(function(){g.font=font(6.5*k);g.textAlign='center';g.textBaseline='alphabetic';g.fillStyle=tc;g.fillText(drawnBy(B),105*k,276*k)})}
+   signature(g,k,B,194,284)})}
+ return famPortrait(g,k,B,pic,on)}
+/* the family print (17 Nov 2026): the drawings stand side by side like a family portrait, with no boxes round them.
+   Each drawing is lifted off its paper (cutout), so it stands straight on the print's colour. They are all made the same
+   height, feet on one line, in one or two rows (whichever lets them be biggest; the first ones tapped go in the back row),
+   with each one's word underneath. The title is at the top and the child's name is signed in the bottom right corner. */
+function rowSplits(n){var s=[[n]];if(n>=2)s.push([Math.ceil(n/2),Math.floor(n/2)]);if(n>=5)s.push([Math.ceil(n/3),Math.ceil((n-Math.ceil(n/3))/2),n-Math.ceil(n/3)-Math.ceil((n-Math.ceil(n/3))/2)]);return s}
+function famPortrait(g,k,B,pic,on){var W=210,X0=12,XW=186,Y0=68,Y1=264,gap=5,LAB=9,RG=5,tc=textOn(B),n=on.length,mpx=Math.max(220,Math.min(1200,Math.round(95*k)));
+ bgFill(g,k,B,W,297,'f',[[14,14,196,60],[4,Y0-4,206,Y1+4],[96,264,206,294]],1);
+ outlined(g,B.title||'My Family',105*k,46*k,26*k,180*k,'#fff');
+ return Promise.all(on.map(function(it){return pic(cur(it),95).then(function(p){return{it:it,c:cutout(p,mpx)}})})).then(function(L){
+  L=L.filter(function(o){return o.c});if(!L.length){signature(g,k,B,194,284);return}
+  var best=null;rowSplits(L.length).forEach(function(sp){var i=0,rows=sp.map(function(m){var r=L.slice(i,i+m);i+=m;return r}),
+    hr=(Y1-Y0-(rows.length-1)*RG)/rows.length-LAB,h=hr;
+   rows.forEach(function(r){var a=0;r.forEach(function(o){a+=o.c.ar});h=Math.min(h,(XW-gap*(r.length-1))/a)});
+   if(!best||h>best.h+.01)best={rows:rows,h:h}});
+  var h=best.h,rows=best.rows,tot=rows.length*(h+LAB)+(rows.length-1)*RG,y=Y0+(Y1-Y0-tot)/2;
+  rows.forEach(function(r){var a=0;r.forEach(function(o){a+=o.c.ar});var x=X0+(XW-(h*a+gap*(r.length-1)))/2;
+   r.forEach(function(o){var w=h*o.c.ar,c=o.c;g.drawImage(c.cv,c.x0,c.y0,c.bw,c.bh,x*k,y*k,w*k,h*k);free(c.cv);
+    var word=wordOf(o.it.title)||o.it.title||'';if(word){var px=fitFont(g,word,5.6*k,(w+gap-1)*k);g.fillStyle=tc;g.textAlign='center';g.textBaseline='alphabetic';g.fillText(word,(x+w/2)*k,(y+h+6.6)*k)}
+    x+=w+gap});
+   y+=h+LAB+RG});
+  signature(g,k,B,194,284)})}
+/* a drawing lifted off its paper: the light is evened out first (the paper's colour is worked out from the brightest
+   parts nearby, colour by colour). Small bits of paper shut in by the drawing's lines (a white moustache, the white of an
+   eye) stay as part of the drawing; the paper round the outside, and bigger shut-in bits (between a fishing rod and its
+   line), go see-through, with soft edges. So the drawing stands on any
+   background colour like a sticker. Returns the canvas, the box round the ink (x0, y0, bw, bh, in pixels) and that box's
+   width over height. */
+function cutout(p,maxPx){if(!p||!p.im)return null;
+ var W=p.im.naturalWidth||p.im.width,H=p.im.naturalHeight||p.im.height,c=p.crop||{x:0,y:0,w:1,h:1},sw=c.w*W,sh=c.h*H,z=Math.min(1,maxPx/Math.max(sw,sh)),
+  w=Math.max(16,Math.round(sw*z)),h=Math.max(16,Math.round(sh*z)),cv=canvas(w,h),g=cv.getContext('2d'),id;
+ g.drawImage(p.im,c.x*W,c.y*H,sw,sh,0,0,w,h);try{id=g.getImageData(0,0,w,h)}catch(e){return null}
+ var d=id.data,WH=w*h,S=Math.max(6,Math.round(Math.max(w,h)/60)),bw=Math.ceil(w/S),bh=Math.ceil(h/S),N=bw*bh,ch,i,j,x,y,q;
+ var M=[new Float32Array(N),new Float32Array(N),new Float32Array(N)];
+ for(y=0;y<h;y++)for(x=0;x<w;x++){i=(y*w+x)*4;q=((y/S)|0)*bw+((x/S)|0);for(ch=0;ch<3;ch++)if(d[i+ch]>M[ch][q])M[ch][q]=d[i+ch]}
+ function grow(A,R,mx){var T=new Float32Array(N);for(var by=0;by<bh;by++)for(var bx=0;bx<bw;bx++){var v=0,n=0;
+   for(var yy=Math.max(0,by-R);yy<=Math.min(bh-1,by+R);yy++)for(var xx=Math.max(0,bx-R);xx<=Math.min(bw-1,bx+R);xx++){var u=A[yy*bw+xx];if(mx){if(u>v)v=u}else{v+=u;n++}}
+   T[by*bw+bx]=mx?v:v/n}return T}
+ for(ch=0;ch<3;ch++)M[ch]=grow(grow(grow(M[ch],3,1),1,0),1,0);
+ /* 1. how much ink each pixel has, and its colour with the paper made white */
+ var NC=new Uint8ClampedArray(WH*3),AL=new Float32Array(WH),INK=new Uint8Array(WH);
+ for(y=0;y<h;y++){var fy=Math.min(bh-1,Math.max(0,y/S-.5)),yA=fy|0,yB=Math.min(bh-1,yA+1),ty=fy-yA;
+  for(x=0;x<w;x++){var fx=Math.min(bw-1,Math.max(0,x/S-.5)),xA=fx|0,xB=Math.min(bw-1,xA+1),tx=fx-xA,mn=1;j=y*w+x;i=j*4;
+   for(ch=0;ch<3;ch++){var A=M[ch],pp=(A[yA*bw+xA]*(1-tx)+A[yA*bw+xB]*tx)*(1-ty)+(A[yB*bw+xA]*(1-tx)+A[yB*bw+xB]*tx)*ty,nv=Math.min(1,d[i+ch]/Math.max(24,pp));NC[j*3+ch]=nv*255;if(nv<mn)mn=nv}
+   AL[j]=Math.max(0,Math.min(1,(1-mn-.06)/.18));if(AL[j]>.45)INK[j]=1}}
+ /* 2. the paper round the outside: filled in from the edges, with small gaps in the lines closed first */
+ var r=Math.max(1,Math.round(Math.max(w,h)*.004));
+ function dil(src){var t=new Uint8Array(WH),o=new Uint8Array(WH),cnt,xx,yy,cc;
+  for(yy=0;yy<h;yy++){cnt=0;for(xx=0;xx<w+r;xx++){if(xx<w&&src[yy*w+xx])cnt++;if(xx-2*r-1>=0&&src[yy*w+xx-2*r-1])cnt--;cc=xx-r;if(cc>=0&&cc<w)t[yy*w+cc]=cnt>0?1:0}}
+  for(xx=0;xx<w;xx++){cnt=0;for(yy=0;yy<h+r;yy++){if(yy<h&&t[yy*w+xx])cnt++;if(yy-2*r-1>=0&&t[(yy-2*r-1)*w+xx])cnt--;cc=yy-r;if(cc>=0&&cc<h)o[cc*w+xx]=cnt>0?1:0}}
+  return o}
+ var DI=dil(INK),OUT=new Uint8Array(WH),Qu=new Int32Array(WH),qh=0,qt=0;
+ function push(k){if(!OUT[k]&&!DI[k]){OUT[k]=1;Qu[qt++]=k}}
+ for(x=0;x<w;x++){push(x);push((h-1)*w+x)}for(y=0;y<h;y++){push(y*w);push(y*w+w-1)}
+ while(qh<qt){j=Qu[qh++];x=j%w;if(x>0)push(j-1);if(x<w-1)push(j+1);if(j>=w)push(j-w);if(j<WH-w)push(j+w)}
+ var LIM=WH*.012,SEEN=new Uint8Array(WH),t;
+ function add(k){if(!OUT[k]&&!DI[k]&&!SEEN[k]){SEEN[k]=1;Qu[qt++]=k}}
+ for(var s0=0;s0<WH;s0++){if(OUT[s0]||DI[s0]||SEEN[s0])continue;qh=0;qt=0;add(s0);
+  while(qh<qt){j=Qu[qh++];x=j%w;if(x>0)add(j-1);if(x<w-1)add(j+1);if(j>=w)add(j-w);if(j<WH-w)add(j+w)}
+  if(qt>LIM)for(t=0;t<qt;t++)OUT[Qu[t]]=1}
+ var OG=dil(OUT);
+ /* 3. outside paper goes see-through (soft edges); everything inside the drawing stays solid */
+ var x0=w,y0=h,x1=-1,y1=-1;
+ for(j=0;j<WH;j++){i=j*4;var a=AL[j];
+  if(OG[j]&&!INK[j]){if(a<.02){d[i+3]=0;continue}for(ch=0;ch<3;ch++)d[i+ch]=Math.round(255*Math.max(0,Math.min(1,(NC[j*3+ch]/255-(1-a))/a)));d[i+3]=Math.round(255*a)}
+  else{for(ch=0;ch<3;ch++)d[i+ch]=NC[j*3+ch];d[i+3]=255}
+  if(INK[j]){x=j%w;y=(j/w)|0;if(x<x0)x0=x;if(x>x1)x1=x;if(y<y0)y0=y;if(y>y1)y1=y}}
+ g.putImageData(id,0,0);
+ if(x1<0){x0=0;y0=0;x1=w-1;y1=h-1}
+ var m=Math.round(Math.max(w,h)*.015);x0=Math.max(0,x0-m);y0=Math.max(0,y0-m);x1=Math.min(w-1,x1+m);y1=Math.min(h-1,y1+m);
+ return{cv:cv,x0:x0,y0:y0,bw:x1-x0+1,bh:y1-y0+1,ar:(x1-x0+1)/(y1-y0+1)}}
+/* the child's name signed in the bottom right corner, as an artist signs a picture, with the year small after it */
+var SIGN='"Bradley Hand","Segoe Print","Marker Felt","Noteworthy","Comic Sans MS",'+FONT;
+function signature(g,k,B,rx,by){if(!B.name)return;var tc=textOn(B),yr=year();
+ g.save();g.translate(rx*k,by*k);g.rotate(-.06);g.fillStyle=tc;g.strokeStyle=tc;g.textBaseline='alphabetic';g.textAlign='right';
+ g.font='italic bold '+Math.round(5*k)+'px '+SIGN;var yw=g.measureText(yr).width;g.fillText(yr,0,0);
+ var px=12*k;g.font='italic bold '+Math.round(px)+'px '+SIGN;var nw=g.measureText(B.name).width;if(nw>90*k){px=px*90*k/nw;g.font='italic bold '+Math.round(px)+'px '+SIGN;nw=g.measureText(B.name).width}
+ g.fillText(B.name,-yw-2.5*k,0);
+ g.lineWidth=.7*k;g.lineCap='round';g.beginPath();g.moveTo(-yw-2.5*k-nw,2.4*k);g.quadraticCurveTo(-yw-2.5*k-nw*.4,4.6*k,-yw*.3,1.6*k);g.stroke();
+ g.restore()}
+
 /* one page as a canvas. full: the print size with the full photos; otherwise a preview from the small pictures.
    The back cover's little tiles (up to 34 mm) use the small pictures even in print (420 px is over 300 dpi there). */
 function render(B,spec,S,full){var mw=KIND.mm[0],mh=KIND.mm[1],c=canvas(S,Math.round(S*mh/mw)),g=c.getContext('2d'),k=S/mw;
@@ -516,11 +588,11 @@ function savePdf(){if(!PDF)return;var f=null;try{f=new File([PDF.blob],PDF.name,
    comes back to the shop. The pictures are img/shop-*.webp (made 17 Nov 2026 from the app's own drawings). */
 window.SBCAT=1;      // sb-extras.js leaves out its own print cards when the shop is here
 var SHOP=[
- {id:'sheets',img:'shop-sheets',bd:'Free',line:'Print at home',n:'Print sheets',pr:'Free',sz:'A4 or US Letter',mt:'A sheet for every drawing: the steps along the top and a box to draw in.',bt:'Choose a sheet'},
+ {id:'sheets',img:'shop-sheets2',bd:'Free',line:'Print at home',n:'Print sheets',pr:'Free',sz:'A4 or US Letter',mt:'A sheet for every drawing, with all its steps on one page.',bt:'Choose a sheet'},
  {id:'books',img:'shop-books',bd:'Coming soon',dk:1,line:'On Amazon',n:'Step by Draw books',pr:'Coming soon',sz:'7 books',mt:'Our step-by-step drawing books, one for every set.',bt:'See the books'},
  {id:'book',img:'shop-book',bd:'New',line:'From their drawings',n:'A to Z book',pr:'\u00a324.99',sz:'21 \u00d7 21 cm hardcover',mt:'One drawing on every page and their name on the cover. Delivered.',bt:'Make a book'},
  {id:'poster',img:'shop-poster',line:'From their drawings',n:'Alphabet poster',pr:'\u00a324.99',sz:'50 \u00d7 70 cm',mt:'A whole set of their drawings on one big poster. Delivered.',bt:'Make a poster'},
- {id:'print',img:'shop-print',line:'From their drawings',n:'Drawing print',pr:'\u00a314.99',sz:'A4',mt:'One drawing, or the whole family on one page. Delivered.',bt:'Make a print'}];
+ {id:'print',img:'shop-print2',line:'From their drawings',n:'Drawing print',pr:'\u00a314.99',sz:'A4',mt:'One drawing, or the whole family on one page. Delivered.',bt:'Make a print'}];
 /* Step by Draw books on Amazon: one for each A to Z set, and the numbers book. When a book is on sale, put its Amazon
    address in url: its card then shows On Amazon and a View on Amazon button. Until then it shows Coming soon. */
 var AMAZON=[{id:'animals-AZ',url:''},{id:'animals-az',url:''},{id:'vehicles-AZ',url:''},{id:'vehicles-az',url:''},{id:'house-AZ',url:''},{id:'house-az',url:''},{id:'numbers',n:'Numbers 1 to 9',url:''}];
@@ -592,7 +664,7 @@ function shSheets(){var d=G('sbcat');if(!d)return;SHVIEW='sheets';SHSET=null;var
 function shThumb(p,img){if(SHTH[p.key]){img.src=SHTH[p.key];return}var x=window.__sbx;if(!x||!x.colour)return;
  setTimeout(function(){if(!img.isConnected)return;var u='';try{u=x.colour(p,420)}catch(e){}if(u){SHTH[p.key]=u;img.src=u}},0)}
 function shSet(c){var d=G('sbcat');if(!d||!c)return;SHVIEW='set';SHSET=c;var L=shPrintable(c);
- d.innerHTML=shBackPill()+'<section>'+shHead(c.n,'Tap a drawing to print its sheet: the steps along the top and a box to draw in.',L.length+' sheet'+(L.length===1?'':'s'))+'<div class="cgr">'+L.map(function(o,i){
+ d.innerHTML=shBackPill()+'<section>'+shHead(c.n,'Tap a drawing to print its sheet: all its steps on one page, to follow on their own paper.',L.length+' sheet'+(L.length===1?'':'s'))+'<div class="cgr">'+L.map(function(o,i){
   return shCard({a:'p'+i,pic:'<img class="thm" alt="" data-i="'+i+'">',bd:o.s,bdc:'lt',line:'Free sheet',n:o.p.t||o.s,pr:'Free',sz:'A4 or US Letter',bt:'Print'})}).join('')+'</div></section>';
  [].forEach.call(d.querySelectorAll('img.thm'),function(im){var o=L[+im.getAttribute('data-i')];if(o)shThumb(o.p,im)});
  shWire(d,function(a){if(a==='back'){shSheets();return}var o=L[+a.slice(1)],x=window.__sbx;if(o&&x&&x.sheet)x.sheet(o.p).then(x.openSheet)});shTop()}
