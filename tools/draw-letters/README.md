@@ -21,6 +21,8 @@ python3 apply.py ../../public/draw/index.html <name>
 python3 apptest.py ../../public 8801 out/app/after <key>
 ```
 
-Rules the drawings follow: the letter is drawn first and whole, as it is written; nothing crosses it (lines may only touch it); every colour edge is on a drawn line; no colour goes over another colour; one pencil a step; all the line steps come before the colour steps.
+Rules the drawings follow: the letter is drawn first and whole, as it is written, with a normal letter shape (not stretched wide, tall or flat: if the picture needs longer lines, step 1 draws the first part and a later step carries them on); nothing crosses it (lines may only touch it); every colour edge is on a drawn line; no colour goes over another colour; one pencil a step; all the line steps come before the colour steps.
 
 Needs Python 3 with numpy, scipy, scikit-image and playwright, and Chrome at `/usr/bin/google-chrome`.
+
+Step 1 fixes (18 Nov 2026): 16 live drawings had their step 1 cut so the letter looks natural, with the finished picture unchanged (see `step1fix.py`). If one of them is rebuilt from its build script (tap, toiletroll, electrictrain, num_swan, num_shark, num_pig), run `python3 step1fix.py out/<name>.json` before `apply.py` or `reapply.py`.
