@@ -9,6 +9,7 @@ Not published (only `public/` is). These scripts write a letter drawing as code,
 - `apply.py ../../public/draw/index.html name1 name2 ...`: adds built drawings to the app page (data and card, level, Make it move kind, set slot). Stops if a key or slot is already taken.
 - `famkit.py`: extra helpers for the family drawings (16 Nov 2026): a peach pencil, circle and arm helpers, and a curve offset for wide ribbons.
 - `reapply.py ../../public/draw/index.html name1 ...`: puts a rebuilt drawing back into the app page in place of the old one (same key).
+- `carkit.py` and `build_racecars.py` (19 Nov 2026): the Vehicles 1 to 9 race cars (`car1` ... `car9`). The cars were sketched on a 200-wide page and `carkit.T` moves them onto the app's paper, so every car is the same size and sits on the same road. Live from 19 Nov 2026: 1, 2, 5, 6, 7 and 9. `car4` (4 is for Jet car) is built but waits for his yes before `apply.py`.
 - `apptest.py ../../public <port> out/app/<prefix> key1 key2 ...`: opens the app in headless Chrome (phone and Chromebook size) and goes through every step of each drawing.
 
 To add a new drawing:
