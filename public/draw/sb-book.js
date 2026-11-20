@@ -591,8 +591,8 @@ var SHOP=[
  {id:'sheets',img:'shop-sheets2',bd:'Free',line:'Print at home',n:'Print sheets',pr:'Free',sz:'A4 or US Letter',mt:'A sheet for every drawing, with all its steps on one page.',bt:'Choose a sheet'},
  {id:'books',img:'shop-books',bd:'Coming soon',dk:1,line:'On Amazon',n:'Step by Draw books',pr:'Coming soon',sz:'7 books',mt:'Our step-by-step drawing books, one for every set.',bt:'See the books'},
  {id:'book',img:'shop-book',bd:'New',line:'From their drawings',n:'A to Z book',pr:'\u00a324.99',sz:'21 \u00d7 21 cm hardcover',mt:'One drawing on every page and their name on the cover. Delivered.',bt:'Make a book'},
- {id:'poster',img:'shop-poster',line:'From their drawings',n:'Alphabet poster',pr:'\u00a324.99',sz:'50 \u00d7 70 cm',mt:'A whole set of their drawings on one big poster. Delivered.',bt:'Make a poster'},
- {id:'print',img:'shop-print2',line:'From their drawings',n:'Drawing print',pr:'\u00a314.99',sz:'A4',mt:'One drawing, or the whole family on one page. Delivered.',bt:'Make a print'}];
+ {id:'poster',img:'shop-poster',line:'From their drawings',n:'Alphabet poster',pr:'\u00a324.99',sz:'50 \u00d7 70 cm',mt:'A whole set of their drawings on one big poster. Delivered.',bt:'Make a poster'}];
+/* 20 Nov 2026: the Drawing print card was taken off the Shop (the print maker below stays, unused). */
 /* Step by Draw books on Amazon: one for each A to Z set, and the numbers book. When a book is on sale, put its Amazon
    address in url: its card then shows On Amazon and a View on Amazon button. Until then it shows Coming soon. */
 var AMAZON=[{id:'animals-AZ',url:''},{id:'animals-az',url:''},{id:'vehicles-AZ',url:''},{id:'vehicles-az',url:''},{id:'house-AZ',url:''},{id:'house-az',url:''},{id:'numbers',n:'Numbers 1 to 9',url:''}];

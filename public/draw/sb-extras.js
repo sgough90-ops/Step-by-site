@@ -479,7 +479,7 @@ function hookScan(){var S=window.SBScan;if(!S)return false;if(S.__box)return tru
 if(!hookScan()){var hs2=0,hst=setInterval(function(){if(hookScan()||++hs2>40)clearInterval(hst)},250)}
 
 /* ================================================================ 6. home pictures: a drawing from each set (the 123 row keeps its pictures, except Animals 1 to 9, which shows its stork from 18 Nov 2026, and Vehicles 1 to 9, which shows its 7 race car from 19 Nov 2026) */
-var COVERS={'animals-AZ':'cov_d_parrot','vehicles-AZ':'cov_d_digger','house-AZ':'cov_d_fireplace','animals-az':'cov_d_ladybird','vehicles-az':'cov_d_bus','house-az':'cov_d_coffee','animals-09':'cov_d_stork','vehicles-09':'cov_d_speedster'};
+var COVERS={'animals-AZ':'cov_d_parrot','vehicles-AZ':'cov_d_digger','house-AZ':'cov_d_croissant','animals-az':'cov_d_ladybird','vehicles-az':'cov_d_bus','house-az':'cov_d_coffee','animals-09':'cov_d_stork','vehicles-09':'cov_d_speedster'};
 function covers(){var cards=document.querySelectorAll('.wlcard[data-set]');if(!cards.length)return false;
  Object.keys(COVERS).forEach(function(id){var o=colById(id);if(o)o.c.cv=COVERS[id];var b=document.querySelector('.wlcard[data-set="'+id+'"] img');if(b)b.src='img/'+COVERS[id]+'.webp'});return true}
 if(!covers()){var cv0=0,cvt=setInterval(function(){if(covers()||++cv0>60)clearInterval(cvt)},150)}
