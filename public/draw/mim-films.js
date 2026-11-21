@@ -37,7 +37,13 @@
        berry round a pebble, the wind blows it away, he ends standing on it), Wonky slot = Boulder push (pushes a pebble,
        slips in the rain, the sun comes out), Starring role = Climb and fly (climbs a grass stem, wobbles in the wind,
        flies off at sunset). Founder's voices (Tiny), vidIQ tunes made for these films, the blue end page */
-    dx_bug_b: { dir: "mim-films/dx_bug_b/", v: "1", name: "beetle" }
+    dx_bug_b: { dir: "mim-films/dx_bug_b/", v: "1", name: "beetle" },
+    /* 21 Nov 2026: a is for apple (juice), test of a food film: Hedgehog rodeo (Silly slot only, types). A real orchard
+       and a real hedgehog (the founder's ChatGPT pictures); the child's own apple rides it, wearing a pencil face, noodle
+       arms and legs drawn by the app (rig, below). The film has no apple in it at all: face.json says, for every frame,
+       where the child's apple goes (nopatch: nothing to cover up) and which face/arms/legs pose to draw. Sound: Runway
+       sound effects, a vidIQ hoedown and vidIQ voices. The drawing still has a drink in it: films only use the apple. */
+    dx_applejuice_a: { dir: "mim-films/dx_applejuice_a/", v: "1", name: "apple", face: "1", types: ["silly"] }
   };
   var TYPES = [["silly", "Silly film"], ["wonky", "Wonky film"], ["star", "Starring role film"]];
   var NAVY = "#081130";
@@ -69,6 +75,7 @@
     "#mfpick .mff{width:84px;height:84px;border-radius:26px;padding:8px;border:0;background:#fff;box-shadow:0 6px 0 rgba(8,17,48,.3);cursor:pointer}" +
     "#mfpick .mff svg{width:100%;height:100%;display:block}" +
     "#mfpick .mff.seen{box-shadow:0 0 0 4px #ffc531,0 6px 0 rgba(8,17,48,.3)}" +
+    "#mfpick .mff.off{display:none}" +
     "#mfpick .mff:active,#mfpick .mfcam:active,#mfplay .shc:active,#mfgate .shc:active{transform:translateY(4px)}" +
     "#mfpick .mfcam{width:64px;height:64px;border-radius:50%;border:0;background:#fff;box-shadow:0 5px 0 rgba(8,17,48,.3);display:flex;align-items:center;justify-content:center;cursor:pointer;padding:0}" +
     "#mfpick .mfcam svg{width:42px;height:42px}" +
@@ -166,6 +173,10 @@
        without one: see the click catcher at the bottom) */
     if (FACE && FACE.key !== k) FACE = null;
     var cam = G("mfcam"); if (cam) cam.classList.toggle("off", !!(SRC && SRC.classList && SRC.classList.contains("mdxmim")));
+    /* 21 Nov 2026: a drawing can have fewer than three films (types): only those buttons show */
+    [].forEach.call(document.querySelectorAll("#mfpick .mff"), function (b) {
+      b.classList.toggle("off", !!(f.types && f.types.indexOf(b.getAttribute("data-t")) < 0));
+    });
     G("mfpick").classList.remove("off");
     if (f.face) faceData(k);   /* fetched early, so a new photo is on the films straight away */
     posterFace();
@@ -348,7 +359,9 @@
       if (!F) { nope(); return; }
       me.D = r[0]; me.F = F;
       posterFace();
-      TYPES.forEach(function (t) { audioBuf(k, t[0]).catch(function () {}); });   /* ready for the recording */
+      TYPES.forEach(function (t) {   /* ready for the recording */
+        if (!FILMS[k].types || FILMS[k].types.indexOf(t[0]) >= 0) audioBuf(k, t[0]).catch(function () {});
+      });
     }).catch(nope);
   }
   function shakeCam() {
@@ -825,8 +838,11 @@
     var a = e[0], b = e[1], c = e[2], d = e[3], ee = e[4], f = e[5];
     ctx.setTransform(a, d, b, ee, c, f);
     var r = Math.min(1, e[6]), g = Math.min(1, e[7]), bl = Math.min(1, e[8]);
-    ctx.fillStyle = "rgb(" + Math.round(D.paper[0] * r) + "," + Math.round(D.paper[1] * g) + "," + Math.round(D.paper[2] * bl) + ")";
-    ctx.fill(D.path);
+    /* 21 Nov 2026: films made with no drawing in them (nopatch) have no old face to cover */
+    if (!D.nopatch) {
+      ctx.fillStyle = "rgb(" + Math.round(D.paper[0] * r) + "," + Math.round(D.paper[1] * g) + "," + Math.round(D.paper[2] * bl) + ")";
+      ctx.fill(D.path);
+    }
     ctx.save();
     ctx.transform(F.s, 0, 0, F.s, D.c[0] - F.s * F.cx, D.c[1] - F.s * F.cy);
     ctx.drawImage(tinted(F, e[6], e[7], e[8]), 0, 0);
@@ -849,6 +865,92 @@
     ox.drawImage(occMask(o), 0, 0, bw, bh);
     ox.globalCompositeOperation = "source-over";
     ctx.drawImage(SCR, 0, 0, bw, bh, bx, by, bw, bh);
+  }
+  /* ---- 21 Nov 2026: a pencil face, noodle arms and legs, drawn by the app on top of the child's own drawing ----
+     No AI: face.json's rig gives the drawing's own spots (in its 100 x 100 design units) and, per frame, a pose
+     (eyes, look, brows, mouth, where the hands and feet go). Drawn in the frame's own map, so it moves, turns and
+     squashes with the drawing. Same look as Claude's character sheet (rig.py), in clean pencil-grey lines. */
+  var RINK = "#262626";
+  var RIGDEF = { eyes: "normal", look: [0, 0], open: 1, brows: "neutral", mouth: "smile", wink: "", eyesize: 1, feet: "out",
+    handL: [8, 80], handR: [68, 80], bendL: 0.5, bendR: -0.5, footL: [30, 99], footR: [47, 99], kneeL: -0.3, kneeR: 0.3 };
+  var RIGSPOT = { eL: [33.5, 63], eR: [46, 63], mouth: [39.5, 74], shL: [16.6, 68], shR: [59.4, 68], hipL: [33, 85], hipR: [44, 85], cx: 38 };
+  function rp(P, k) { return P && P[k] != null ? P[k] : RIGDEF[k]; }
+  function rEll(x, cx, cy, rx, ry, a0, a1) { x.beginPath(); x.ellipse(cx, cy, Math.max(0.01, rx), Math.max(0.01, ry), 0, (a0 || 0) * Math.PI / 180, (a1 == null ? 360 : a1) * Math.PI / 180); }
+  function rStroke(x, w) { x.lineWidth = w; x.strokeStyle = RINK; x.stroke(); }
+  function rLine(x, pts, w) { x.beginPath(); pts.forEach(function (p, i) { if (i) x.lineTo(p[0], p[1]); else x.moveTo(p[0], p[1]); }); rStroke(x, w); }
+  function rLimb(x, a, b, bend) {
+    var dx = b[0] - a[0], dy = b[1] - a[1], L = Math.hypot(dx, dy) || 1e-6, nx = -dy / L, ny = dx / L;
+    var c = [(a[0] + b[0]) / 2 + nx * bend * L * 0.35, (a[1] + b[1]) / 2 + ny * bend * L * 0.35];
+    x.beginPath(); x.moveTo(a[0], a[1]); x.quadraticCurveTo(c[0], c[1], b[0], b[1]); rStroke(x, 1.55);
+    var ex = b[0] - c[0], ey = b[1] - c[1], el = Math.hypot(ex, ey) || 1e-6; return [ex / el, ey / el];
+  }
+  function rHand(x, p, dv) {
+    rEll(x, p[0], p[1], 2.3, 2.1); x.fillStyle = "#fff"; x.fill(); rStroke(x, 1.0);
+    var an = Math.atan2(dv[1], dv[0]) - 1.4, tx = p[0] + 2.1 * Math.cos(an), ty = p[1] + 2.1 * Math.sin(an);
+    rLine(x, [[tx, ty], [tx + 1.6 * Math.cos(an - 0.3), ty + 1.6 * Math.sin(an - 0.3)]], 1.0);
+  }
+  function rShoe(x, p, facing) { rEll(x, p[0] + 1.6 * facing, p[1] + 0.3, 3.4, 1.9); x.fillStyle = "#3b5bdb"; x.fill(); rStroke(x, 1.0); }
+  function rEye(x, cx, cy, kind, look, op, size) {
+    var rx = 5 * size, ry = 5.9 * size;
+    if (kind === "happy") { rEll(x, cx, cy + 1.5, rx * 0.85, ry * 0.75, 200, 340); rStroke(x, 1.35); return; }
+    if (kind === "closed" || op < 0.12) { rEll(x, cx, cy - 0.5, rx * 0.85, ry * 0.45, 20, 160); rStroke(x, 1.35); return; }
+    if (kind === "squint") { var s = cx < RIGSPOT.cx + 3 ? 1 : -1; rLine(x, [[cx - 3.2 * s, cy - 3], [cx + 2.6 * s, cy], [cx - 3.2 * s, cy + 3]], 1.35); return; }
+    var ry2 = ry * op;
+    rEll(x, cx, cy, rx, ry2); x.fillStyle = "#fff"; x.fill(); rStroke(x, 1.15);
+    var pr = (kind === "wide" ? 1.7 : 2.6) * size, cl = function (v) { return Math.max(-1, Math.min(1, v)); };
+    var px = cx + cl(look[0]) * (rx - pr - 0.6), py = cy + cl(look[1]) * (ry2 - pr - 0.6);
+    if (ry2 > pr + 0.4) {
+      rEll(x, px, py, pr, pr * Math.min(1, ry2 / ry + 0.2)); x.fillStyle = "#141414"; x.fill();
+      rEll(x, px - pr * 0.35, py - pr * 0.4, pr * 0.33, pr * 0.33); x.fillStyle = "#fff"; x.fill();
+    }
+  }
+  function rMouth(x, kind) {
+    var cx = RIGSPOT.mouth[0], cy = RIGSPOT.mouth[1];
+    if (kind === "smile") { rEll(x, cx, cy - 3, 6, 4, 25, 155); rStroke(x, 1.35); }
+    else if (kind === "smirk") rLine(x, [[cx - 4.5, cy + 0.5], [cx + 1.5, cy + 1.2], [cx + 5.2, cy - 1.6]], 1.35);
+    else if (kind === "grin" || kind === "laugh") {
+      var h = kind === "laugh" ? 6.5 : 5.2, mo = new Path2D();
+      mo.moveTo(cx - 6.5, cy - 1); mo.lineTo(cx + 6.5, cy - 1); mo.ellipse(cx, cy - 1, 6.5, h, 0, 0, Math.PI); mo.closePath();
+      x.fillStyle = "#7a1f1f"; x.fill(mo);
+      x.save(); x.clip(mo);
+      rEll(x, cx + 1, cy - 1 + h * 0.75, 3.4, h * 0.35); x.fillStyle = "#ff8fa3"; x.fill();
+      x.beginPath(); x.moveTo(cx - 5.6, cy - 1); x.lineTo(cx + 5.6, cy - 1); x.lineTo(cx + 5, cy + 0.6); x.lineTo(cx - 5, cy + 0.6); x.closePath(); x.fillStyle = "#fff"; x.fill();
+      x.restore();
+      x.lineWidth = 1.25; x.strokeStyle = RINK; x.stroke(mo);
+    }
+    else if (kind === "O" || kind === "o") { var b = kind === "O"; rEll(x, cx, cy, b ? 3.2 : 1.8, b ? 4.2 : 2.2); x.fillStyle = "#7a1f1f"; x.fill(); rStroke(x, b ? 1.25 : 1.15); }
+    else if (kind === "wavy") { var pts = []; for (var i = 0; i <= 30; i++) { var xx = cx - 5.5 + 11 * i / 30; pts.push([xx, cy + 0.9 * Math.sin((xx - cx) * 1.6)]); } rLine(x, pts, 1.3); }
+    else if (kind === "flat") rLine(x, [[cx - 3.5, cy], [cx + 3.5, cy + 0.3]], 1.3);
+    else if (kind === "worried") { rEll(x, cx, cy + 3, 4.5, 2.6, 205, 335); rStroke(x, 1.3); }
+  }
+  function rBrows(x, kind) {
+    var l = RIGSPOT.eL, r = RIGSPOT.eR, lx = l[0], ly = l[1], rx = r[0], ry = r[1], S;
+    if (kind === "none") return;
+    if (kind === "mischief") S = [[[lx - 4, ly - 8.6], [lx + 3.5, ly - 7]], [[rx - 3.5, ry - 9.8], [rx + 4, ry - 11.2]]];
+    else if (kind === "worried") S = [[[lx - 4, ly - 7.2], [lx + 3.5, ly - 9.4]], [[rx - 3.5, ry - 9.4], [rx + 4, ry - 7.2]]];
+    else if (kind === "up") S = [[[lx - 4, ly - 10.2], [lx + 3.5, ly - 10.8]], [[rx - 3.5, ry - 10.8], [rx + 4, ry - 10.2]]];
+    else if (kind === "determined") S = [[[lx - 4, ly - 9.6], [lx + 3.5, ly - 7]], [[rx - 3.5, ry - 7], [rx + 4, ry - 9.6]]];
+    else S = [[[lx - 4, ly - 8.6], [lx + 3.5, ly - 9]], [[rx - 3.5, ry - 9], [rx + 4, ry - 8.6]]];
+    S.forEach(function (s) { rLine(x, s, 1.3); });
+  }
+  function drawRig(x, e, R, P) {
+    if (!x || !e || !R || !P) return;
+    x.save();
+    x.setTransform(e[0], e[3], e[1], e[4], e[2], e[5]);
+    x.transform(R.k, 0, 0, R.k, -R.o[0] * R.k, -R.o[1] * R.k);
+    x.globalCompositeOperation = "source-over"; x.lineCap = "round"; x.lineJoin = "round";
+    var kind = rp(P, "eyes"), look = rp(P, "look"), op = rp(P, "open"), sz = rp(P, "eyesize"), w = rp(P, "wink");
+    rEye(x, RIGSPOT.eL[0], RIGSPOT.eL[1], w === "L" ? "closed" : kind, look, op, sz);
+    rEye(x, RIGSPOT.eR[0], RIGSPOT.eR[1], w === "R" ? "closed" : kind, look, op, sz);
+    rBrows(x, rp(P, "brows")); rMouth(x, rp(P, "mouth"));
+    var out = rp(P, "feet") === "out";
+    [[RIGSPOT.hipL, rp(P, "footL"), rp(P, "kneeL"), -1], [RIGSPOT.hipR, rp(P, "footR"), rp(P, "kneeR"), 1]].forEach(function (L) {
+      rLimb(x, L[0], L[1], L[2]); rShoe(x, L[1], out ? L[3] : 1);
+    });
+    [[RIGSPOT.shL, rp(P, "handL"), rp(P, "bendL")], [RIGSPOT.shR, rp(P, "handR"), rp(P, "bendR")]].forEach(function (A) {
+      var dv = rLimb(x, A[0], A[1], A[2]); rHand(x, A[1], dv);
+    });
+    x.restore();
   }
   /* the picker's picture with the child's face on it.
      13 Nov 2026: until there is a face, the drawn face the films were made with isn't shown either (asked for on 13 Nov:
@@ -885,6 +987,7 @@
       cv.width = P.w; cv.height = P.h;
       var x = cv.getContext("2d");
       compose(x, im, P.w, P.h, P.A.concat(P.g, [P.o ? 0 : -1]), D, P.o ? [P.o] : null, F || blankFace(D));
+      if (F && D.rig && P.r >= 0) drawRig(x, P.A, D.rig, D.rig.poses[P.r]);
       if (st === "cam") camBadge(x, D, P.A);
       cv.classList.remove("off");
     };
@@ -965,8 +1068,10 @@
     var cv = G("mfcv"), D = FACE.D, tr = D[KIND];
     if (v.videoWidth && (cv.width !== v.videoWidth || cv.height !== v.videoHeight)) { cv.width = v.videoWidth; cv.height = v.videoHeight; }
     var t = v.__mt != null ? v.__mt : v.currentTime, k = Math.max(0, Math.round(t * (D.fps || 30)));
-    var e = tr.f[k] || null;
-    compose(cv.getContext("2d"), v, cv.width, cv.height, e, D, tr.o, FACE.F);
+    var e = tr.f[k] || null, cx = cv.getContext("2d");
+    compose(cx, v, cv.width, cv.height, e, D, tr.o, FACE.F);
+    /* 21 Nov 2026: the face, arms and legs on top of the child's drawing (films with a rig) */
+    if (e && D.rig && tr.r && tr.r[k] >= 0) drawRig(cx, e, D.rig, D.rig.poses[tr.r[k]]);
     LASTK = k;
   }
   function drawStart(v) {
