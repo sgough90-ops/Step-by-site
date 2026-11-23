@@ -1,4 +1,4 @@
-"""The race car numbers for Vehicles 1 to 9 (19 Nov 2026): 1, 2, 4, 5, 6, 7 and 9 so far.
+"""The race car numbers for Vehicles 1 to 9 (19 Nov 2026): 1, 2, 3, 4, 5, 6, 7 and 9 so far (3 added 23 Nov 2026).
 
     python3 build_racecars.py        (writes out/<name>.json and out/<name>.place.json)
 
@@ -349,6 +349,98 @@ def car4():
     save('car4', D, '4', white=[d_fill(*stripe)])
 
 
+# ------------------------------------------------------------------ 3 is for Rocket car (23 Nov 2026, facing left)
+def car3():
+    # From his own picture (a white race car with two jets on its flat back, and a 3 he drew over them) and his pick,
+    # sketch 1 "Like your drawing". The 3 is the two rockets and their fire: along the top of the top rocket, round its
+    # fire, back to a point between the two, round the bottom fire and under the bottom rocket.
+    XB, DECK, FLOOR = 143, 123.4, 173                                   # the flat back of the car, the top of the boot, the floor
+    top = C((XB, 127.4), (XB + 30, 127.4), (XB + 30, 140), (XB + 5, 148))          # top bump, down to the point
+    bot = C((XB + 5, 148), (XB + 33, 156), (XB + 33, 170), (XB, 170))              # bottom bump
+    rim_x = tx(XB + 13.5)                                               # where the rockets stop and the fire starts
+
+    def cut(seg, ts):
+        """Cut one piece at several places (ts going up); the pieces share their cut points exactly."""
+        out, rest, done = [], seg, 0.0
+        for t in ts:
+            a, rest = rest.split((t - done) / (1 - done)); out.append(a); done = t
+        return out + [rest]
+
+    def quad(p0, c, p1):
+        """A quadratic curve (points already on the paper) as one cubic piece."""
+        p0, p1 = P(*p0), P(*p1)
+        return Seg(p0, (p0[0] + 2 / 3 * (c[0] - p0[0]), p0[1] + 2 / 3 * (c[1] - p0[1])), (p1[0] + 2 / 3 * (c[0] - p1[0]), p1[1] + 2 / 3 * (c[1] - p1[1])), p1)
+
+    # each bump is cut where other lines meet it: the rocket's end line (twice) and the two ends of the flames
+    T5 = cut(top, [seg_line_cross_x(top, rim_x, 0, .45), 0.3, 0.7, seg_line_cross_x(top, rim_x, .55, 1)])
+    B5 = cut(bot, [seg_line_cross_x(bot, rim_x, 0, .45), 0.3, 0.7, seg_line_cross_x(bot, rim_x, .55, 1)])
+    three = T5 + B5
+    s3, e3 = three[0].a, three[-1].b                                    # its two ends, on the back of the car
+    rim_t, rim_b = Seg(T5[0].b, T5[3].b), Seg(B5[0].b, B5[3].b)
+
+    def flames(bump, pieces, h, L=23 * S):
+        """Three pointed flames behind the round end of a bump, from one cut on the bump to the other."""
+        xe, c = max((bump.at(i / 400) for i in range(401)), key=lambda q: q[0])
+        a, b = pieces[1].b, pieces[2].b
+        pts = [a, (xe + .1 * L, c - .5 * h), (xe + .5 * L, c - .4 * h), (xe + .24 * L, c - .22 * h), (xe + .22 * L, c - .14 * h),
+               (xe + .6 * L, c - .17 * h), (xe + L, c), (xe + .6 * L, c + .17 * h), (xe + .22 * L, c + .14 * h),
+               (xe + .24 * L, c + .22 * h), (xe + .5 * L, c + .4 * h), (xe + .1 * L, c + .5 * h), b]
+        return [quad(pts[i], pts[i + 1], pts[i + 2]) for i in range(0, 12, 2)]
+
+    fl_t, fl_b = flames(top, T5, (148 - 127.4) * S), flames(bot, B5, (170 - 148) * S)
+    front, rear = Wheel(38, 164, 16, hub=0.52), Wheel(XB - 27, 164, 16, hub=0.52)   # rear on the right: the car faces left
+    fL, fR = front.at_y(FLOOR); rL, rR = rear.at_y(FLOOR)
+    post1, post2 = (138.5, DECK), (122.4, 121.53)                       # where the wing's two posts stand on the car
+    corner = quad(T(3, 168), (tx(3), ty(FLOOR)), T(8.5, FLOOR))
+    # the car: from the back wheel, up the flat back (through both ends of the 3), over the roof, round the nose to the front wheel
+    body = [Seg(rR, T(XB, FLOOR)), Seg(T(XB, FLOOR), e3), Seg(e3, s3), Seg(s3, T(XB, DECK))] + \
+        Lp((XB, DECK), post1, (128, DECK), post2, (113, 118.4)) + \
+        [C((113, 118.4), (103, 113.4), (81, 114.4), (73.5, 119.6))] + Lp((73.5, 119.6), (56, 135.4), (24, 139.5)) + \
+        [C((24, 139.5), (12, 143.5), (4, 156), (3, 164)), Seg(T(3, 164), T(3, 168)), corner, Seg(corner.b, fL)]
+    under = Seg(fR, rL)
+    back = body[2]                                                      # the bit of the back between the ends of the 3
+    shut = lambda *pts: poly(*[T(*q) for q in pts], closed=True)
+    win1 = shut((66.3, 132), (77.6, 122.2), (96.6, 121.2), (96.6, 132))
+    win2 = shut((101.6, 121.6), (120, 132), (101.6, 132))
+    wing = shut((116, 107.4), (170, 99.8), (170.6, 104), (149, 116.8), (143, 116.16), (124, 114.14), (117, 113.4))
+    wpost1, wpost2 = Seg(T(143, 116.16), T(*post1)), Seg(T(124, 114.14), T(*post2))
+    stripe = shut((50, 143.6), (137, 136.4), (135, 143.6))              # a long thin triangle, clear of the tyres and the windows
+    light = [C((10.6, 154.4), (12.4, 150.4), (16.4, 147), (21.4, 145.2)), C((21.4, 145.2), (24, 146.8), (24.2, 148.8), (23, 150.4)),
+             C((23, 150.4), (19.4, 151.2), (15, 153.4), (12.2, 155.8)), Seg(T(12.2, 155.8), T(10.6, 154.4))]
+    rockets = [T5[0], rim_t, T5[4], B5[0], rim_b, B5[4], back]
+    fire_t, fire_b = T5[1:4] + [rim_t.rev()], B5[1:4] + [rim_b.rev()]
+    flame_t, flame_b = fl_t + [T5[2].rev()], fl_b + [B5[2].rev()]
+    steps = [
+        step('Start with a 3', 'Draw a number 3: two round bumps, one on top of the other, meeting in a point in the middle. This 3 is hiding in the car.',
+             [line(*three)]),
+        step('Two wheels', 'Draw a wheel to the left of the 3, low down. Draw another wheel far along to the left. Draw a small circle in the middle of each.',
+             rear.lines() + front.lines()),
+        step('The car', 'Draw a line down the open side of the 3. From its top go along, up over the roof and down to the nose. Come back along the bottom, wheel to wheel.',
+             [line(*body), line(under)]),
+        step('Two windows', 'Draw two windows under the roof: a big one with a sloping front, and a small pointed one behind it.',
+             [ring(*win1), ring(*win2)]),
+        step('The wing', 'Above the back of the car draw a long wing that points up at the back. Draw two short posts to hold it up.',
+             [ring(*wing), line(wpost1), line(wpost2)]),
+        step('Rockets and fire', 'Draw a line down across each bump of the 3: these are the ends of the two rockets. Behind each bump draw three pointed flames.',
+             [line(rim_t), line(rim_b), line(*fl_t), line(*fl_b)]),
+        step('Stripe and light', 'Draw a long pointed stripe along the side: thin at the front, wide at the back. Draw a light on the nose, shaped like a leaf.',
+             [ring(*stripe), ring(*light)]),
+        step('The road', 'Draw a long line under the wheels for the road.', [road()]),
+        step('Colour grey', 'Colour the two rockets grey, from the back of the car to the lines across the 3. Colour the middles of the wheels grey too.',
+             [fill(FILL['grey'], *rockets), rear.grey(), front.grey()], use='grey'),
+        step('Colour yellow', 'Colour the fire in the round end of each bump yellow. Colour the light on the nose yellow too.',
+             [fill(FILL['yellow'], *fire_t), fill(FILL['yellow'], *fire_b), fill(FILL['yellow'], *light)], use='yellow'),
+        step('Colour orange', 'Colour the pointed flames orange.', [fill(FILL['orange'], *flame_t), fill(FILL['orange'], *flame_b)], use='orange'),
+        step('Colour blue', 'Colour the long stripe blue. The rest of the car stays white.', [fill(FILL['blue'], *stripe)], use='blue'),
+        step('Colour the windows', 'Colour the two windows light blue.', [fill(FILL['lblue'], *win1), fill(FILL['lblue'], *win2)], use='lblue'),
+        step('Colour the tyres', 'Colour the two tyres black, round their middles.', [rear.black(), front.black()], use='black'),
+    ]
+    D = drawing('dx_rocketcar_3', '3 is for Rocket car', 3, 15, 'vehicles', TAGS,
+                'A white race car with two rockets at the back, shooting out fire. The number 3 is hiding there: its two bumps are the rockets and their fire.',
+                steps, ['grey', 'yellow', 'orange', 'blue', 'lblue', 'black'])
+    save('car3', D, '3')
+
+
 if __name__ == '__main__':
-    for f in (car1, car2, car4, car5, car6, car7, car9):
+    for f in (car1, car2, car3, car4, car5, car6, car7, car9):
         f()
