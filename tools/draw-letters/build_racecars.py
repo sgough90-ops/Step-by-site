@@ -49,8 +49,8 @@ def car1():
         step('A stripe', 'Draw a long thin stripe with round ends along the side of the car.',
              [ring(*stripe)]),
         step('The road', 'Draw a long line under the wheels for the road.', [road()]),
-        step('Colour red', 'Colour the car red, round the stripe. Colour the wing red too.',
-             [fill(FILL['red'], *body, cut=[d_fill(*stripe)]), fill(FILL['red'], *wing)], use='red'),
+        step('Colour green', 'Colour the car green, round the stripe. Colour the wing green too.',
+             [fill(FILL['green'], *body, cut=[d_fill(*stripe)]), fill(FILL['green'], *wing)], use='green'),
         step('Colour yellow', 'Colour the stripe yellow. Colour the helmet yellow too, round the visor.',
              [fill(FILL['yellow'], *stripe), dome.yellow()], use='yellow'),
         step('Colour the visor', 'Colour the visor light blue.', [dome.blue()], use='lblue'),
@@ -58,8 +58,8 @@ def car1():
         step('Colour grey', 'Colour the middles of the wheels grey.', [rear.grey(), front.grey()], use='grey'),
     ]
     D = drawing('dx_racecar_1', '1 is for Race car', 2, 12, 'vehicles', TAGS,
-                'A red race car with a wing at the back. The number 1 is hiding in it: it is the hump behind the driver, and its little flick is the top of the hump.',
-                steps, ['red', 'yellow', 'lblue', 'black', 'grey'])
+                'A green race car with a wing at the back. The number 1 is hiding in it: it is the hump behind the driver, and its little flick is the top of the hump.',
+                steps, ['green', 'yellow', 'lblue', 'black', 'grey'])
     save('car1', D, '1')
 
 
@@ -93,7 +93,7 @@ def car2():
         step('The driver', 'Draw the round top of a helmet sitting in the car. Draw the visor inside it.', dome.lines()),
         step('A stripe', 'Draw a long thin stripe with round ends along the side of the car.', [ring(*stripe)]),
         step('The road', 'Draw a long line under the wheels for the road.', [road()]),
-        step('Colour red', 'Colour the car red, round the stripe.', [fill(FILL['red'], *body, cut=[d_fill(*stripe)])], use='red'),
+        step('Colour purple', 'Colour the car purple, round the stripe.', [fill(FILL['purple'], *body, cut=[d_fill(*stripe)])], use='purple'),
         step('Colour yellow', 'Colour the wing and the stripe yellow. Colour the helmet yellow too, round the visor.',
              [fill(FILL['yellow'], *wing), fill(FILL['yellow'], *stripe), dome.yellow()], use='yellow'),
         step('Colour the visor', 'Colour the visor light blue.', [dome.blue()], use='lblue'),
@@ -101,8 +101,8 @@ def car2():
         step('Colour grey', 'Colour the middles of the wheels grey.', [rear.grey(), front.grey()], use='grey'),
     ]
     D = drawing('dx_racingcar_2', '2 is for Racing car', 2, 12, 'vehicles', TAGS,
-                'A red racing car with a big curved wing. The number 2 is hiding in it: its curve is the wing, its slanting line holds the wing up, and its bottom line is the top of the back of the car.',
-                steps, ['red', 'yellow', 'lblue', 'black', 'grey'])
+                'A purple racing car with a big curved wing. The number 2 is hiding in it: its curve is the wing, its slanting line holds the wing up, and its bottom line is the top of the back of the car.',
+                steps, ['purple', 'yellow', 'lblue', 'black', 'grey'])
     save('car2', D, '2')
 
 
@@ -195,7 +195,7 @@ def car6():
         step('The driver', 'Draw the round top of a helmet sitting in the car, in front of the hump. Draw the visor inside it.', dome.lines()),
         step('A stripe', 'Draw a long thin stripe with round ends along the side of the car.', [ring(*stripe)]),
         step('The road', 'Draw a long line under the wheels for the road.', [road()]),
-        step('Colour red', 'Colour the car red, round the stripe.', [fill(FILL['red'], *body, cut=[d_fill(*stripe)])], use='red'),
+        step('Colour pink', 'Colour the car pink, round the stripe.', [fill(FILL['pink'], *body, cut=[d_fill(*stripe)])], use='pink'),
         step('Colour yellow', 'Colour the stripe yellow. Colour the helmet yellow too, round the visor.',
              [fill(FILL['yellow'], *stripe), dome.yellow()], use='yellow'),
         step('Colour the visor', 'Colour the visor light blue.', [dome.blue()], use='lblue'),
@@ -203,8 +203,8 @@ def car6():
         step('Colour grey', 'Colour the middles of the wheels grey.', [rear.grey(), front.grey()], use='grey'),
     ]
     D = drawing('dx_racer_6', '6 is for Racer', 2, 12, 'vehicles', TAGS,
-                'A red racer with a hump behind the driver. The number 6 is hiding in it: its curvy line is the back of the car and its loop is the back wheel.',
-                steps, ['red', 'yellow', 'lblue', 'black', 'grey'])
+                'A pink racer with a hump behind the driver. The number 6 is hiding in it: its curvy line is the back of the car and its loop is the back wheel.',
+                steps, ['pink', 'yellow', 'lblue', 'black', 'grey'])
     save('car6', D, '6')
 
 
@@ -286,15 +286,15 @@ def car9():
         step('The bonnet', 'Draw three short lines on the bonnet, in front of the door.', [line(s) for s in bonnet]),
         step('The visor', 'The circle of the 9 is the driver\'s helmet. Draw the visor inside it, on the side the car is facing.', [ring(*vis)]),
         step('The road', 'Draw a long line under the wheels for the road.', [road()]),
-        step('Colour orange', 'Colour the car orange, door and all.', [fill(FILL['orange'], *body)], use='orange'),
-        step('Colour the helmet', 'Colour the helmet yellow, round the visor.', [fill(FILL['yellow'], *loop, cut=[d_fill(*vis)])], use='yellow'),
+        step('Colour yellow', 'Colour the car yellow, door and all.', [fill(FILL['yellow'], *body)], use='yellow'),
+        step('Colour the helmet', 'Colour the helmet red, round the visor.', [fill(FILL['red'], *loop, cut=[d_fill(*vis)])], use='red'),
         step('Colour the visor', 'Colour the visor light blue.', [fill(FILL['lblue'], *vis)], use='lblue'),
         step('Colour the tyres', 'Colour the two tyres black, round their middles.', [front.black(), rear.black()], use='black'),
         step('Colour grey', 'Colour the middles of the wheels grey.', [front.grey(), rear.grey()], use='grey'),
     ]
     D = drawing('dx_oldracer_9', '9 is for Old racer', 2, 12, 'vehicles', TAGS,
-                'An old-style orange racing car with a door. The number 9 is hiding in it: its circle is the driver\'s helmet and its straight line is the back edge of the door.',
-                steps, ['orange', 'yellow', 'lblue', 'black', 'grey'])
+                'An old-style yellow racing car with a door. The number 9 is hiding in it: its circle is the driver\'s helmet and its straight line is the back edge of the door.',
+                steps, ['yellow', 'red', 'lblue', 'black', 'grey'])
     save('car9', D, '9')
 
 
@@ -335,17 +335,16 @@ def car4():
              dome.lines()),
         step('A stripe', 'Draw a long thin stripe with round ends along the side of the car.', [ring(*stripe)]),
         step('The road', 'Draw a long line under the wheels for the road.', [road()]),
-        step('Colour blue', 'Colour the car and the wing blue, round the stripe. The stripe stays white.',
-             [fill(FILL['blue'], *body, cut=[d_fill(*stripe)]), fill(FILL['blue'], *wing)], use='blue'),
+        step('Colour grey', 'Colour the car and the wing grey, round the stripe. The stripe stays white. Colour the middles of the wheels grey too.',
+             [fill(FILL['grey'], *body, cut=[d_fill(*stripe)]), fill(FILL['grey'], *wing), front.grey(), rear.grey()], use='grey'),
         step('Colour the helmet', 'Colour the helmet yellow, round the visor.', [dome.yellow()], use='yellow'),
         step('Colour the glass', 'Colour the roof light blue on both sides of the 4\'s straight line, round the helmet. Colour the visor light blue too.',
              [fill(FILL['lblue'], *glass), dome.blue()], use='lblue'),
         step('Colour the tyres', 'Colour the two tyres black, round their middles.', [front.black(), rear.black()], use='black'),
-        step('Colour grey', 'Colour the middles of the wheels grey.', [front.grey(), rear.grey()], use='grey'),
     ]
-    D = drawing('dx_jetcar_4', '4 is for Jet car', 2, 13, 'vehicles', TAGS,
-                'A long, low blue jet car with a curved see-through roof, like a fighter jet. The number 4 is hiding in it: its slanting line is the front of the windscreen, its straight line is the roof frame and its flat line is the top of the car.',
-                steps, ['blue', 'yellow', 'lblue', 'black', 'grey'])
+    D = drawing('dx_jetcar_4', '4 is for Jet car', 2, 12, 'vehicles', TAGS,
+                'A long, low grey jet car with a curved see-through roof, like a fighter jet. The number 4 is hiding in it: its slanting line is the front of the windscreen, its straight line is the roof frame and its flat line is the top of the car.',
+                steps, ['grey', 'yellow', 'lblue', 'black'])
     save('car4', D, '4', white=[d_fill(*stripe)])
 
 
