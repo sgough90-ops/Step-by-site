@@ -1,4 +1,4 @@
-"""The race car numbers for Vehicles 1 to 9 (19 Nov 2026): 1, 2, 3, 4, 5, 6, 7 and 9 so far (3 added 23 Nov 2026).
+"""The race car numbers for Vehicles 1 to 9 (19 Nov 2026): all nine (3 and 8 added 23 Nov 2026).
 
     python3 build_racecars.py        (writes out/<name>.json and out/<name>.place.json)
 
@@ -441,6 +441,85 @@ def car3():
     save('car3', D, '3')
 
 
+# ------------------------------------------------------------------ 8 is for Bubble car (23 Nov 2026, facing right)
+def car8():
+    # From his own sketch (an 8 standing at the back of a car, on a big back wheel) and his picks: the Bubble car, then
+    # "Driver's bubble" for the top circle. The 8 is the glass bubble (top loop) sitting on the big back wheel (bottom
+    # loop). It is one line, as an 8 is written: from the middle round the top loop and back, then round the bottom
+    # loop (two separate rings would be flagged as one line running along another where they touch).
+    jx, jy, RT, RB = r2(tx(78)), r2(ty(105)), r2(21 * S), r2(27 * S)
+    M = P(jx, jy + RT); wy = r2(M[1] + RB)                              # the middle of the 8, and the wheel's centre
+    A = on(jx, jy, RT, RT, 8)                                           # where the car's top line leaves the bubble
+    F = circle_at_y(jx, wy, RB, ty(163))[1]                             # where the floor meets the big wheel
+    XE, CY, H, L = 52, 126, 7.6, 28                                     # the end of the pipe, and the fire behind it
+    E1, E2 = T(XE, CY - H), T(XE, CY + H)
+    # the pipe's two lines head for the middle of the 8 and stop where they reach the loops
+    apex = (tx(76), ty(CY))
+    P1 = line_oval(E1, apex, jx, jy, RT, RT)[0][1]; P2 = line_oval(E2, apex, jx, wy, RB, RB)[0][1]
+    a1 = ang_of(jx, jy, RT, RT, P1); a2 = ang_of(jx, wy, RB, RB, P2) - 360; aF = ang_of(jx, wy, RB, RB, F) - 360
+    # each loop is cut where other lines meet it, so every join is an exact shared point
+    t1 = arc(jx, jy, RT, RT, 90, a1, start=M, end=P1)                   # top loop: middle to the pipe,
+    t2 = arc(jx, jy, RT, RT, a1, 368, start=P1, end=A)                  # up the back and over the top to the car's line,
+    t3 = arc(jx, jy, RT, RT, 368, 450, start=A, end=M)                  # and back to the middle
+    b1 = arc(jx, wy, RB, RB, -90, a2, start=M, end=P2)                  # bottom loop: middle to the pipe,
+    b2 = arc(jx, wy, RB, RB, a2, aF, start=P2, end=F)                   # down the back and under to the floor,
+    b3 = arc(jx, wy, RB, RB, aF, -450, start=F, end=M)                  # and back to the middle
+    eight = t1 + t2 + t3 + b1 + b2 + b3
+    hub = circle(jx, wy, r2(RB * 0.44))
+    front = Wheel(172, 169, 11, hub=0.46)
+    fL, fR = front.at_y(163)
+    top = [Seg(A, T(112, 110)), C((112, 110), (142, 111), (171, 128), (186, 147)), q2c((186, 147), (192.6, 158.6), (186, 163)),
+           Seg(T(186, 163), fR)]
+    under = Seg(fL, F)
+    body = top + front.over_top(fR, fL) + [under] + b3 + rev(t3)
+    hy = 118 - 0.82 * 9.8                                               # the helmet: a round top with a flat bottom
+    dome = Dome(79.5, hy, 9.8, 118)
+    dome.vis = visor(79.5, hy, 9.8, k=0.9)
+    helmet = dome.arc + [Seg(dome.pR, dome.pL)]
+    h2, L2 = 0.52 * H, 0.56 * L
+    I1, I2 = T(XE, CY - h2), T(XE, CY + h2)
+    flame = lambda h, ln: [C((XE, CY - h), (XE - .3 * ln, CY - 1.4 * h), (XE - .68 * ln, CY - .5 * h), (XE - ln, CY)),
+                           C((XE - ln, CY), (XE - .68 * ln, CY + .5 * h), (XE - .3 * ln, CY + 1.4 * h), (XE, CY + h))]
+    big, small = flame(H, L), flame(h2, L2)
+    pipe_l = [Seg(P1, E1), Seg(E1, I1), Seg(I1, I2), Seg(I2, E2), Seg(E2, P2)]
+    pipe = pipe_l + rev(b1) + t1
+    fire_o = big + [Seg(E2, I2)] + rev(small) + [Seg(I1, E1)]
+    fire_y = small + [Seg(I2, I1)]
+    stripe = rrect(tx(114), ty(142.6), tx(156), ty(149), 3.2 * S)
+    dashes = [Seg(T(2.5, 112), T(13, 112)), Seg(T(2.5, 140), T(13, 140))]
+    steps = [
+        step('Start with an 8', 'Draw a number 8: a round loop on top and a bigger round loop under it, just touching. This 8 is hiding in the car.',
+             [line(*eight)]),
+        step('Two wheels', 'The bottom loop of the 8 is a big back wheel: draw a circle in the middle of it. Far to the right, low down, draw a small wheel with a small circle in it.',
+             [ring(*hub)] + front.lines()),
+        step('The car', 'The car faces right. From the side of the top loop, draw a long line sloping down to the nose, round it and back to the small wheel. Then join the two wheels.',
+             [line(*top), line(under)]),
+        step('The driver', 'The top loop of the 8 is a glass bubble. Inside it draw a helmet: a round top with a flat bottom. Draw the visor inside it, on the side the car is facing.',
+             [ring(*helmet), ring(*dome.vis)]),
+        step('The pipe', 'Behind the car, where the two loops meet, draw a pipe: two lines that open out like a cone, and a line down across the end.',
+             [line(*pipe_l)]),
+        step('The fire', 'Draw a big pointed flame coming out of the end of the pipe. Draw a smaller flame inside it.',
+             [line(*big), line(*small)]),
+        step('A stripe', 'Draw a long thin stripe with round ends along the side of the car.', [ring(*stripe)]),
+        step('The road', 'Draw a long line under the wheels for the road. Draw two short lines behind the fire to show how fast the car is going.',
+             [road()] + [line(q) for q in dashes]),
+        step('Colour red', 'Colour the car red, round the stripe. The stripe stays white.',
+             [fill(FILL['red'], *body, cut=[d_fill(*stripe)])], use='red'),
+        step('Colour the glass', 'Colour the bubble light blue, round the helmet. Colour the visor light blue too.',
+             [fill(FILL['lblue'], *(t1 + t2 + t3), cut=[d_fill(*helmet)]), dome.blue()], use='lblue'),
+        step('Colour yellow', 'Colour the helmet yellow, round the visor. Colour the small flame yellow too.',
+             [dome.yellow(), fill(FILL['yellow'], *fire_y)], use='yellow'),
+        step('Colour orange', 'Colour the big flame orange, round the small one.', [fill(FILL['orange'], *fire_o)], use='orange'),
+        step('Colour black', 'Colour the big tyre black, round its middle. Colour the small tyre and the pipe black too.',
+             [fill(FILL['black'], *(b1 + b2 + b3), cut=[d_fill(*hub)]), front.black(), fill(FILL['black'], *pipe)], use='black'),
+        step('Colour grey', 'Colour the middles of the two wheels grey.', [fill(FILL['grey'], *hub), front.grey()], use='grey'),
+    ]
+    D = drawing('dx_bubblecar_8', '8 is for Bubble car', 3, 15, 'vehicles', TAGS,
+                'A red car with a glass bubble for the driver and fire shooting out of the back. The number 8 is hiding in it: its top loop is the glass bubble and its bottom loop is the big back wheel.',
+                steps, ['red', 'lblue', 'yellow', 'orange', 'black', 'grey'])
+    save('car8', D, '8', white=[d_fill(*stripe)])
+
+
 if __name__ == '__main__':
-    for f in (car1, car2, car3, car4, car5, car6, car7, car9):
+    for f in (car1, car2, car3, car4, car5, car6, car7, car8, car9):
         f()
