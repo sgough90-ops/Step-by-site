@@ -68,12 +68,12 @@ rocks = [Seg(pts[0], (pts[0][0] - 1.0, pts[0][1] - 6.0), (pts[1][0] - 1.0, pts[1
          Seg(pts[3], (pts[3][0] + 1.0, pts[3][1] - 6.0), (pts[4][0] + 1.5, pts[4][1] - 5.0), pts[4])]
 
 # ---- 7: the wheels ----
-WY = 73.5; WR = 9.0
+WY = 71.3; WR = 9.0          # the tyres touch the bottom of the truck (25 Nov: "I want the wheels touching the vehicle")
 wheels = [circle(24.0, WY, WR), circle(68.0, WY, WR)]
 hubs = [circle(24.0, WY, 3.6), circle(68.0, WY, 3.6)]
 
 # ---- 8: the frame between the wheels, and a headlight ----
-frame = rrect(36.0, 66.0, 56.0, 69.6, 1.6)
+frame = rrect(36.0, 69.5, 56.0, 73.1, 1.6)
 lamp = circle(14.4, 52.6, 2.2)
 slots = [Seg((x, 51.4), (x, 57.6)) for x in (22.0, 26.0, 30.0)]
 
@@ -90,7 +90,7 @@ steps = [
          [line(rim)] + [line(r) for r in ribs]),
     step('Rocks', 'Draw a pile of big round rocks on top of the tipper.',
          [line(*rocks)]),
-    step('The wheels', 'Draw two big wheels under the truck. Draw a small circle in the middle of each one.',
+    step('The wheels', 'Draw two big wheels right under the truck, touching it. Draw a small circle in the middle of each one.',
          [ring(*w) for w in wheels] + [ring(*h) for h in hubs]),
     step('Frame, light and slots', 'Draw a long thin box between the wheels. Draw a round light on the front of the truck, and three short lines on its side.',
          [ring(*frame), ring(*lamp)] + [line(s) for s in slots]),
