@@ -1,15 +1,20 @@
 """q is for quokka (dx_quokka_q), Animals a to z, slot q (21 Nov 2026).
-From Claude's sketch 'quokka (sniffing a flower)' (design 3 of four, from his quokka picture): a quokka on all fours
-sniffing a flower. The q's round is its head; the q's stick runs down the front of its chest and front leg, and the
-little flick at the bottom is the heel of its front foot. Body, head, tail and paw brown; tummy patch light brown;
-insides of the ears pink; flower yellow with a green leaf. Sketch coordinates (200 x 200) go onto the paper by T().
+From Claude's sketch 'quokka (sniffing a flower)' (design 3 of four, from his quokka picture): a quokka on all fours.
+The q's round is its head; the q's stick runs down the front of its chest and front leg, and the little flick at the
+bottom is the heel of its front foot. Body, head, tail and paw brown; tummy patch light brown; insides of the ears
+pink. Sketch coordinates (200 x 200) go onto the paper by T().
+
+25 Nov 2026: he asked for the little extras to come out of the final pictures and for each picture to sit in the
+middle of the paper. The flower it was sniffing is gone (the flower, its stem and leaf, the two sniff lines, and the
+yellow and green steps), and the quokka is 5.5 to the left and 2 higher (the paper was at 1.6, -7.9), so its middle is
+the middle of the paper. See noextras.py.
 """
 import math, re
 from r5kit import *
 
-PA = Paper(0.47, 1.6, -7.9)
+PA = Paper(0.47, -3.9, -9.9)
 T = PA.T
-BRN, LB, PNK, YEL, GRN = FILL['brown'], FILL['lbrown'], FILL['pink'], FILL['yellow'], FILL['green']
+BRN, LB, PNK = FILL['brown'], FILL['lbrown'], FILL['pink']
 
 
 def chain(d):
@@ -80,24 +85,6 @@ PAW = snap(chain('M78,170 C70,170 64,174 64,178 C64,182 74,182 79.6,176.1'), SB,
 eye = dot(*T(54, 106), w=3.1)
 nose = dot(*T(43, 113), w=3.4)
 smile = [q2c(T(43, 121), T(50.5, 129), T(60, 123))]
-sniff = [q2c(T(27, 104), T(24, 104), T(22, 99)), Seg(T(28, 111), T(23, 110))]
-
-# ---- the flower: a petal ring, a dot in the middle, a stem and a leaf ----
-FC = (16, 122)
-pts = []
-for i in range(10):
-    a = math.radians(90 + 36 * i); r = 7.5 if i % 2 == 0 else 4.6
-    pts.append((FC[0] + r * math.cos(a), FC[1] + r * math.sin(a)))
-pts.append(pts[0])
-FLOWER = PA.smooth(pts)
-FLOWER[-1] = Seg(FLOWER[-1].a, FLOWER[-1].p[1], FLOWER[-1].p[2], FLOWER[0].a)
-chain_ok(FLOWER)
-STEM = chain('M16,129.5 C17,150 14,166 16,180')
-assert STEM[0].a == FLOWER[0].a
-L0 = P(*STEM[0].at(0.55))
-STEM, ex = cut_at_points(STEM, [L0]); L0 = ex[0]
-LEAF = snap(chain('M15.5,159.7 C24,154 30,146 30,138 C22,140 17,148 15.5,159.7'), L0, L0)
-centre = dot(*T(*FC), w=2.6)
 
 steps = [
     step('Start with a q', 'Draw a small letter q: a round shape, a straight stick on its right, and a little flick at the bottom. This q is hiding in the quokka.',
@@ -110,8 +97,6 @@ steps = [
          [line(ear1), line(ear2), line(in1), line(in2)]),
     step('The face', 'Draw an eye, a round nose and a smile.', [eye, nose, line(*smile)]),
     step('Leg and tummy', 'Draw a curve for the top of its back leg and a patch on its tummy.', [line(*thigh), line(*patch)]),
-    step('The flower', 'Draw a flower with a dot in the middle, a stem and a leaf. Add two little sniff lines by its nose.',
-         [ring(*FLOWER), centre, line(*STEM), ring(*LEAF), line(sniff[0]), line(sniff[1])]),
 ]
 
 # ---- colours ----
@@ -127,11 +112,9 @@ steps += [
     step('Colour brown', 'Colour the quokka brown: its head, body, tail, paw and the edges of its ears.', [head, body, tail, paw] + ear_out, use='brown'),
     step('Colour light brown', 'Colour the patch on its tummy light brown.', [fill(LB, *(patch + rev(piece(UNDER, BP1, BP2))))], use='lbrown'),
     step('Colour pink', 'Colour the insides of its ears pink.', ear_in, use='pink'),
-    step('Colour yellow', 'Colour the flower yellow.', [fill(YEL, *FLOWER)], use='yellow'),
-    step('Colour green', 'Colour the leaf green.', [fill(GRN, *LEAF)], use='green'),
 ]
 
 D = drawing('dx_quokka_q', 'q is for quokka', 2, 12, 'animals', ['Letters', 'Animals'],
-            'A quokka sniffing a flower. The small q is hiding in it: its round head, and the line down its chest and front leg.',
-            steps, ['brown', 'lbrown', 'pink', 'yellow', 'green'])
+            'A quokka on all fours. The small q is hiding in it: its round head, and the line down its chest and front leg.',
+            steps, ['brown', 'lbrown', 'pink'])
 save('quokka', D, {'set': 'animals-az', 'slot': 'q', 'kind': 'hop', 'age_from': 4})

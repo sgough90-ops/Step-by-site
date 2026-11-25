@@ -1,6 +1,11 @@
 """X is for X-ray fish (dx_xrayfish_x), Animals A to Z, slot X. Rebuilt from his ChatGPT sheet (15 Nov 2026).
-The X is where the tail crosses: its left half is the tail, its right half is the start of the body."""
+The X is where the tail crosses: its left half is the tail, its right half is the start of the body.
+
+25 Nov 2026: he asked for the little extras to come out of the final pictures and for each picture to sit in the
+middle of the paper. The three bubbles are gone, with their step, and the fish is 4 to the left, so its middle is the
+middle of the paper: the numbers below are where it was drawn first, and moved() at the end moves it. See noextras.py."""
 from kit15 import *
+from noextras import moved
 
 LBLUE, YELLOW, PINK = FILL['lblue'], FILL['yellow'], FILL['pink']
 
@@ -29,7 +34,6 @@ ribs = []
 for x in (45, 52, 59, 66):
     ribs.append(Seg((x, 50), (x - 0.8, 46.4), (x - 2.4, 43.2), (x - 4.6, 41.4)))
     ribs.append(Seg((x, 50), (x - 0.8, 53.6), (x - 2.4, 56.8), (x - 4.6, 58.6)))
-bubbles = [circle(84.6, 31.4, 1.7), circle(89.4, 24.6, 2.1), circle(84.2, 17.6, 1.5)]
 
 # the backbone must end on the gill line: snap it there
 import math
@@ -49,7 +53,6 @@ steps = [
     step('Eye and mouth', 'Draw an eye with a dot in it, and a little line for the mouth.', [ring(eye), dot(82.8, 45.6, 2.2), line(mouth)]),
     step('The backbone', 'Now you can see inside! Draw a long straight line along the middle, from near the tail to the head.', [line(spine)]),
     step('The bones', 'Draw four curved bones going up from the backbone and four going down.', [line(r) for r in ribs]),
-    step('Bubbles', 'Draw three bubbles coming from the fish.', [ring(b) for b in bubbles]),
 ]
 body = fill(LBLUE, Seg(XC, UR), *tp, nose, *bp, Seg(LR, XC), cut=[d_fill(*eye)])
 tail = fill(PINK, Seg(XC, UL), *notch, Seg(LL, XC))
@@ -64,4 +67,4 @@ P_ = drawing('dx_xrayfish_x', 'X is for X-ray fish', 3, 15, 'animals', ['Letters
              'An X-ray fish: a little see-through fish where you can see its bones. The capital X is hiding in it: '
              'the left half of the X is the tail and the right half is the start of the body.',
              steps, ['lblue', 'yellow', 'pink'])
-save('xrayfish', P_, {'set': 'animals-AZ', 'slot': 'X', 'kind': 'swim', 'age_from': 5})
+save('xrayfish', moved(P_, -4, 0), {'set': 'animals-AZ', 'slot': 'X', 'kind': 'swim', 'age_from': 5})
