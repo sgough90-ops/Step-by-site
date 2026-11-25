@@ -557,7 +557,7 @@ if(!buildHome()){var bh0=0,bht=setInterval(function(){if(buildHome()||++bh0>80)c
     if(q<1){var pt=o.e.getPointAtLength(o.len*q);tip=[pt.x,pt.y]}})}
   if(tip)pencil(g,tip[0],tip[1]);g.restore();g.setLineDash([])}catch(e){try{g.restore()}catch(x){}return old.apply(this,arguments)}}
  /* the card pictures were made before this loaded: make them again with the pencil look */
- try{if(typeof thumbURL==='function')projects('draw').forEach(function(p){if(p&&p.type==='draw'&&p.key&&DX.has(p.key)&&!DX.get(p.key).rx){var u=thumbURL(p);if(u)p.svg='<img src="'+u+'" alt="">'}})}catch(e){}})();
+ try{if(typeof thumbURL==='function')projects('draw').forEach(function(p){if(p&&p.type==='draw'&&p.key&&DX.has(p.key)&&!DX.get(p.key).rx){if(p.__lz){p.svg=null}else{var u=thumbURL(p);if(u)p.svg='<img src="'+u+'" alt="">'}}})}catch(e){}})();
 
 window.__sbx={open:open,state:function(){return ST},celebrate:celebrate,posterCanvas:posterCanvas,sheet:drawingSheet,openSheet:openSheet,findBox:findBox,cropBox:cropBox,goSet:goSet,mdGo:mdGo,
  /* 17 Nov 2026: for the shop on the Grown-ups page (sb-book.js) */

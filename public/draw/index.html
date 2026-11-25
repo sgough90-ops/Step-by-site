@@ -2337,8 +2337,10 @@ FX.reg("fx_fortune_teller",[{pts:[[20, 20], [80, 20], [80, 80], [20, 80]],face:0
 function projOf(key){return SX.sci[key]?SX.sci[key]:SX.craft&&SX.craft[key]?SX.craft[key]:DX.has(key)?DX.get(key):key==="owl"?SX.owl:key==="plane"?FX.P:FX.get(key)?FX.get(key).P:key==="heart"?GA.PD.heart:key==="mushroom"?GA.PD.mushroom:null}
 function paintFinal(cv,p){var c=cvx(cv);if(!c)return;if(p.type==="vox"){var m=VX.model(p.key);VX.draw(cv,m,m.n-1,false,0,null)}else if(p.type==="brick")BR.use(p.key).paint(c[0],c[1],c[2],BR.n-1,1,true,0);else if(p.type==="tiles")TS.render(cv,{key:p.key,final:true,theta:0});else if(p.type==="plus3d")PP.paint(c[0],c[1],c[2],PP.n-1,1,true,0);else if(p.type==="grid"){var D=projOf(p.key);GA.paint(c[0],c[1],c[2],D,D.steps.length-1,1,true)}else if(p.type==="fold"){var FQ=FX.get(p.key)||FX;FQ.paint(c[0],c[1],c[2],FQ.P.steps.length-1,1,true)}else if(p.type==="draw")DX.paint(c[0],c[1],c[2],p.key,DX.n(p.key)-1,1,true);else{var P=projOf(p.key);SX.paint(c[0],c[1],c[2],P,P.steps.length-1,1,true)}}
 function thumbURL(p){var cv=document.createElement("canvas");cv.style.cssText="position:fixed;left:-9999px;top:0;width:420px;height:320px";document.body.appendChild(cv);var u="";try{if(p.type==="vox"&&ENVCFG[p.key]){var C=ENVCFG[p.key],M=VX.model(p.key);SC.draw(cv,{M:M,upTo:M.n-1,hl:false,anim:1,theta:0,u:C.u(420,320,M)*.8,tx:C.px,ty:C.ty,tz:C.pz,px:C.px,pz:C.pz,mode:"iso",time:"day",env:true,envName:C.env,tex:VX.tex,kind:VX.kind})}else paintFinal(cv,p);u=cv.toDataURL("image/jpeg",.86)}catch(e){}cv.remove();return u}
+/* 25 Nov 2026: card pictures are drawn when a card is first shown, not all at start (start-up was about 10 s) */
+function lazySvg(p){var v=null;Object.defineProperty(p,"__lz",{value:1,configurable:true});Object.defineProperty(p,"svg",{configurable:true,enumerable:true,get:function(){if(v===null)v='<img src="'+thumbURL(p)+'" alt="">';return v},set:function(x){v=x}})}
 function projects(k){
-  if(REALS[k]){REALS[k].forEach(function(p){if(!p.svg)p.svg='<img src="'+thumbURL(p)+'" alt="">'});return REALS[k].slice()}
+  if(REALS[k]){REALS[k].forEach(function(p){if(!p.__lz&&!p.svg)lazySvg(p)});return REALS[k].slice()}
   var out=D.map(function(d,i){return{t:k==="draw"?d[0]:NAMES[k][i],lvl:d[1],time:d[2],theme:(k==="draw"?d[3]:CFG[k].themes[i%4]),eq:d[4],steps:(k==="draw"&&d[0]==="rocket")?14:8+(i*9)%40,key:(k==="draw"&&d[0]==="rocket")?"rocket":undefined,type:(k==="draw"&&d[0]==="rocket")?"draw":undefined,pop:POP[i],age:AGE[i],svg:k==="draw"?d[5]:ph(k,i)}});
   return out.sort(function(a,b){return a.lvl-b.lvl||a.time-b.time});
 }
@@ -7977,7 +7979,7 @@ html body #sstudio.wl #hpills>button:not(#showtile) svg,html body #sstudio.wl #h
 <script>(function(){var A={dx_koala_k:1,dx_mouse_m:1,dx_notebook_n:1,dx_brother_b:1,dx_dad_d:1,dx_mum_m:1,dx_wellies_w:1,dx_tap_t:1,dx_xylophone_x:1,dx_scarf_s:1,dx_utensils_u:1,dx_violin_v:1,dx_rockinghorse_r:1,dx_oven_o:1,dx_jug_j:1,dx_fireplace_f:1,dx_lunchbox_l:1,dx_house_h:1,dx_gnome_g:1,dx_apron_a:1,dx_key_k:1,dx_plug_e:1,dx_sister_s:1,dx_grandad_g:1,dx_nan_n:1,dx_toiletroll_t:1,dx_wig_w:1,dx_readinglamp_r:1,dx_mittens_m:1,dx_lamp_l:1,dx_knitting_k:1,dx_highchair_h:1,dx_flower_f:1,dx_batball_b:1,dx_earphones_e:1,dx_drums_d:1};if(window.REALS&&REALS.draw){for(var i=REALS.draw.length-1;i>=0;i--)if(A[REALS.draw[i].key])REALS.draw.splice(i,1)}})();</script>
 
 <!-- 12 Nov 2026: the waiting list (no What you need, hearts, swipe between sets, My drawings game, print sheets, home pictures) -->
-<script src="draw/sb-extras.js?v=1120a"></script>
+<script src="draw/sb-extras.js?v=1125a"></script>
 <!-- 12 Nov 2026 (afternoon): pencil-coloured backgrounds, no play screen (a drawing opens straight into its steps), no Favourites -->
 <script src="draw/sb-simple.js?v=1112a"></script>
 <script src="draw/sb-steps.js?v=1113b"></script>
