@@ -3,23 +3,28 @@ From his pick "m4 Little red post van", with the m made less tall as he asked ("
 (Claude's second-go sketches, claude/step-by-draw-food-capitals-vehicles-small-14x4.md).
 
 A small red mail van facing left, with two back wheels close together. The m is the bottom edge of the van going up and
-over those two wheels. In the sketch the m was 38 wide and 24.5 tall; here it is 38 wide and 21 tall.
+over those two wheels. In the sketch the m was 38 wide and 24.5 tall; at first here it was 38 wide and 21 tall.
+
+25 Nov 2026: he sent step 1 from the live app and said "Make the wheel arches look more natural". The arches stood
+10.8 above the tyres on long straight legs, like two white doorways. Now they start 7.1 lower (TOP 78.6, was 71.5), so
+they sit 3.7 above the tyres and 1.9 beside them, and the front wheel's arch is the same shape. The m is 38 wide and
+13.9 tall.
 
     python3 build_mailvan.py
 """
 from bcommon import *
 
 p = Pic(s=1.0, dx=1.4, dy=2.0)
-X0, X1, X2, BOT, TOP, RY = 50, 69, 88, 83, 71.5, 9.5            # the m: its three lines, their bottom, where the arches start, how high they go
-R, WY, FX, FA = 7.6, 80.4, 22, 9.6                             # wheels, their middle height, the front wheel and its arch
+X0, X1, X2, BOT, TOP, RY = 50, 69, 88, 83, 78.6, 9.5            # the m: its three lines, their bottom, where the arches start, how high they go
+R, WY, FX, FA = 7.6, 80.4, 22, 9.5                             # wheels, their middle height, the front wheel and its arch (the same shape as the m's)
 S0, S1 = 54, 58.4                                              # the stripe
 
 M1 = [Seg((X0, BOT), (X0, TOP))] + arc((X0 + X1) / 2, TOP, (X1 - X0) / 2, RY, 180, 360, start=P(X0, TOP), end=P(X1, TOP)) + [Seg((X1, TOP), (X1, BOT))]
 M2 = arc((X1 + X2) / 2, TOP, (X2 - X1) / 2, RY, 180, 360, start=P(X1, TOP), end=P(X2, TOP)) + [Seg((X2, TOP), (X2, BOT))]
 BODY = (one("M88,83 L94,83 L94,24 Q94,14 84,14 L42,14 C32,14 28,19 24.6,27 L17,45.5 L9,48.6 Q6,49.6 6,53.6 L6,83") +
-        [Seg((6, BOT), (FX - FA, BOT)), Seg((FX - FA, BOT), (FX - FA, WY))] +
-        arc(FX, WY, FA, FA, 180, 360, start=P(FX - FA, WY), end=P(FX + FA, WY)) +
-        [Seg((FX + FA, WY), (FX + FA, BOT)), Seg((FX + FA, BOT), (X0, BOT))])
+        [Seg((6, BOT), (FX - FA, BOT)), Seg((FX - FA, BOT), (FX - FA, TOP))] +
+        arc(FX, TOP, FA, RY, 180, 360, start=P(FX - FA, TOP), end=P(FX + FA, TOP)) +
+        [Seg((FX + FA, TOP), (FX + FA, BOT)), Seg((FX + FA, BOT), (X0, BOT))])
 
 p.stroke('body', BODY, step=3)
 p.stroke('stripe0', Seg((6, S0), (94, S0)), step=4)

@@ -320,6 +320,7 @@ MATS = {
     'blue': ('pencil', 'Blue pencil', '1', '#4dabf7'),
     'lblue': ('pencil', 'Light blue pencil', '1', '#74c0fc'),
     'green': ('pencil', 'Green pencil', '1', '#40c057'),
+    'lgreen': ('pencil', 'Light green pencil', '1', '#a9e34b'),
     'grey': ('pencil', 'Grey pencil', '1', '#adb5bd'),
     'black': ('pencil', 'Black pencil', '1', '#343a40'),
     'orange': ('pencil', 'Orange pencil', '1', '#ff922b'),
@@ -328,7 +329,7 @@ MATS = {
     'lbrown': ('pencil', 'Light brown pencil', '1', '#d9a066'),
     'purple': ('pencil', 'Purple pencil', '1', '#9775fa'),
 }
-FILL = {'red': '#ff6b6b', 'yellow': '#ffd43b', 'blue': '#4dabf7', 'lblue': '#a5d8ff', 'green': '#8ad35a',
+FILL = {'red': '#ff6b6b', 'yellow': '#ffd43b', 'blue': '#4dabf7', 'lblue': '#a5d8ff', 'green': '#8ad35a', 'lgreen': '#d8f5a2',
         'grey': '#c9ced6', 'black': '#4b5058', 'orange': '#ffa94d', 'pink': '#ffa8c8', 'brown': '#c08a5c',
         'lbrown': '#f2c078', 'purple': '#b197fc'}
 
