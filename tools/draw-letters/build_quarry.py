@@ -1,6 +1,14 @@
 """q is for quarry truck (Vehicles a to z, slot q). Side view, facing left.
 The q: its round bowl is the top of the cab (the window goes inside it) and its stick is the back of the cab,
-going down past the bowl to the bottom of the truck. The tipper hangs off the right of the stick."""
+going down past the bowl to the bottom of the truck. The tipper hangs off the right of the stick.
+
+25 Nov 2026: he sent step 1 from the live app and said "Make the front orange bit better". The front was a plain
+box with round corners sticking out under the cab. Now it is a bonnet: its top slopes down to a round nose, it has a
+grey bumper on the front corner, three slots along its side, and the round light sits near the nose. The q, the cab,
+the tipper, the rocks and the wheels have not moved.
+Later on 25 Nov: "try changing the orange underneath where the driver's head will be yellow like the rest of the vehicle".
+The front is yellow now, like the cab and the tipper; the light on it is orange, so it still shows.
+"""
 import json, os
 from kit import *
 
@@ -22,10 +30,15 @@ win = [Seg((36.6, 29.4), (31.0, 29.4)),
        Seg((25.4, 41.0), (36.6, 41.0)),
        Seg((36.6, 41.0), (36.6, 29.4))]
 
-# ---- 3: the bonnet ----
-bonnet = [Seg((25.0, BB), (14.0, BB)), Seg((14.0, BB), (12.3, BB), (11.0, BB + 1.3), (11.0, BB + 3.0)),
-          Seg((11.0, BB + 3.0), (11.0, BOT - 2.4)), Seg((11.0, BOT - 2.4), (11.0, BOT - 1.0), (12.0, BOT), (13.4, BOT)),
-          Seg((13.4, BOT), (SX, BOT))]
+# ---- 3: the bonnet: its top slopes down to a round nose; a bumper sits on its front corner ----
+NX, BUY, BUX = 9.0, 56.6, 15.6                 # the nose, the top of the bumper, the back of the bumper
+hood = [Seg((25.0, BB), (14.0, BB + 2.6)), Seg((14.0, BB + 2.6), (11.4, BB + 3.2), (NX, BB + 4.6), (NX, BB + 7.4)),
+        Seg((NX, BB + 7.4), (NX, BUY))]
+under = Seg((BUX, BOT), (SX, BOT))
+bumper = [Seg((BUX, BUY), (7.6, BUY)), Seg((7.6, BUY), (6.4, BUY), (5.6, BUY + 0.8), (5.6, BUY + 2.0)),
+          Seg((5.6, BUY + 2.0), (5.6, BOT - 0.4)), Seg((5.6, BOT - 0.4), (5.6, BOT + 0.8), (6.4, BOT + 1.6), (7.6, BOT + 1.6)),
+          Seg((7.6, BOT + 1.6), (BUX, BOT + 1.6)), Seg((BUX, BOT + 1.6), (BUX, BOT)), Seg((BUX, BOT), (BUX, BUY))]
+bonnet = hood + [Seg((NX, BUY), (BUX, BUY)), Seg((BUX, BUY), (BUX, BOT)), under]          # the edge of the orange part
 
 # ---- 4: the tipper ----
 TR = (88.0, 20.0); BR_ = (79.0, BOT)
@@ -61,15 +74,16 @@ hubs = [circle(24.0, WY, 3.6), circle(68.0, WY, 3.6)]
 
 # ---- 8: the frame between the wheels, and a headlight ----
 frame = rrect(36.0, 66.0, 56.0, 69.6, 1.6)
-lamp = circle(15.4, 51.2, 2.2)
+lamp = circle(14.4, 52.6, 2.2)
+slots = [Seg((x, 51.4), (x, 57.6)) for x in (22.0, 26.0, 30.0)]
 
 steps = [
     step('Start with a q', 'Draw a small letter q: a round bowl, then a straight line going down past the bottom of it. This q is hiding in the truck.',
          [line(*bowl), line(stick)]),
     step('The window', 'Draw a window inside the bowl of the q, the same shape but smaller.',
          [ring(*win)]),
-    step('The front', 'From the bottom of the bowl, draw a box out to the left and down to the bottom of the q.',
-         [line(*bonnet)]),
+    step('The front', 'From the bottom of the bowl, draw a line sloping down to the left, round the nose and down. Draw a bumper on the corner, then a line back to the q.',
+         [line(*hood), ring(*bumper), line(under)]),
     step('The tipper', 'From the top of the q, draw a long line sloping up to the right. Go down a slanting side and back along the bottom to the q.',
          [line(*tip)]),
     step('Rim and ribs', 'Draw a line along the top of the tipper. Then draw three straight lines down from it to the bottom.',
@@ -78,19 +92,19 @@ steps = [
          [line(*rocks)]),
     step('The wheels', 'Draw two big wheels under the truck. Draw a small circle in the middle of each one.',
          [ring(*w) for w in wheels] + [ring(*h) for h in hubs]),
-    step('Frame and light', 'Draw a long thin box between the wheels. Then draw a round light on the front of the truck.',
-         [ring(*frame), ring(*lamp)]),
-    step('Colour yellow', 'Colour the cab yellow, round the window. Colour the tipper yellow too, under the rim. Colour the light yellow.',
+    step('Frame, light and slots', 'Draw a long thin box between the wheels. Draw a round light on the front of the truck, and three short lines on its side.',
+         [ring(*frame), ring(*lamp)] + [line(s) for s in slots]),
+    step('Colour yellow', 'Colour the cab yellow, round the window. Colour the front of the truck yellow too, round the light, and the tipper under the rim.',
          [fill(FILL['yellow'], *(bowl + [Seg((SX, BB), (SX, TOP))]), cut=[d_fill(*win)]),
-          fill(FILL['yellow'], *poly(rimL, rimR, BR_, (SX, BOT), closed=True)),
-          fill(FILL['yellow'], *lamp)], use='yellow'),
-    step('Colour orange', 'Colour the front of the truck orange, round the light. Colour the rim on the tipper orange too.',
-         [fill(FILL['orange'], *(bonnet + [Seg((SX, BOT), (SX, BB)), Seg((SX, BB), (25.0, BB))]), cut=[d_fill(*lamp)]),
+          fill(FILL['yellow'], *(bonnet + [Seg((SX, BOT), (SX, BB)), Seg((SX, BB), (25.0, BB))]), cut=[d_fill(*lamp)]),
+          fill(FILL['yellow'], *poly(rimL, rimR, BR_, (SX, BOT), closed=True))], use='yellow'),
+    step('Colour orange', 'Colour the light orange. Colour the rim on the tipper orange too.',
+         [fill(FILL['orange'], *lamp),
           fill(FILL['orange'], *poly((SX, TOP), TR, rimR, rimL, closed=True))], use='orange'),
     step('Colour the window', 'Colour the window light blue.',
          [fill(FILL['lblue'], *win)], use='lblue'),
-    step('Colour grey', 'Colour the rocks grey. Colour the middles of the wheels grey too.',
-         [fill(FILL['grey'], *(rocks + [Seg(pts[4], pts[0])])), fill(FILL['grey'], *hubs[0]), fill(FILL['grey'], *hubs[1])], use='grey'),
+    step('Colour grey', 'Colour the rocks grey. Colour the middles of the wheels and the bumper grey too.',
+         [fill(FILL['grey'], *(rocks + [Seg(pts[4], pts[0])])), fill(FILL['grey'], *hubs[0]), fill(FILL['grey'], *hubs[1]), fill(FILL['grey'], *bumper)], use='grey'),
     step('Colour black', 'Colour the two tyres black, round the grey middles. Colour the frame black too.',
          [fill(FILL['black'], *wheels[0], cut=[d_fill(*hubs[0])]), fill(FILL['black'], *wheels[1], cut=[d_fill(*hubs[1])]),
           fill(FILL['black'], *frame)], use='black'),
