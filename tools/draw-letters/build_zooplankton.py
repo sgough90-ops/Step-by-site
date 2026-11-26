@@ -1,13 +1,18 @@
 """z is for zooplankton (dx_zooplankton_z), Animals a to z, slot z (21 Nov 2026).
 From Claude's sketch 'zooplankton (leading its babies)' (design 4 of the second round, from his "Krill (Zooplankton)"
 picture), with the tail fan redrawn as two long paddles (he said the first fan did not look natural). A krill curled
-up, facing left, with three babies above. The small z: its top line is the underside of its body, its slant is the
-inside edge of its tail (facing the gap in the curl), and its bottom line is the underside of its tail. The tail narrows
-to the z's bottom-left corner, where the fan is. Body and babies orange, fan yellow.
-Sketch coordinates (200 x 200) go onto the paper by T().
+up, facing left. The small z: its top line is the underside of its body, its slant is the inside edge of its tail
+(facing the gap in the curl), and its bottom line is the underside of its tail. The tail narrows to the z's bottom-left
+corner, where the fan is. Body orange, fan yellow. Sketch coordinates (200 x 200) go onto the paper by T().
+
+25 Nov 2026: he asked for the little extras to come out of the final pictures and for each picture to sit in the
+middle of the paper. The three babies above it (and their feelers) and the three bubbles are gone, with their two
+steps, and the krill is 10 higher, so its middle is the middle of the paper: T() still puts it where it was drawn
+first, and moved() at the end lifts it (that keeps every number exactly as it was, only 10 less). See noextras.py.
 """
 import math, re
 from r5kit import *
+from noextras import moved
 
 PA = Paper(0.5, 0.75, 3.25)
 T = PA.T
@@ -97,18 +102,6 @@ for p, tail in zip(AN, f_ends):
     nums = [float(v) for v in re.findall(r'-?\d+\.?\d*', tail)]
     feelers.append(Seg(p, T(nums[0], nums[1]), T(nums[2], nums[3]), T(nums[4], nums[5])))
 
-# ---- three babies above it ----
-def baby(x, y, k):
-    pts = [(x - 7 * k, y - 2 * k), (x - 4 * k, y - 8 * k), (x + 6 * k, y - 8 * k), (x + 8 * k, y - 1 * k), (x + 9 * k, y + 4 * k), (x + 6 * k, y + 8 * k),
-           (x + 2 * k, y + 8 * k), (x + 4 * k, y + 4 * k), (x + 2 * k, y + 1 * k), (x - 2 * k, y + 1 * k), (x - 5 * k, y + 1 * k), (x - 8 * k, y + 1 * k), (x - 7 * k, y - 2 * k)]
-    q = [T(*p) for p in pts]
-    ring_ = [Seg(q[0], q[1], q[2], q[3]), Seg(q[3], q[4], q[5], q[6]), Seg(q[6], q[7], q[8], q[9]), Seg(q[9], q[10], q[11], q[0])]
-    tip = q[0]
-    fl = [Seg(tip, T(x - 12 * k, y - 5 * k)), Seg(tip, T(x - 12.5 * k, y + 0.5 * k))]
-    return ring_, fl, dot(*T(x - 3.5 * k, y - 3.5 * k), w=1.9)
-babies = [baby(48, 36, 1.1), baby(74, 26, 1.0), baby(104, 34, 0.95)]
-bubbles = [circle(*T(186, 26), 2.2), circle(*T(172, 16), 1.5), circle(*T(122, 182), 1.8)]
-
 steps = [
     step('Start with a z', 'Draw a small letter z: a line across, a slanting line down to the left, and a line across the bottom. This z is hiding in the zooplankton.',
          [line(z_top, *slant, *bottom)]),
@@ -119,21 +112,17 @@ steps = [
     step('Stripes', 'Draw six curved stripes on its back.', [line(s) for s in stripes]),
     step('Legs', 'Draw five little legs under its head, each with a tiny tick.', [line(*lg[0]) for lg in legs] + [line(lg[1]) for lg in legs]),
     step('Face and feelers', 'Draw two eyes, a smile and three long feelers.', eyes + [line(*smile)] + [line(f) for f in feelers]),
-    step('The babies', 'Draw three little babies swimming above it, each with an eye.',
-         [ring(*b[0]) for b in babies] + [b[2] for b in babies]),
-    step('Feelers and bubbles', 'Give each baby two little feelers, and draw some bubbles.',
-         [line(f) for b in babies for f in b[1]] + [ring(*c) for c in bubbles]),
 ]
 
 # ---- colours ----
 body = fill(ORA, *(OUT + [bottom[1].rev(), bottom[0].rev(), slant[1].rev(), slant[0].rev(), z_top.rev(), step_up.rev()] + rev(BELLY)))
 fan = fill(YEL, *(FAN + [bottom[0].rev(), slant[1].rev()]))
 steps += [
-    step('Colour orange', 'Colour the zooplankton and its babies orange.', [body] + [fill(ORA, *b[0]) for b in babies], use='orange'),
+    step('Colour orange', 'Colour the zooplankton orange.', [body], use='orange'),
     step('Colour yellow', 'Colour its tail fan yellow.', [fan], use='yellow'),
 ]
 
 D = drawing('dx_zooplankton_z', 'z is for zooplankton', 2, 12, 'animals', ['Letters', 'Animals'],
-            'A zooplankton (a krill) leading its babies. The small z is hiding in it: under its body, the inside of its tail and the underside of its tail.',
+            'A zooplankton (a krill) curled up. The small z is hiding in it: under its body, the inside of its tail and the underside of its tail.',
             steps, ['orange', 'yellow'])
-save('zooplankton', D, {'set': 'animals-az', 'slot': 'z', 'kind': 'swim', 'age_from': 4})
+save('zooplankton', moved(D, 0, -10), {'set': 'animals-az', 'slot': 'z', 'kind': 'swim', 'age_from': 4})
