@@ -40,11 +40,11 @@ steps = [
     step('The tail', 'From where the hump starts, draw a line out to the small circle. Draw another line from the circle back to the floor.', p.step(5)),
     step('The skid', 'Draw a long skid under the helicopter. It touches the bottom of both lines of the h and curls up at each end.', p.step(6)),
     step('Colour grey', 'Colour the long blades and the small circle grey.', [p.ring('grey', 'rotor'), p.ring('grey', 'trotor')], use='grey'),
-    step('Colour red', 'Colour the tail red. Colour the bottom of the cabin red too, under the window.', [p.face('red', (28.0, 56.0)), p.face('red', (53.0, 66.0))], use='red'),
+    step('Colour purple', 'Colour the tail purple. Colour the bottom of the cabin purple too, under the window.', [p.face('purple', (28.0, 56.0)), p.face('purple', (53.0, 66.0))], use='purple'),
     step('Colour the window', 'Colour the window light blue.', [p.face('lblue', (50.0, 50.0))], use='lblue'),
 ]
 D = drawing('dx_helicopter_h', 'h is for helicopter', 2, 10, 'vehicles', ['Letters', 'Vehicles'],
-            'A red helicopter with a big window. The small letter h is hiding in it: its tall stick is the mast and the back of the '
+            'A purple helicopter with a big window. The small letter h is hiding in it: its tall stick is the mast and the back of the '
             'cabin, and its hump is the top and front of the window.',
-            steps, ['grey', 'red', 'lblue'])
+            steps, ['grey', 'purple', 'lblue'])
 ok = finish('helicopter', D, {'set': 'vehicles-az', 'slot': 'h', 'kind': 'fly', 'age_from': 5}, p, allow=('4',))   # the cross in the tail rotor is meant

@@ -3,7 +3,7 @@ The w is the criss-cross planks on the side of a coal wagon."""
 from kit15 import *
 import math
 
-RED, BLACK, GREY = FILL['red'], FILL['black'], FILL['grey']
+BLUE, BLACK, GREY = FILL['blue'], FILL['black'], FILL['grey']
 
 TY, BY = 30, 58
 W1, b1, m, b2, W2 = P(22, TY), P(35, BY), P(50, TY), P(65, BY), P(78, TY)
@@ -45,20 +45,20 @@ steps = [
     step('The coal', 'Draw a bumpy pile of coal on top, from one top corner to the other.', [line(*coal)]),
     step('The track', 'Draw a long line under the wheels for the railway track.', [line(track)]),
 ]
-box = fill(RED, topL, topR, sideR[0], sideR[1], midbot.rev(), sideL[1].rev(), sideL[0].rev())
+box = fill(BLUE, topL, topR, sideR[0], sideR[1], midbot.rev(), sideL[1].rev(), sideL[0].rev())
 coal_f = fill(BLACK, *coal, topR.rev(), topL.rev())
 wfl = fill(BLACK, *wL, Seg(wL[-1].b, wL[0].a), cut=[d_fill(*hubL)])
 wfr = fill(BLACK, *wR, Seg(wR[-1].b, wR[0].a), cut=[d_fill(*hubR)])
 ch_f = fill(GREY, *chassis, sideR[1], midbot.rev(), sideL[1].rev())
 steps += [
-    step('Colour red', 'Colour the wagon red.', [box], use='red'),
+    step('Colour blue', 'Colour the wagon blue.', [box], use='blue'),
     step('Colour black', 'Colour the coal and the wheels black.', [coal_f, wfl, wfr], use='black'),
     step('Colour grey', 'Colour the base, the buffers and the middles of the wheels grey.',
          [ch_f, fill(GREY, *bufL, Seg((22, 52), (22, 47.6))), fill(GREY, *bufR, Seg((78, 52), (78, 47.6))), fill(GREY, *hubL), fill(GREY, *hubR)], use='grey'),
 ]
 P_ = drawing('dx_wagon_w', 'w is for wagon', 2, 10, 'vehicles', ['Letters', 'Vehicles'],
-             'A red railway wagon full of coal, on its track. The small letter w is hiding in it: it is the criss-cross planks on the side of the wagon.',
-             steps, ['red', 'black', 'grey'])
+             'A blue railway wagon full of coal, on its track. The small letter w is hiding in it: it is the criss-cross planks on the side of the wagon.',
+             steps, ['blue', 'black', 'grey'])
 scale(P_, 1.1, 50, 47)
 move(P_, 0, 4)
 save('wagon', P_, {'set': 'vehicles-az', 'slot': 'w', 'kind': 'drive', 'age_from': 5})

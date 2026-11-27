@@ -84,8 +84,8 @@ steps = [
          [ring(*lamp)]),
     step('Dust', 'Draw a puff of dust at the end of the tail. The quad bike is going fast!',
          [line(*puff)]),
-    step('Colour red', 'Colour the body red. Go round the light.',
-         [fill(FILL['red'], *body, cut=[d_fill(*lamp)])], use='red'),
+    step('Colour green', 'Colour the body green. Go round the light.',
+         [fill(FILL['green'], *body, cut=[d_fill(*lamp)])], use='green'),
     step('Colour grey', 'Colour both wheels grey, round the little circles in the middle. Colour the rack and the post grey too.',
          [fill(FILL['grey'], *Qc, cut=[d_fill(*hubB)]), fill(FILL['grey'], *fw, cut=[d_fill(*hubF)]),
           fill(FILL['grey'], *close(rack)), fill(FILL['grey'], *poly((31.0, 38.5), (31.0, 29.0), (33.6, 29.0), (33.6, 38.5), closed=True))], use='grey'),
@@ -96,8 +96,8 @@ steps = [
 ]
 
 D = drawing('dx_quadbike_q', 'Q is for Quad bike', 3, 15, 'vehicles', ['Letters', 'Vehicles'],
-            'A red quad bike racing along with dust flying behind it. The capital Q is hiding in it: the circle is the big back wheel and the tail is the dust.',
-            steps, ['red', 'grey', 'black', 'yellow'])
+            'A green quad bike racing along with dust flying behind it. The capital Q is hiding in it: the circle is the big back wheel and the tail is the dust.',
+            steps, ['green', 'grey', 'black', 'yellow'])
 json.dump(D, open(os.path.join(OUT, 'quad.json'), 'w'))
 json.dump({'set': 'vehicles-AZ', 'slot': 'Q', 'kind': 'drive', 'age_from': 5}, open(os.path.join(OUT, 'quad.place.json'), 'w'))
 print('quad: %d steps' % len(steps))

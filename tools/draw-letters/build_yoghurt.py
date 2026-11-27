@@ -107,8 +107,8 @@ steps = [
     step('A raspberry', 'Next to them draw a raspberry: a round shape with a bumpy edge. Draw little rings all over it.', p.step(5)),
     step('The top of the bowl', 'Draw a long flat oval round all the fruit. It goes behind the two top leaves. Draw another oval just inside it.', p.step(6)),
     step('The bowl', 'From one end of the big oval, draw a deep curve down and round to the other end. The fruit is in a bowl of yoghurt!', p.step(7)),
-    step('Colour blue', 'Colour the bowl blue, under the ovals. Colour the two blueberries blue too.',
-         [p.face('blue', (50, 76)), p.ring('blue', 'blue1'), p.face('blue', (BLUE2[0] + 2, BLUE2[1] + 2))], use='blue'),
+    step('Colour yellow', 'Colour the bowl yellow, under the ovals.', [p.face('yellow', (50, 76))], use='yellow'),
+    step('Colour blue', 'Colour the two blueberries blue.', [p.ring('blue', 'blue1'), p.face('blue', (BLUE2[0] + 2, BLUE2[1] + 2))], use='blue'),
     step('Colour red', 'Colour the strawberry red, all round its middle.', [p.face('red', (SC[0] - 8.6, SC[1] + 1), holes=['straw_in'])], use='red'),
     step('Colour pink', 'Colour the middle of the strawberry pink. Colour the raspberry pink too.',
          [p.ring('pink', 'straw_in'), p.ring('pink', 'rasp')], use='pink'),
@@ -116,5 +116,5 @@ steps = [
 ]
 D = drawing('dx_yoghurt_y', 'y is for Yoghurt', 3, 15, 'things', ['Letters', 'Around the house'],
             'A bowl of yoghurt with fruit and a sprig of mint. The small letter y is hiding in the mint: it is the lines down the middle of the three leaves.',
-            steps, ['blue', 'red', 'pink', 'green'])
+            steps, ['yellow', 'blue', 'red', 'pink', 'green'])
 ok = finish('yoghurt', D, {'set': 'house-az', 'slot': 'y', 'kind': 'key', 'age_from': 5}, p)

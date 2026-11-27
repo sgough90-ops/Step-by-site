@@ -85,7 +85,7 @@ steps = [
     step('The ski', 'In front of the track draw a long thin ski that curls up at its tip. Join it to the nose with two lines close together.', p.step(5)),
     step('Seat, handlebar, windscreen', 'Draw a long seat on top. Draw a slanting line up from the body with a little sausage on top. Draw a tall pointed windscreen on the nose.', p.step(6)),
     step('Headlight and snow', 'Draw a small oval on the nose for the headlight. Draw three low bumps of snow underneath.', p.step(7)),
-    step('Colour red', 'Colour the back of the body red, as far as the line down the middle. Leave the nose white.', [p.face('red', (30, 52))], use='red'),
+    step('Colour orange', 'Colour the back of the body orange, as far as the line down the middle. Leave the nose white.', [p.face('orange', (30, 52))], use='orange'),
     step('Colour light blue', 'Colour the windscreen light blue.', [p.face('lblue', (71, 22))], use='lblue'),
     step('Colour black', 'Colour the track black, round the four wheels. Colour the seat and the handlebar black too.',
          [p.face('black', (23, YT + 1.6), holes=['wheel%d' % i for i in range(4)]), p.face('black', (30, DECK - 3)), p.ring('black', 'grip')], use='black'),
@@ -94,6 +94,6 @@ steps = [
     step('Colour yellow', 'Colour the headlight yellow.', [p.ring('yellow', 'lamp')], use='yellow'),
 ]
 D = drawing('dx_snowmobile_s', 's is for snowmobile', 3, 15, 'vehicles', ['Letters', 'Vehicles'],
-            'A red snowmobile on the snow. The small letter s is hiding at the front of its track: under the body, down the arm, and round the end of the track.',
-            steps, ['red', 'lblue', 'black', 'grey', 'yellow'])
+            'An orange snowmobile on the snow. The small letter s is hiding at the front of its track: under the body, down the arm, and round the end of the track.',
+            steps, ['orange', 'lblue', 'black', 'grey', 'yellow'])
 ok = finish('snowmobile', D, {'set': 'vehicles-az', 'slot': 's', 'kind': 'drive', 'age_from': 5}, p)
