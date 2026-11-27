@@ -1,10 +1,12 @@
-"""a is for armadillo (dx_armadillo_a), Animals a to z, slot a (21 Nov 2026).
+"""a is for armadillo (dx_armadillo_a), Animals a to z, slot a (21 Nov 2026). 27 Nov 2026 (step 1 review, round 2, live):
+its head is round, so step 1 is a normal a (see "1: the a").
+
 From Claude's sketch 'armadillo (out for a walk)' (round 2 of his armadillo pictures), which follows his picture of an
 armadillo with a small a in it: the a's round is its head, and the a's stick is the line behind its head where the shell
 starts. A later step carries the stick on down as the front of its front leg. Shell brown; head, legs, paws and tail light
 brown; ears and nose pink. Sketch coordinates (200 x 200) go onto the app's paper by T() (0.48 scale).
 """
-import json, os, re
+import json, math, os, re
 from r5kit import *
 
 PA = Paper(0.48, 1.6, 0.4)
@@ -47,10 +49,16 @@ def lowest_at_x(ch, x):
 
 
 # ---- 1: the a ----
-ROUND = chain('M64,88 C52,80 32,84 27,100 C22,116 40,128 64,124')
+# 27 Nov 2026 (step 1 review, round 2): the a's round was a flat-topped egg that left the stick at a sharp corner, so
+# step 1 looked like a back-to-front D. Now the round is a circle (the head is round), level with the top of the stick,
+# and it meets the stick at two points, as the golf cart's g does.
+HC, HR = (47.0, 106.0), 18.5                      # the head: centre and radius (sketch units)
+DY = math.sqrt(HR ** 2 - (64 - HC[0]) ** 2)       # where the circle meets the stick, above and below its middle
 ST, RB, SB = T(64, 88), T(64, 124), T(64, 138)
-assert ROUND[0].a == ST and ROUND[-1].b == RB
-stick = Seg(ST, RB)
+J1, J2 = T(64, HC[1] - DY), T(64, HC[1] + DY)
+A0 = math.degrees(math.atan2(-DY, 64 - HC[0]))
+ROUND = arc(*T(*HC), HR * 0.48, HR * 0.48, A0, -360 - A0, start=J1, end=J2)   # from the top join, over the top, round to the bottom join
+STICK = [Seg(ST, J1), Seg(J1, J2), Seg(J2, RB)]
 stick_more = Seg(RB, SB)
 
 # ---- the shell (from the top of the stick, over its back and underneath, back to the bottom of the a) ----
@@ -70,8 +78,11 @@ bands = [Seg(a, P(a[0] + (b[0] - a[0]) / 3 + 1.2, a[1] + (b[1] - a[1]) / 3), P(a
 scales = [dot(*T(x, y), w=1.5) for x, y in [(76, 82), (84, 96), (80, 112), (90, 84), (146, 86), (150, 104), (142, 112)]]
 
 # ---- ears and the far front leg meet the round: cut it there ----
-e_pts = [P(*ROUND[0].at(t)) for t in (0.55, 0.4, 0.25, 0.1)]
-fl_pts = [P(*ROUND[1].at(t)) for t in (0.6, 0.8)]
+def on_head(x, below=False):
+    yy = math.sqrt(HR ** 2 - (x - HC[0]) ** 2)
+    return T(x, HC[1] + yy if below else HC[1] - yy)
+e_pts = [on_head(x) for x in (40.7, 47.2, 52.9, 59.2)]
+fl_pts = [on_head(x, True) for x in (39.2, 50.5)]
 ROUND, ex = cut_at_points(ROUND, e_pts + fl_pts)
 E1a, E1b, E2a, E2b, FL1, FL2 = ex
 ear1 = snap(chain('M40.7,85.6 C34,76 32,64 36,58 C44,60 48,72 47.2,84.2'), E1a, E1b)
@@ -114,7 +125,7 @@ freckles = [dot(*T(x, y), w=1.2) for x, y in [(48, 108), (51.5, 110.5), (45.5, 1
 
 steps = [
     step('Start with an a', 'Draw a small letter a: a round shape with a straight stick on its right. This a is hiding in the armadillo.',
-         [line(*ROUND), line(stick)]),
+         [line(*ROUND), line(*STICK)]),
     step('The shell', 'From the top of the stick, draw a big round shell over its back and underneath, back to the bottom of the a.',
          [line(*SHELL)]),
     step('Stripes', 'Draw five curved stripes across the middle of the shell, and some little dots at each end.',
@@ -134,8 +145,8 @@ steps = [
 
 # ---- colours ----
 nose_hole = d_fill(*nose)
-shell_fill = fill(BRN, *(SHELL + [stick.rev()]))
-head = fill(LB, *(ROUND + [stick.rev()]), cut=[nose_hole])
+shell_fill = fill(BRN, *(SHELL + rev(STICK)))
+head = fill(LB, *(ROUND + [Seg(J2, J1)]), cut=[nose_hole])
 def between(ch, p, q):
     return piece(ch, p, q)
 def leg_fill(e1, e2, paw_ring, top1, top2, base):

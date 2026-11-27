@@ -1,7 +1,8 @@
 """u is for urchin (dx_urchin_u), Animals a to z, slot u. From Claude's sketch 'Urchin (smiling)' (21 Nov 2026), which
 he picked, with the u's stick taken off at his word ("you dont need the little vertical stem").
+27 Nov 2026 (step 1 review, round 2, live): the body is narrower and taller, so the u has a normal shape (see below).
 
-The small u is the bottom half of the urchin's round body: down its left side, round the bottom and up its right side.
+The small u is the bottom of the urchin's body: down its left side, round the bottom and up its right side.
 The top of its body is a big curve from one end of the u to the other. Long pointed spikes stand all round it.
 Sketch coordinates (200 x 200) are turned into the app's 100 x 100 paper by T().
 """
@@ -14,17 +15,20 @@ def T(x, y):
 
 PURPLE, PINK = FILL['purple'], FILL['pink']
 
-# ---- the u (sketch: sides at x 48 and 152, straight from y 98 to 110, then a round bottom down to y 148) ----
-CX, CY, R = 100, 98, 52
-YS, RY = 110, 38
-uL = Seg(T(48, CY), T(48, YS))
-bowl = arc(*T(CX, YS), R * 0.5, RY * 0.5, 180, 0, start=T(48, YS), end=T(152, YS))     # round the bottom, left to right
-uR = Seg(T(152, YS), T(152, CY))
+# ---- the u (sketch: sides at x 56 and 144, straight from y 78 to 104, then a round bottom down to y 148) ----
+# 27 Nov 2026 (step 1 review, round 2): the u was 52 wide and 25 tall (twice as wide as it is tall), so step 1 looked
+# like a shallow bowl. The body is now narrower and taller (straight sides, a lower dome on top), so the u is 44 wide and
+# 35 tall. Was: sides at x 48 and 152, straight from y 98 to 110, round bottom to y 148, round top (radius 52).
+CX = 100
+R, CY, YS, RY, DRY = 44.0, 78.0, 104.0, 44.0, 30.0   # half-width, top of the sides, bottom of the sides, depth of the round bottom, height of the dome
+uL = Seg(T(CX - R, CY), T(CX - R, YS))
+bowl = arc(*T(CX, YS), R * 0.5, RY * 0.5, 180, 0, start=T(CX - R, YS), end=T(CX + R, YS))     # round the bottom, left to right
+uR = Seg(T(CX + R, YS), T(CX + R, CY))
 u_chain = [uL] + bowl + [uR]                         # from the top of the left side round to the top of the right side
 chain_ok(u_chain)
 
 # ---- the top of the body: from the right end of the u over the top to the left end ----
-dome = arc(*T(CX, CY), R * 0.5, R * 0.5, 0, -180, start=T(152, CY), end=T(48, CY))
+dome = arc(*T(CX, CY), R * 0.5, DRY * 0.5, 0, -180, start=T(CX + R, CY), end=T(CX - R, CY))
 chain_ok(dome)
 outline = u_chain + dome                             # the whole body, all the way round
 assert outline[-1].b == outline[0].a
@@ -88,7 +92,7 @@ u_mid = [u_chain[i].at(t) for _, (i, t), _ in u_plan]
 d_mid = [dome[i].at(t) for _, (i, t), _ in d_plan]
 u_chain, u_node = refine(u_chain, u_cuts)
 dome, d_node = refine(dome, d_cuts)
-BODY_C = T(CX, CY + 4)
+BODY_C = T(CX, (CY - DRY + YS + RY) / 2)
 
 
 def spikes(ch, node, tag, mids):
@@ -118,11 +122,21 @@ def q2c(p0, q, p1):
     c2 = (p1[0] + 2 / 3 * (q[0] - p1[0]), p1[1] + 2 / 3 * (q[1] - p1[1]))
     return Seg(T(*p0), T(*c1), T(*c2), T(*p1))
 
-eyeL = q2c((74, 96), (82, 86), (90, 96))
-eyeR = q2c((110, 96), (118, 86), (126, 96))
-smile = q2c((92, 108), (100, 116), (108, 108))
-SPOTS = [(74, 66), (100, 58), (126, 66), (64, 120), (136, 118), (86, 134), (112, 136), (60, 86), (140, 86)]
-
+MID = (CY - DRY + YS + RY) / 2                       # the middle of the body, top to bottom
+EY = MID - 2
+eyeL = q2c((CX - 22, EY), (CX - 14, EY - 10), (CX - 6, EY))
+eyeR = q2c((CX + 6, EY), (CX + 14, EY - 10), (CX + 22, EY))
+smile = q2c((CX - 8, EY + 12), (CX, EY + 20), (CX + 8, EY + 12))
+def inside(x, y, m=9):
+    if y <= CY:
+        return ((x - CX) / (R - m)) ** 2 + ((y - CY) / (DRY - m)) ** 2 < 1
+    if y <= YS:
+        return abs(x - CX) < R - m
+    return ((x - CX) / (R - m)) ** 2 + ((y - YS) / (RY - m)) ** 2 < 1
+SPOTS = [(CX - 24, CY - DRY * 0.45), (CX, CY - DRY * 0.7), (CX + 24, CY - DRY * 0.45),
+         (CX - R + 11, MID + 4), (CX + R - 11, MID + 4), (CX - 16, YS + RY * 0.55), (CX + 16, YS + RY * 0.55)]
+for x, y in SPOTS:
+    assert inside(x, y, 6), (x, y)
 steps = [
     step('Start with a u', 'Draw a small letter u: straight down, round the bottom and straight back up.', [line(*u_chain)]),
     step('The top', 'Join the two ends of the u with a big round curve over the top. Now it is a round body.', [line(*dome)]),
@@ -134,6 +148,6 @@ steps = [
     step('Colour pink', 'Colour all the spikes pink.', d_fills + u_fills, use='pink'),
 ]
 Pd = drawing('dx_urchin_u', 'u is for urchin', 2, 10, 'animals', ['Letters', 'Animals'],
-             'A happy sea urchin covered in long pointy spikes. The small letter u is hiding in it: it is the bottom half of its round body.',
+             'A happy sea urchin covered in long pointy spikes. The small letter u is hiding in it: it is the bottom of its body.',
              steps, ['purple', 'pink'])
 save('urchin', Pd, {'set': 'animals-az', 'slot': 'u', 'kind': 'swim', 'age_from': 4})
