@@ -7309,7 +7309,8 @@ window.SBCam={open:open,close:close};
       m.querySelector('[data-a="retry"]').onclick = function () { m.remove(); box.style.display = ''; shut.hidden = false; S.state = 'starting'; start(); };
       m.querySelector('input').onchange = function (e) {
         var f = e.target.files && e.target.files[0]; if (!f) return; var u = URL.createObjectURL(f), im = new Image();
-        im.onload = function () { busy.classList.add('on'); setTimeout(function () { SB.processImage(im).then(function (r) { URL.revokeObjectURL(u); close(); if (o.onPhoto) o.onPhoto(r); }); }, 30); };
+        im.onload = function () { setTimeout(function () { SB.processImage(im, { confirm: true, onRetake: function () { e.target.value = ''; e.target.click(); } }).then(function (r) { URL.revokeObjectURL(u); if (!r) return; close(); if (o.onPhoto) o.onPhoto(r); }).catch(function () { URL.revokeObjectURL(u); }); }, 30); };
+        im.onerror = function () { URL.revokeObjectURL(u); e.target.value = ''; SB.cantOpen(el); };
         im.src = u;
       };
       if (o.onError) o.onError(err);
@@ -7598,13 +7599,23 @@ window.SBCam={open:open,close:close};
     /* TEMP-UPLOAD: remove before launch */
     el.querySelector('.sbup input').onchange = function (e) {
       var f = e.target.files && e.target.files[0]; e.target.value = ''; if (!f) return; var u = URL.createObjectURL(f), im = new Image();
-      im.onload = function () { busy.classList.add('on'); setTimeout(function () { SB.processImage(im).then(function (r) { URL.revokeObjectURL(u); busy.classList.remove('on'); if (!r) return; close(); if (o.onPhoto) o.onPhoto(r); }).catch(function () { URL.revokeObjectURL(u); busy.classList.remove('on'); }); }, 30); };
+      var inp = e.target;
+      im.onload = function () { setTimeout(function () { SB.processImage(im, { confirm: true, onRetake: function () { inp.click(); } }).then(function (r) { URL.revokeObjectURL(u); if (!r) return; close(); if (o.onPhoto) o.onPhoto(r); }).catch(function () { URL.revokeObjectURL(u); }); }, 30); };
+      im.onerror = function () { URL.revokeObjectURL(u); SB.cantOpen(el); };
       im.src = u;
     };
     flipB.onclick = function () { S.facing = S.facing === 'environment' ? 'user' : 'environment'; S.quad = null; S.hist = []; start(); };
     api.setMirror = function (m) { S.mirror = !!m; layout(); };
     start();
     return api;
+  };
+  /* a picked file the browser can't open (e.g. HEIC on a Chromebook): say so instead of doing nothing */
+  SB.cantOpen = function (host) {
+    var m = document.createElement('div'); m.className = 'sbmsg';
+    m.innerHTML = '<div>' + IC.cam + '<span style="font-weight:700;font-size:15px;line-height:1.35">This photo can\u2019t be opened here. Try another, or save it as a JPEG.</span>' +
+      '<button class="sbpick" style="border:0;font:inherit;font-weight:900">OK</button></div>';
+    (host || document.body).appendChild(m);
+    m.querySelector('button').onclick = function () { m.remove(); };
   };
   SB.close = function () { if (CUR) CUR.close(); };
   SB._t = { Finder: Finder, refineQuad: refineQuad, warp: warp, enhance: enhance, mergePages: mergePages, buildPage: buildPage, pageSize: pageSize, grayOf: grayOf, detectOn: detectOn, homography: homography };
