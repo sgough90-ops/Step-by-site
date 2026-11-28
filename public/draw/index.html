@@ -7243,7 +7243,12 @@ window.SBCam={open:open,close:close};
     '#sbscan .sbmsg{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;z-index:6}' +
     '#sbscan .sbmsg>div{background:#fff;border-radius:24px;padding:22px;max-width:300px;display:flex;flex-direction:column;align-items:center;gap:14px;color:#081130;font-weight:800;text-align:center}' +
     '#sbscan .sbpick{display:inline-flex;align-items:center;gap:8px;border-radius:999px;background:#ffc531;color:#081130;padding:10px 20px;box-shadow:0 5px 0 #c79410;cursor:pointer;font-weight:900}' +
-    '#sbscan .sbpick input{display:none}';
+    '#sbscan .sbpick input{display:none}' +
+    /* TEMP-UPLOAD (28 Nov 2026, testing only): a "choose a photo" button beside the shutter, so a Chromebook or computer can
+       upload a saved picture instead of only using the camera. REMOVE BEFORE LAUNCH: delete this CSS, the .sbup label in
+       SB.open and its onchange handler. */
+    '#sbscan .sbup{position:absolute;left:max(24px,calc(50% - 150px));bottom:calc(max(22px,env(safe-area-inset-bottom,0px)) + 18px);width:60px;height:60px;border-radius:50%;background:#fff;display:flex;align-items:center;justify-content:center;box-shadow:0 3px 0 rgba(0,0,0,.25);cursor:pointer;z-index:3}' +
+    '#sbscan .sbup svg{width:32px;height:32px}#sbscan .sbup input{display:none}';
   var IC = {
     back: '<svg viewBox="0 0 24 24" fill="none" stroke="#081130" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M15 5l-7 7 7 7"/></svg>',
     flip: '<svg viewBox="0 0 24 24" fill="none" stroke="#081130" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M4 9h11l-3-3M20 15H9l3 3"/></svg>',
@@ -7274,7 +7279,10 @@ window.SBCam={open:open,close:close};
     var el = document.createElement('div'); el.id = 'sbscan';
     el.innerHTML = '<div class="sbv"><video playsinline muted autoplay></video><canvas class="sbo"></canvas></div>' +
       '<div class="sbtop"><button class="sbr" data-a="back" aria-label="Back">' + IC.back + '</button><button class="sbr" data-a="flip" aria-label="Switch camera" hidden>' + IC.flip + '</button></div>' +
-      '<button class="sbshut" aria-label="Take the photo">' + shutterSVG(0, false) + '</button><div class="sbflash"></div><div class="sbbusy"><i></i></div>';
+      '<button class="sbshut" aria-label="Take the photo">' + shutterSVG(0, false) + '</button>' +
+      /* TEMP-UPLOAD: remove before launch */
+      '<label class="sbup" aria-label="Choose a photo"><svg viewBox="0 0 24 24" fill="none" stroke="#081130" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="3"/><circle cx="9" cy="10" r="2"/><path d="M21 16l-5-5-9 9"/></svg><input type="file" accept="image/*"></label>' +
+      '<div class="sbflash"></div><div class="sbbusy"><i></i></div>';
     (o.parent || document.getElementById('app') || document.body).appendChild(el);
     var box = el.querySelector('.sbv'), video = el.querySelector('video'), ov = el.querySelector('canvas.sbo'), og = ov.getContext('2d');
     var shut = el.querySelector('.sbshut'), flipB = el.querySelector('[data-a="flip"]'), flash = el.querySelector('.sbflash'), busy = el.querySelector('.sbbusy');
@@ -7587,6 +7595,12 @@ window.SBCam={open:open,close:close};
     document.addEventListener('keydown', onKey, true);
     var closeOld = close; close = function () { document.removeEventListener('keydown', onKey, true); closeOld(); }; api.close = close;
     el.querySelector('[data-a="back"]').onclick = function () { close(); if (o.onCancel) o.onCancel(); };
+    /* TEMP-UPLOAD: remove before launch */
+    el.querySelector('.sbup input').onchange = function (e) {
+      var f = e.target.files && e.target.files[0]; e.target.value = ''; if (!f) return; var u = URL.createObjectURL(f), im = new Image();
+      im.onload = function () { busy.classList.add('on'); setTimeout(function () { SB.processImage(im).then(function (r) { URL.revokeObjectURL(u); busy.classList.remove('on'); if (!r) return; close(); if (o.onPhoto) o.onPhoto(r); }).catch(function () { URL.revokeObjectURL(u); busy.classList.remove('on'); }); }, 30); };
+      im.src = u;
+    };
     flipB.onclick = function () { S.facing = S.facing === 'environment' ? 'user' : 'environment'; S.quad = null; S.hist = []; start(); };
     api.setMirror = function (m) { S.mirror = !!m; layout(); };
     start();
