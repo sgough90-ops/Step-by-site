@@ -1,9 +1,8 @@
 """J is for Jumbo jet, new version (dx_jumbojet_j, the same key as the live one), Vehicles A to Z, slot J (28 Nov 2026).
 From his pick on 28 Nov: number 4 on the sheet "J is for Jumbo jet" (the chubby jet with the purple tail fin, the orange
 tummy and the grey engine), "but without the cloud and the star".
-STATUS: WAITING FOR HIS YES. Not in the app page: the live jumbo jet (11 steps, red fin) is still the one in the page and
-has no build script. This one passes all 9 checks. To put it live when he says so: python3 build_jumbojet.py, then
-python3 reapply.py ../../public/draw/index.html jumbojet (same key, so the live one is replaced), then apptest.py.
+STATUS: LIVE since 28 Nov 2026, 17:31 (he said "add plane"). It replaced the old jumbo jet (11 steps, red fin),
+which had no build script. Same key, put in with reapply.py.
 
 A chubby jumbo jet facing left. The J is where it is in the live drawing: its straight line is the back edge of the
 tail fin and the back of the jet; its hook is the round back corner and a short stretch of the underside, stopping where
