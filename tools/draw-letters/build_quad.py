@@ -12,8 +12,9 @@ that wheel's four long lines (the one at the bottom right).
 The other three long lines are each two lines, a spoke and a groove, that stop at the rim from either side at the very
 same spot. So no line goes through the Q, but lines do meet it from both sides at one spot: that is what he asked for
 ("as if it's one long line"), and he was told it goes against the old rule. No dust.
-The body is purple, as in the sketch he picked (it was green in the app). Written in the sketch's numbers with vkit;
-the Pic moves it onto the paper.
+The body is green, his pick in the colour changes of 27 Nov. (The sketch he picked was purple and it went live purple
+on 28 Nov at 16:15; he asked for that to be changed the same afternoon.) Written in the sketch's numbers with vkit; the
+Pic moves it onto the paper.
 
     python3 build_quad.py
 """
@@ -25,7 +26,7 @@ FC, FR = (26.0, 71.0), 12.5                  # front wheel
 RIM, HUB = 0.62, 0.19                        # the rim and the little middle, as parts of the wheel's size
 ANG = (45, 135, 225, 315)                    # the four long lines; the one at 45 (bottom right) is the Q's tail
 FG, RG = 16.0, 18.0                          # the mudguards: round the wheels with a gap
-BODY = 'purple'
+BODY = 'green'
 
 
 def at(c, r, a):
