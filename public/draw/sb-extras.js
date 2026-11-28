@@ -138,6 +138,7 @@ var st=document.createElement('style');st.id='sbx1112';st.textContent=[
 '#mdxwin{position:fixed;inset:0;z-index:96;background:rgba(8,17,48,.74);display:flex;align-items:center;justify-content:center;animation:fade .2s both;cursor:pointer}',
 '#mdxwin .w{position:relative;width:min(70vw,300px);aspect-ratio:3/4;background:#fff;border-radius:28px;box-shadow:0 8px 0 var(--pd,#c79410);display:flex;align-items:center;justify-content:center;padding:18px 18px 80px;animation:pop .45s cubic-bezier(.3,1.5,.5,1) both}',
 '#mdxwin .w>img{max-width:100%;max-height:100%;object-fit:contain}',
+'#mdxwin .w>img.ph{width:100%;height:100%;object-fit:cover;border-radius:16px}',
 '#mdxwin .w .sbbd{position:absolute;left:50%;bottom:34px;transform:translateX(-50%);width:44%}#mdxwin .w .sbbd svg{display:block;width:100%;height:auto}',
 '#mdxwin .md{position:absolute;left:50%;top:-46px;width:96px;margin-left:-48px;animation:mdxpop .75s cubic-bezier(.3,1.6,.5,1) .3s both}#mdxwin .md svg{display:block;width:100%;height:auto}',
 '#mdxwin .wt{width:min(56vw,230px);animation:mdxpop .8s cubic-bezier(.3,1.6,.5,1) .1s both}#mdxwin .wt svg{display:block;width:100%;height:auto}',
@@ -339,16 +340,19 @@ document.addEventListener('click',function(e){var t=e.target&&e.target.closest&&
 window.addEventListener('resize',refit);
 
 /* the medal moment: when a new photo earns a set its next medal */
-function celebrate(c,cat,l,all){var w=G('mdxwin');if(w)w.remove();w=document.createElement('div');w.id='mdxwin';w.setAttribute('role','dialog');
+function celebrate(c,cat,l,all,rec){var w=G('mdxwin');if(w)w.remove();w=document.createElement('div');w.id='mdxwin';w.setAttribute('role','dialog');
+ /* 28 Nov 2026: the medal shows the child's photo that just earned it, not the set's cover picture */
+ var pu=null;try{if(rec&&rec.blob)pu=URL.createObjectURL(rec.blob)}catch(e){}
  if(all){w.setAttribute('aria-label','Trophy');w.innerHTML='<div class="wt">'+IC.cup+'</div>'}
- else{w.setAttribute('aria-label',['','Bronze','Silver','Gold'][l]+' medal');w.innerHTML='<div class="w" style="--pd:'+cat.d+'"><img src="img/'+c.cv+'.webp" alt=""><span class="sbbd">'+BADGE[c.set]+'</span><span class="md">'+medal(l)+'</span></div>'}
- w.onclick=function(){w.remove()};document.body.appendChild(w);try{if(has('confetti'))confetti()}catch(e){}
- setTimeout(function(){if(w.parentNode)w.remove()},3800)}
+ else{w.setAttribute('aria-label',['','Bronze','Silver','Gold'][l]+' medal');w.innerHTML='<div class="w" style="--pd:'+cat.d+'"><img src="'+(pu||'img/'+c.cv+'.webp')+'" alt=""'+(pu?' class="ph"':'')+'><span class="sbbd">'+BADGE[c.set]+'</span><span class="md">'+medal(l)+'</span></div>'}
+ function done(){if(w.parentNode)w.remove();if(pu){try{URL.revokeObjectURL(pu)}catch(e){}pu=null}}
+ w.onclick=done;document.body.appendChild(w);try{if(has('confetti'))confetti()}catch(e){}
+ setTimeout(done,3800)}
 function hookPut(){var M=window.__showTest&&window.__showTest.makes;if(!M)return false;if(M.__medal)return true;M.__medal=1;var put=M.put;
  M.put=function(rec){var self=this,args=arguments,info=isPhoto(rec)&&rec.key?colOfKey(rec.key):null;if(!info)return put.apply(self,args);
   return M.all().then(function(a){var before=keysOf(a),after=keysOf(a.concat([rec])),l0=level(info.c,countIn(info.c,before)),l1=level(info.c,countIn(info.c,after));
    return Promise.resolve(put.apply(self,args)).then(function(v){if(l1>l0){var all=true;sets().forEach(function(cat){cat.cols.forEach(function(c){if(level(c,countIn(c,after))<3)all=false})});
-     setTimeout(function(){celebrate(info.c,info.cat,l1,all&&l1===3)},700)}return v})},function(){return put.apply(self,args)})};
+     setTimeout(function(){celebrate(info.c,info.cat,l1,all&&l1===3,rec)},700)}return v})},function(){return put.apply(self,args)})};
  return true}
 if(!hookPut()){var hp=0,ht=setInterval(function(){if(hookPut()||++hp>40)clearInterval(ht)},250)}
 
